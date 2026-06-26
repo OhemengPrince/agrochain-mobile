@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 interface StarRatingProps {
   rating: number;
@@ -15,6 +15,7 @@ export default function StarRating({
   size = 20,
   onChange,
 }: StarRatingProps) {
+  const { colors } = useTheme();
   const stars = Array.from({ length: maxStars }, (_, index) => index + 1);
 
   return (

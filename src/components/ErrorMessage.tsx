@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeColors } from '../context/ThemeContext';
 
 interface ErrorMessageProps {
   message?: string | null;
 }
 
 export default function ErrorMessage({ message }: ErrorMessageProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   if (!message) return null;
 
   return (
@@ -18,23 +22,25 @@ export default function ErrorMessage({ message }: ErrorMessageProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FDECEA',
-    borderRadius: 12,
-    padding: 12,
-    marginVertical: 8,
-  },
-  icon: {
-    marginRight: 8,
-    marginTop: 1,
-  },
-  text: {
-    flex: 1,
-    color: colors.errorRed,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: '#FDECEA',
+      borderRadius: 12,
+      padding: 12,
+      marginVertical: 8,
+    },
+    icon: {
+      marginRight: 8,
+      marginTop: 1,
+    },
+    text: {
+      flex: 1,
+      color: colors.errorRed,
+      fontSize: 13,
+      fontWeight: '500',
+    },
+  });
+}

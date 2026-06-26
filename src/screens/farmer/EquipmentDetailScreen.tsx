@@ -5,7 +5,8 @@ import { FarmerStackParamList, Equipment } from '../../types';
 import { getEquipmentById } from '../../api/equipmentApi';
 import { createBooking } from '../../api/bookingApi';
 import { formatCurrency } from '../../utils/formatters';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
@@ -20,6 +21,8 @@ function todayPlusDays(days: number): string {
 }
 
 export default function EquipmentDetailScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { equipmentId } = route.params;
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,55 +108,57 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  image: {
-    width: '100%',
-    height: 220,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.lightGray,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    color: colors.gray,
-  },
-  body: {
-    padding: 18,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-  },
-  owner: {
-    fontSize: 13,
-    color: colors.gray,
-    marginTop: 2,
-    marginBottom: 6,
-  },
-  rate: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primaryGreen,
-    marginTop: 8,
-  },
-  location: {
-    fontSize: 13,
-    color: colors.gray,
-    marginTop: 4,
-  },
-  description: {
-    fontSize: 14,
-    color: colors.darkText,
-    marginTop: 14,
-    lineHeight: 20,
-  },
-  button: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    image: {
+      width: '100%',
+      height: 220,
+    },
+    imagePlaceholder: {
+      backgroundColor: colors.inputBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    placeholderText: {
+      color: colors.secondaryText,
+    },
+    body: {
+      padding: 18,
+    },
+    name: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    owner: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 2,
+      marginBottom: 6,
+    },
+    rate: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+      marginTop: 8,
+    },
+    location: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+    description: {
+      fontSize: 14,
+      color: colors.text,
+      marginTop: 14,
+      lineHeight: 20,
+    },
+    button: {
+      marginTop: 24,
+    },
+  });
+}

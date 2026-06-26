@@ -7,29 +7,32 @@ import { OwnerStackParamList, Equipment, Booking } from '../../types';
 import { getMyListings } from '../../api/equipmentApi';
 import { getIncomingBookings } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency } from '../../utils/formatters';
-import { colors } from '../../constants/colors';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
 
-function bookingStatusMeta(status: Booking['status']): { color: string; background: string } {
+function bookingStatusMeta(status: Booking['status'], colors: ThemeColors): { color: string; background: string } {
   switch (status) {
     case 'CONFIRMED':
     case 'COMPLETED':
-      return { color: colors.statusGreen, background: colors.statusGreenLight };
+      return { color: colors.primaryGreen, background: colors.lightGreen };
     case 'CANCELLED':
     case 'REJECTED':
       return { color: colors.errorRed, background: '#FDECEA' };
     default:
-      return { color: colors.statusAmber, background: colors.statusAmberLight };
+      return { color: colors.accentAmber, background: colors.lightAmber };
   }
 }
 
 export default function OwnerDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [listings, setListings] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,15 +92,15 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <View style={[styles.statIconWrap, { backgroundColor: colors.statusBlueLight }]}>
-            <Ionicons name="construct" size={18} color={colors.statusBlue} />
+          <View style={[styles.statIconWrap, { backgroundColor: '#DBEAFE' }]}>
+            <Ionicons name="construct" size={18} color="#2563EB" />
           </View>
           <Text style={styles.statValue}>{listings.length}</Text>
           <Text style={styles.statLabel}>Listings</Text>
         </View>
         <View style={styles.statCard}>
-          <View style={[styles.statIconWrap, { backgroundColor: colors.statusAmberLight }]}>
-            <Ionicons name="time" size={18} color={colors.statusAmber} />
+          <View style={[styles.statIconWrap, { backgroundColor: colors.lightAmber }]}>
+            <Ionicons name="time" size={18} color={colors.accentAmber} />
           </View>
           <Text style={styles.statValue}>{pendingBookings.length}</Text>
           <Text style={styles.statLabel}>Pending</Text>
@@ -113,7 +116,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
       <Text style={styles.sectionTitle}>Recent Bookings</Text>
       {bookings.slice(0, 5).map((booking) => {
-        const meta = bookingStatusMeta(booking.status);
+        const meta = bookingStatusMeta(booking.status, colors);
         return (
           <View key={booking.id} style={styles.bookingRow}>
             <Text style={styles.bookingEquipment}>{booking.equipmentName}</Text>
@@ -128,7 +131,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -221,4 +225,5 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     fontSize: 13,
   },
-});
+  });
+}

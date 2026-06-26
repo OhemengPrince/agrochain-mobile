@@ -3,7 +3,8 @@ import { View, FlatList, StyleSheet, Text, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Equipment } from '../../types';
 import { getMyListings } from '../../api/equipmentApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import EquipmentCard from '../../components/EquipmentCard';
@@ -12,6 +13,8 @@ import AppButton from '../../components/AppButton';
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerEquipmentList'>;
 
 export default function MyListingsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [listings, setListings] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,20 +71,22 @@ export default function MyListingsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  headerRow: {
-    padding: 14,
-  },
-  list: {
-    paddingHorizontal: 14,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.gray,
-    marginTop: 40,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      padding: 14,
+    },
+    list: {
+      paddingHorizontal: 14,
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: colors.secondaryText,
+      marginTop: 40,
+    },
+  });
+}

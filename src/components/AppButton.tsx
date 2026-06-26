@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { colors } from '../constants/colors';
 import { buttonShadow } from '../constants/shadows';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeColors } from '../context/ThemeContext';
 
 interface AppButtonProps {
   title: string;
@@ -34,15 +35,24 @@ export default function AppButton({
   disabled = false,
   style,
 }: AppButtonProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const isDisabled = disabled || loading;
   const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+    ]).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
   };
 
   const handlePress = (event: GestureResponderEvent) => {
@@ -58,7 +68,7 @@ export default function AppButton({
 
   if (variant === 'primary') {
     return (
-      <Animated.View style={[{ transform: [{ scale }] }, style]}>
+      <Animated.View style={[{ transform: [{ scale }], opacity }, style]}>
         <Pressable onPress={handlePress} onPressIn={handlePressIn} onPressOut={handlePressOut} disabled={isDisabled}>
           <LinearGradient
             colors={['#2E8B4A', '#1A6B2E']}
@@ -72,7 +82,7 @@ export default function AppButton({
   }
 
   return (
-    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+    <Animated.View style={[{ transform: [{ scale }], opacity }, style]}>
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -91,34 +101,36 @@ export default function AppButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 54,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  primary: {
-    ...buttonShadow,
-  },
-  outline: {
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: colors.primaryGreen,
-  },
-  danger: {
-    backgroundColor: '#DC2626',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  text: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  outlineText: {
-    color: colors.primaryGreen,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    base: {
+      height: 54,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    primary: {
+      ...buttonShadow,
+    },
+    outline: {
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+    },
+    danger: {
+      backgroundColor: '#DC2626',
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    text: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    outlineText: {
+      color: colors.primaryGreen,
+    },
+  });
+}

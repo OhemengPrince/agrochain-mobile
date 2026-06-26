@@ -2,11 +2,15 @@
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
 export default function SplashScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.replace('Onboarding');
@@ -23,24 +27,26 @@ export default function SplashScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primaryGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.white,
-  },
-  tagline: {
-    fontSize: 14,
-    color: colors.lightGreen,
-    marginTop: 8,
-  },
-  spinner: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logo: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: colors.white,
+    },
+    tagline: {
+      fontSize: 14,
+      color: colors.lightGreen,
+      marginTop: 8,
+    },
+    spinner: {
+      marginTop: 24,
+    },
+  });
+}

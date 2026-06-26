@@ -9,7 +9,8 @@ import {
 import { getMyBookings, getIncomingBookings, confirmBooking, cancelBooking, completeBooking } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
@@ -19,6 +20,8 @@ type Props = NativeStackScreenProps<FarmerStackParamList | OwnerStackParamList, 
 export default function BookingDetailScreen({ route }: Props) {
   const { bookingId } = route.params;
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const isOwner = user?.role === 'EQUIPMENT_OWNER';
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,41 +131,43 @@ export default function BookingDetailScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-  },
-  status: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accentAmber,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  label: {
-    fontSize: 13,
-    color: colors.gray,
-  },
-  value: {
-    fontSize: 13,
-    color: colors.darkText,
-    fontWeight: '600',
-  },
-  button: {
-    marginTop: 16,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    status: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.accentAmber,
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    label: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    value: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    button: {
+      marginTop: 16,
+    },
+  });
+}

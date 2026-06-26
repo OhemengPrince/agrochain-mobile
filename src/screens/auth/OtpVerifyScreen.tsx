@@ -4,7 +4,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { verifyOtp } from '../../api/authApi';
 import { useAuth } from '../../hooks/useAuth';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import { USE_MOCK_DATA } from '../../config';
 import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -14,6 +15,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerify'>;
 export default function OtpVerifyScreen({ route, navigation }: Props) {
   const { email } = route.params;
   const { login } = useAuth();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,7 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
         value={otp}
         onChangeText={setOtp}
         placeholder="123456"
+        placeholderTextColor={colors.secondaryText}
         keyboardType="number-pad"
         maxLength={6}
       />
@@ -73,35 +77,38 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.darkText,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.gray,
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    height: 50,
-    paddingHorizontal: 12,
-    fontSize: 18,
-    textAlign: 'center',
-    letterSpacing: 4,
-  },
-  button: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 24,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginBottom: 24,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      height: 50,
+      paddingHorizontal: 12,
+      fontSize: 18,
+      textAlign: 'center',
+      letterSpacing: 4,
+      color: colors.text,
+    },
+    button: {
+      marginTop: 24,
+    },
+  });
+}

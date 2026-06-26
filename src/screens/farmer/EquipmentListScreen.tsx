@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
@@ -30,7 +31,99 @@ const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
   OTHER: require('../../assets/equipment/tractor.jpg'),
 };
 
+function usePressAnimation() {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
+    ]).start();
+  };
+
+  return {
+    scale,
+    opacity,
+    onPressIn: () => animateTo(0.97, 0.95, 100),
+    onPressOut: () => animateTo(1, 1, 150),
+    onFocus: () => animateTo(1.02, 1, 100),
+    onBlur: () => animateTo(1, 1, 150),
+  };
+}
+
+function EquipmentListCard({
+  item,
+  onPress,
+  styles,
+  colors,
+}: {
+  item: Equipment;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
+  const { scale, opacity, onPressIn, onPressOut, onFocus, onBlur } = usePressAnimation();
+
+  return (
+    <Animated.View style={[{ transform: [{ scale }], opacity }]}>
+      <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
+        <View style={styles.imageWrap}>
+          <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} />
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
+          </View>
+          <View style={[styles.availabilityBadge, !item.isAvailable && styles.unavailableBadge]}>
+            <Text style={styles.availabilityBadgeText}>
+              {item.isAvailable ? 'Available' : 'Unavailable'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          <Text style={styles.name}>{item.name}</Text>
+
+          <View style={styles.ownerRow}>
+            <View style={styles.ownerAvatar}>
+              <Text style={styles.ownerAvatarText}>{item.ownerName.charAt(0).toUpperCase()}</Text>
+            </View>
+            <Text style={styles.ownerName} numberOfLines={1}>{item.ownerName}</Text>
+            <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
+          </View>
+
+          <View style={styles.detailsRow}>
+            <View style={styles.detailItem}>
+              <Ionicons name="location" size={12} color={colors.secondaryText} />
+              <Text style={styles.detailText}>{item.district}, {item.region}</Text>
+            </View>
+            {item.averageRating !== undefined && (
+              <View style={styles.detailItem}>
+                <StarRating rating={item.averageRating} size={12} />
+                {item.totalReviews !== undefined && (
+                  <Text style={styles.detailText}>({item.totalReviews})</Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.priceRow}>
+            <View style={styles.priceWrap}>
+              <Text style={styles.priceValue}>GHS {item.dailyRate}</Text>
+              <Text style={styles.priceUnit}>/day</Text>
+            </View>
+            <TouchableOpacity style={styles.bookNowButton} onPress={onPress}>
+              <Text style={styles.bookNowText}>Book Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function EquipmentListScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [query, setQuery] = useState(route.params?.query ?? '');
   const [category, setCategory] = useState<EquipmentCategory | undefined>(undefined);
@@ -127,63 +220,12 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
           </View>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
+          <EquipmentListCard
+            item={item}
             onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
-          >
-            <View style={styles.imageWrap}>
-              <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} />
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
-              </View>
-              <View style={[styles.availabilityBadge, !item.isAvailable && styles.unavailableBadge]}>
-                <Text style={styles.availabilityBadgeText}>
-                  {item.isAvailable ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.body}>
-              <Text style={styles.name}>{item.name}</Text>
-
-              <View style={styles.ownerRow}>
-                <View style={styles.ownerAvatar}>
-                  <Text style={styles.ownerAvatarText}>{item.ownerName.charAt(0).toUpperCase()}</Text>
-                </View>
-                <Text style={styles.ownerName} numberOfLines={1}>{item.ownerName}</Text>
-                <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
-              </View>
-
-              <View style={styles.detailsRow}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="location" size={12} color={colors.secondaryText} />
-                  <Text style={styles.detailText}>{item.district}, {item.region}</Text>
-                </View>
-                {item.averageRating !== undefined && (
-                  <View style={styles.detailItem}>
-                    <StarRating rating={item.averageRating} size={12} />
-                    {item.totalReviews !== undefined && (
-                      <Text style={styles.detailText}>({item.totalReviews})</Text>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.priceRow}>
-                <View style={styles.priceWrap}>
-                  <Text style={styles.priceValue}>GHS {item.dailyRate}</Text>
-                  <Text style={styles.priceUnit}>/day</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.bookNowButton}
-                  onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
-                >
-                  <Text style={styles.bookNowText}>Book Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
+            styles={styles}
+            colors={colors}
+          />
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No equipment found.</Text>}
@@ -192,7 +234,8 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -421,4 +464,5 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     marginTop: 40,
   },
-});
+  });
+}

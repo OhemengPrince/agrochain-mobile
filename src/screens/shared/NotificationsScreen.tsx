@@ -2,13 +2,16 @@
 import { View, FlatList, StyleSheet, Text, RefreshControl } from 'react-native';
 import { AppNotification } from '../../types';
 import { getNotifications, markAsRead, markAllRead } from '../../api/notificationApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import NotificationItem from '../../components/NotificationItem';
 import AppButton from '../../components/AppButton';
 
 export default function NotificationsScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,17 +87,19 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  headerRow: {
-    padding: 14,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.gray,
-    marginTop: 40,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      padding: 14,
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: colors.secondaryText,
+      marginTop: 40,
+    },
+  });
+}

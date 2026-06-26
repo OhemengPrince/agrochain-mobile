@@ -9,6 +9,9 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +55,40 @@ const SAMPLE_REVIEWS = [
   },
 ];
 
+const BIO_TEXT = 'Smallholder farmer from Kumasi specializing in maize and cassava farming 🌽';
+
+function PressableScale({
+  children,
+  style,
+  onPress,
+}: {
+  children: React.ReactNode;
+  style?: object;
+  onPress?: () => void;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
+    ]).start();
+  };
+
+  return (
+    <Animated.View style={[style, { transform: [{ scale }], opacity }]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => animateTo(0.97, 0.95, 100)}
+        onPressOut={() => animateTo(1, 1, 150)}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function FarmerProfileScreen(_props: Props) {
   const { user, logout } = useAuth();
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
@@ -62,6 +99,14 @@ export default function FarmerProfileScreen(_props: Props) {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownAnim = useRef(new Animated.Value(0)).current;
+
+  const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+
+  const logoutScale = useRef(new Animated.Value(1)).current;
 
   const loadData = useCallback(async () => {
     const [bookingsData, batchesData] = await Promise.all([getMyBookings(), getMyBatches()]);
@@ -96,6 +141,37 @@ export default function FarmerProfileScreen(_props: Props) {
     if (!result.canceled && result.assets[0]) {
       setAvatarUri(result.assets[0].uri);
     }
+  };
+
+  const openDropdown = () => {
+    setDropdownVisible(true);
+    Animated.timing(dropdownAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+  };
+
+  const closeDropdown = () => {
+    Animated.timing(dropdownAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setDropdownVisible(false);
+    });
+  };
+
+  const openPersonalInfo = () => {
+    closeDropdown();
+    setPersonalInfoVisible(true);
+    Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, damping: 18, mass: 0.9 }).start();
+  };
+
+  const closePersonalInfo = () => {
+    Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setPersonalInfoVisible(false);
+    });
+  };
+
+  const handleLogoutPressIn = () => {
+    Animated.spring(logoutScale, { toValue: 0.97, useNativeDriver: true, speed: 30 }).start();
+  };
+
+  const handleLogoutPressOut = () => {
+    Animated.spring(logoutScale, { toValue: 1, useNativeDriver: true, speed: 30 }).start();
   };
 
   const handleLogout = () => {
@@ -138,10 +214,7 @@ export default function FarmerProfileScreen(_props: Props) {
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
-            <TouchableOpacity
-              style={styles.settingsIconButton}
-              onPress={() => scrollRef.current?.scrollToEnd({ animated: true })}
-            >
+            <TouchableOpacity style={styles.settingsIconButton} onPress={openDropdown}>
               <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -163,240 +236,333 @@ export default function FarmerProfileScreen(_props: Props) {
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>FARMER</Text>
           </View>
-          <Text style={styles.locationText}>📍 {locationLabel}</Text>
-          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+
+          <View style={styles.bioRow}>
+            <Text style={styles.bioText}>{BIO_TEXT}</Text>
+            <TouchableOpacity onPress={() => showComingSoon('Edit bio')} hitSlop={8}>
+              <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.85)" />
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <PressableScale style={styles.statCard}>
             <Text style={styles.statValue}>{bookings.length}</Text>
             <Text style={styles.statLabel}>Rentals</Text>
-          </View>
-          <View style={styles.statCard}>
+          </PressableScale>
+          <PressableScale style={styles.statCard}>
             <Text style={[styles.statValue, styles.statValueAmber]}>4.8 ⭐</Text>
             <Text style={styles.statLabel}>Rating</Text>
-          </View>
-          <View style={styles.statCard}>
+          </PressableScale>
+          <PressableScale style={styles.statCard}>
             <Text style={styles.statValue}>{batches.length}</Text>
             <Text style={styles.statLabel}>Batches</Text>
-          </View>
+          </PressableScale>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <Ionicons name="person" size={16} color={colors.primaryGreen} />
-              <Text style={styles.cardHeaderText}>Personal Information</Text>
+        <View style={styles.premiumCardWrap}>
+          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+            <View style={styles.premiumHeaderRow}>
+              <View style={styles.premiumIconCircle}>
+                <Ionicons name="leaf" size={18} color={colors.primaryGreen} />
+              </View>
+              <Text style={styles.premiumHeaderText}>Farming Activity</Text>
             </View>
-            <TouchableOpacity style={styles.editButton} onPress={() => showComingSoon('Edit profile')}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📧 Email</Text>
-            <Text style={styles.infoValue}>{user.email}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📱 Phone</Text>
-            <Text style={styles.infoValue}>{user.phoneNumber}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📍 Location</Text>
-            <Text style={styles.infoValue}>{locationLabel}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={[styles.infoRow, styles.infoRowLast]}>
-            <Text style={styles.infoLabel}>🎂 Member Since</Text>
-            <Text style={styles.infoValue}>{memberSince}</Text>
-          </View>
+            <View style={styles.activityGrid}>
+              <PressableScale style={styles.activityBoxOuter}>
+                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                  <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
+                  <Text style={styles.activityLabel}>Equipment Rented</Text>
+                </LinearGradient>
+              </PressableScale>
+              <PressableScale style={styles.activityBoxOuter}>
+                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
+                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
+                  <Text style={styles.activityLabel}>Total Spent</Text>
+                </LinearGradient>
+              </PressableScale>
+              <PressableScale style={styles.activityBoxOuter}>
+                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                  <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
+                  <Text style={styles.activityLabel}>Produce Logged</Text>
+                </LinearGradient>
+              </PressableScale>
+              <PressableScale style={styles.activityBoxOuter}>
+                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
+                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSold)}</Text>
+                  <Text style={styles.activityLabel}>Total Sold</Text>
+                </LinearGradient>
+              </PressableScale>
+            </View>
+          </LinearGradient>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeaderLeft}>
-            <Ionicons name="leaf" size={16} color={colors.primaryGreen} />
-            <Text style={styles.cardHeaderText}>Farming Activity</Text>
-          </View>
-          <View style={styles.activityGrid}>
-            <View style={styles.activityBox}>
-              <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
-              <Text style={styles.activityLabel}>Equipment Rented</Text>
+        <View style={styles.premiumCardWrap}>
+          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+            <View style={styles.premiumHeaderRow}>
+              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                <Ionicons name="star" size={18} color={colors.accentAmber} />
+              </View>
+              <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
+              <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.activityBox}>
-              <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
-              <Text style={styles.activityLabel}>Total Spent</Text>
-            </View>
-            <View style={styles.activityBox}>
-              <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
-              <Text style={styles.activityLabel}>Produce Logged</Text>
-            </View>
-            <View style={styles.activityBox}>
-              <Text style={styles.activityValueGreen}>{formatCurrency(totalSold)}</Text>
-              <Text style={styles.activityLabel}>Total Sold</Text>
-            </View>
-          </View>
-        </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <Ionicons name="star" size={16} color={colors.accentAmber} />
-              <Text style={styles.cardHeaderText}>Reviews & Ratings</Text>
+            <View style={styles.ratingOverviewBlock}>
+              <Text style={styles.ratingBigNumber}>4.8</Text>
+              <View style={styles.ratingStarsRow}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
+                ))}
+              </View>
+              <Text style={styles.ratingCountText}>17 reviews</Text>
             </View>
-            <TouchableOpacity onPress={() => showComingSoon('All reviews')}>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.ratingOverviewRow}>
-            <Text style={styles.ratingBigNumber}>4.8</Text>
             <View style={styles.ratingBarsWrap}>
               {RATING_BREAKDOWN.map((row) => (
                 <View key={row.stars} style={styles.ratingBarRow}>
                   <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
                   <View style={styles.ratingBarTrack}>
-                    <View
-                      style={[
-                        styles.ratingBarFill,
-                        {
-                          width: `${row.percentage}%`,
-                          backgroundColor: row.percentage >= 50 ? colors.primaryGreen : colors.border,
-                        },
-                      ]}
+                    <LinearGradient
+                      colors={['#FF8F00', '#FFB300']}
+                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
                     />
                   </View>
                   <Text style={styles.ratingBarCount}>{row.count}</Text>
                 </View>
               ))}
             </View>
-          </View>
 
-          {SAMPLE_REVIEWS.map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
-              <View style={styles.reviewHeaderRow}>
-                <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+            {SAMPLE_REVIEWS.map((review) => (
+              <PressableScale key={review.id} style={styles.reviewCardOuter}>
+                <View style={styles.reviewCard}>
+                  <View style={styles.reviewHeaderRow}>
+                    <View style={styles.reviewAvatar}>
+                      <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+                    </View>
+                    <Text style={styles.reviewerName}>{review.reviewer}</Text>
+                    <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
+                  </View>
+                  <View style={styles.reviewStarsRow}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Ionicons
+                        key={i}
+                        name="star"
+                        size={12}
+                        color={i < review.rating ? colors.accentAmber : colors.border}
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
                 </View>
-                <View style={styles.reviewHeaderText}>
-                  <Text style={styles.reviewerName}>{review.reviewer}</Text>
-                  <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
-                </View>
-                <Text style={styles.reviewStars}>
-                  {'★'.repeat(review.rating)}
-                  {'☆'.repeat(5 - review.rating)}
-                </Text>
-              </View>
-              <Text style={styles.reviewComment}>{review.comment}</Text>
-            </View>
-          ))}
+              </PressableScale>
+            ))}
+          </LinearGradient>
         </View>
 
-        <View style={[styles.card, styles.settingsCard]}>
-          <View style={[styles.cardHeaderLeft, styles.settingsCardHeader]}>
-            <Ionicons name="settings" size={16} color={colors.primaryGreen} />
-            <Text style={styles.cardHeaderText}>Settings</Text>
+        <View style={styles.logoutGlowWrap}>
+          <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={handleLogout}
+              onPressIn={handleLogoutPressIn}
+              onPressOut={handleLogoutPressOut}
+              disabled={loggingOut}
+            >
+              <LinearGradient colors={['#DC2626', '#991B1B']} style={styles.logoutButton}>
+                {loggingOut ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <View style={styles.logoutIconCircle}>
+                      <Ionicons name="log-out" size={18} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.logoutButtonText}>Log Out</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </ScrollView>
+
+      <Modal visible={dropdownVisible} transparent animationType="none" onRequestClose={closeDropdown}>
+        <Pressable style={styles.dropdownOverlay} onPress={closeDropdown}>
+          <Animated.View
+            style={[
+              styles.dropdownCard,
+              {
+                opacity: dropdownAnim,
+                transform: [
+                  { translateY: dropdownAnim.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) },
+                  { scale: dropdownAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.dropdownItem} onPress={openPersonalInfo}>
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>👤</Text>
+                <Text style={styles.dropdownLabel}>Personal Information</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+
+            <View style={styles.dropdownItem}>
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>🌙</Text>
+                <Text style={styles.dropdownLabel}>Dark Mode</Text>
+              </View>
+              <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ true: colors.primaryGreen }} />
+            </View>
+            <View style={styles.dropdownDivider} />
+
+            <View style={styles.dropdownItem}>
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>🔔</Text>
+                <Text style={styles.dropdownLabel}>Notifications</Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ true: colors.primaryGreen }}
+              />
+            </View>
+            <View style={styles.dropdownDivider} />
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                closeDropdown();
+                showComingSoon('Change Password');
+              }}
+            >
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>🔒</Text>
+                <Text style={styles.dropdownLabel}>Change Password</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                closeDropdown();
+                showComingSoon('Language');
+              }}
+            >
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>🌍</Text>
+                <Text style={styles.dropdownLabel}>Language</Text>
+              </View>
+              <View style={styles.dropdownItemRight}>
+                <Text style={styles.dropdownValue}>English</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                closeDropdown();
+                showComingSoon('Rate the App');
+              }}
+            >
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>⭐</Text>
+                <Text style={styles.dropdownLabel}>Rate the App</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+
+            <TouchableOpacity
+              style={[styles.dropdownItem, styles.dropdownItemLast]}
+              onPress={() => {
+                closeDropdown();
+                showComingSoon('Contact Support');
+              }}
+            >
+              <View style={styles.dropdownItemLeft}>
+                <Text style={styles.dropdownEmoji}>📞</Text>
+                <Text style={styles.dropdownLabel}>Contact Support</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+            </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={personalInfoVisible} transparent animationType="none" onRequestClose={closePersonalInfo}>
+        <Animated.View
+          style={[
+            styles.sheetBackdrop,
+            { opacity: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) },
+          ]}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePersonalInfo} />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              transform: [
+                { translateY: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] }) },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.bottomSheetHandle} />
+          <Text style={styles.bottomSheetTitle}>Personal Information</Text>
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoRowLeft}>
+              <Ionicons name="mail" size={16} color={colors.primaryGreen} />
+              <Text style={styles.infoLabel}>Email</Text>
+            </View>
+            <Text style={styles.infoValue}>{user.email}</Text>
           </View>
-
-          <View style={styles.settingsRow}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="moon" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Dark Mode</Text>
+          <View style={styles.divider} />
+          <View style={styles.infoRow}>
+            <View style={styles.infoRowLeft}>
+              <Ionicons name="call" size={16} color={colors.primaryGreen} />
+              <Text style={styles.infoLabel}>Phone</Text>
             </View>
-            <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ true: colors.primaryGreen }} />
+            <Text style={styles.infoValue}>{user.phoneNumber}</Text>
           </View>
-          <View style={styles.settingsDivider} />
-
-          <View style={styles.settingsRow}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="notifications" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Notifications</Text>
+          <View style={styles.divider} />
+          <View style={styles.infoRow}>
+            <View style={styles.infoRowLeft}>
+              <Ionicons name="location" size={16} color={colors.primaryGreen} />
+              <Text style={styles.infoLabel}>Location</Text>
             </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ true: colors.primaryGreen }}
-            />
+            <Text style={styles.infoValue}>{locationLabel}</Text>
           </View>
-          <View style={styles.settingsDivider} />
-
-          <TouchableOpacity style={styles.settingsRow} onPress={() => showComingSoon('Change Password')}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="lock-closed" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Change Password</Text>
+          <View style={styles.divider} />
+          <View style={[styles.infoRow, styles.infoRowLast]}>
+            <View style={styles.infoRowLeft}>
+              <Ionicons name="calendar" size={16} color={colors.primaryGreen} />
+              <Text style={styles.infoLabel}>Member Since</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-          </TouchableOpacity>
-          <View style={styles.settingsDivider} />
-
-          <TouchableOpacity style={styles.settingsRow} onPress={() => showComingSoon('Language')}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="globe" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Language</Text>
-            </View>
-            <View style={styles.settingsRowRight}>
-              <Text style={styles.settingsValue}>English</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.settingsDivider} />
-
-          <TouchableOpacity style={styles.settingsRow} onPress={() => showComingSoon('Rate the App')}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="star" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Rate the App</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-          </TouchableOpacity>
-          <View style={styles.settingsDivider} />
-
-          <TouchableOpacity style={styles.settingsRow} onPress={() => showComingSoon('Contact Support')}>
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="call" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Contact Support</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-          </TouchableOpacity>
-          <View style={styles.settingsDivider} />
+            <Text style={styles.infoValue}>{memberSince}</Text>
+          </View>
 
           <TouchableOpacity
-            style={[styles.settingsRow, styles.settingsRowLast]}
-            onPress={() => showComingSoon('Privacy Policy')}
+            style={styles.sheetEditButton}
+            onPress={() => {
+              closePersonalInfo();
+              showComingSoon('Edit profile');
+            }}
           >
-            <View style={styles.settingsRowLeft}>
-              <View style={styles.settingsIconWrap}>
-                <Ionicons name="document-text" size={16} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.settingsLabel}>Privacy Policy</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+            <Text style={styles.sheetEditButtonText}>Edit</Text>
           </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={loggingOut}>
-          {loggingOut ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.logoutButtonText}>Log Out</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -408,9 +574,9 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     header: {
-      height: 220,
       paddingHorizontal: 20,
       paddingTop: 16,
+      paddingBottom: 28,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -481,15 +647,20 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
-    locationText: {
-      fontSize: 13,
-      color: '#FFFFFF',
-      marginTop: 8,
+    bioRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      marginTop: 12,
+      maxWidth: 280,
     },
-    memberSinceText: {
-      fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 2,
+    bioText: {
+      fontSize: 13,
+      fontStyle: 'italic',
+      color: 'rgba(255,255,255,0.85)',
+      textAlign: 'center',
+      flexShrink: 1,
     },
     statsRow: {
       flexDirection: 'row',
@@ -534,6 +705,9 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 6,
       elevation: 2,
     },
+    cardSpaced: {
+      marginTop: 20,
+    },
     cardHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -551,28 +725,65 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.primaryGreen,
     },
-    editButton: {
-      borderWidth: 1,
-      borderColor: colors.primaryGreen,
+    premiumCardWrap: {
+      marginHorizontal: 16,
+      marginTop: 20,
       borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      borderWidth: 1.5,
+      borderColor: 'rgba(26,107,46,0.15)',
+      backgroundColor: colors.card,
+      overflow: 'hidden',
+      shadowColor: '#1A6B2E',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 4,
     },
-    editButtonText: {
-      fontSize: 12,
+    premiumCardGradient: {
+      padding: 16,
+    },
+    premiumHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 14,
+    },
+    premiumIconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.lightGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    premiumIconCircleAmber: {
+      backgroundColor: colors.lightAmber,
+    },
+    premiumHeaderText: {
+      fontSize: 16,
       fontWeight: '700',
       color: colors.primaryGreen,
+      flex: 1,
+    },
+    seeAllWrap: {
+      paddingHorizontal: 2,
     },
     infoRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      paddingVertical: 12,
+      alignItems: 'center',
+      paddingVertical: 14,
+    },
+    infoRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     infoRowLast: {
-      paddingBottom: 0,
+      paddingBottom: 4,
     },
     infoLabel: {
-      fontSize: 12,
+      fontSize: 13,
       color: colors.secondaryText,
     },
     infoValue: {
@@ -590,81 +801,107 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       gap: 10,
     },
-    activityBox: {
+    activityBoxOuter: {
       width: '48%',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      padding: 12,
+    },
+    activityBox: {
+      borderRadius: 16,
+      padding: 16,
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(26,107,46,0.1)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      elevation: 2,
     },
     activityValueGreen: {
-      fontSize: 15,
+      fontSize: 20,
       fontWeight: '800',
-      color: colors.primaryGreen,
+      color: '#1A6B2E',
     },
     activityValueAmber: {
-      fontSize: 15,
+      fontSize: 20,
       fontWeight: '800',
-      color: colors.accentAmber,
+      color: '#FF8F00',
     },
     activityLabel: {
-      fontSize: 11,
-      color: colors.secondaryText,
+      fontSize: 12,
+      color: '#6B7280',
       marginTop: 4,
       textAlign: 'center',
     },
     seeAllText: {
       fontSize: 12,
       fontWeight: '700',
-      color: colors.primaryGreen,
+      color: colors.accentAmber,
     },
-    ratingOverviewRow: {
-      flexDirection: 'row',
+    ratingOverviewBlock: {
       alignItems: 'center',
-      gap: 16,
       marginBottom: 16,
     },
     ratingBigNumber: {
-      fontSize: 48,
+      fontSize: 56,
       fontWeight: '800',
-      color: colors.accentAmber,
+      color: '#FF8F00',
+      textShadowColor: 'rgba(255,143,0,0.3)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 6,
+    },
+    ratingStarsRow: {
+      flexDirection: 'row',
+      gap: 2,
+      marginTop: 4,
+    },
+    ratingCountText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
     },
     ratingBarsWrap: {
-      flex: 1,
-      gap: 4,
+      gap: 6,
+      marginBottom: 8,
     },
     ratingBarRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
     },
     ratingBarLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.secondaryText,
       width: 22,
     },
     ratingBarTrack: {
       flex: 1,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.border,
+      height: 8,
+      borderRadius: 10,
+      backgroundColor: '#F0F0F0',
       overflow: 'hidden',
     },
     ratingBarFill: {
-      height: 6,
-      borderRadius: 3,
+      height: 8,
+      borderRadius: 10,
     },
     ratingBarCount: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.secondaryText,
       width: 18,
       textAlign: 'right',
     },
+    reviewCardOuter: {
+      marginTop: 12,
+    },
     reviewCard: {
-      borderTopWidth: 1,
-      borderTopColor: colors.divider,
-      paddingTop: 12,
-      marginTop: 4,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
     },
     reviewHeaderRow: {
       flexDirection: 'row',
@@ -684,92 +921,165 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
-    reviewHeaderText: {
-      flex: 1,
-    },
     reviewerName: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
+      flex: 1,
     },
     reviewDate: {
       fontSize: 11,
       color: colors.secondaryText,
     },
-    reviewStars: {
-      fontSize: 12,
-      color: colors.accentAmber,
+    reviewStarsRow: {
+      flexDirection: 'row',
+      gap: 2,
+      marginTop: 6,
     },
     reviewComment: {
       fontSize: 13,
+      fontStyle: 'italic',
       color: colors.secondaryText,
       marginTop: 6,
       lineHeight: 18,
     },
-    settingsCard: {
-      padding: 8,
+    dropdownOverlay: {
+      flex: 1,
     },
-    settingsCardHeader: {
-      paddingHorizontal: 8,
-      paddingTop: 8,
+    dropdownCard: {
+      position: 'absolute',
+      top: 60,
+      right: 16,
+      width: 220,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      paddingVertical: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
     },
-    settingsRow: {
+    dropdownItem: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      height: 54,
-      paddingHorizontal: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
     },
-    settingsRowLast: {
-      height: 54,
-    },
-    settingsRowLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    settingsRowRight: {
+    dropdownItemLast: {},
+    dropdownItemLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      flexShrink: 1,
     },
-    settingsIconWrap: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: colors.lightGreen,
+    dropdownItemRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    dropdownEmoji: {
+      fontSize: 14,
+    },
+    dropdownLabel: {
+      fontSize: 13,
+      color: '#1C1C1C',
+      flexShrink: 1,
+    },
+    dropdownValue: {
+      fontSize: 12,
+      color: '#6B7280',
+    },
+    dropdownDivider: {
+      height: 1,
+      backgroundColor: '#F0F0F0',
+      marginHorizontal: 8,
+    },
+    sheetBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    bottomSheet: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 32,
+    },
+    bottomSheetHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    bottomSheetTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    sheetEditButton: {
+      marginTop: 20,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: colors.primaryGreen,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    settingsLabel: {
-      fontSize: 14,
-      color: colors.text,
+    sheetEditButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
-    settingsValue: {
-      fontSize: 13,
-      color: colors.secondaryText,
-    },
-    settingsDivider: {
-      height: 1,
-      backgroundColor: colors.divider,
-      marginLeft: 16,
+    logoutGlowWrap: {
+      marginHorizontal: 16,
+      marginTop: 24,
+      paddingBottom: 40,
+      shadowColor: '#DC2626',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 6,
     },
     logoutButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
-      backgroundColor: '#DC2626',
-      borderRadius: 16,
-      height: 54,
-      marginHorizontal: 16,
-      marginTop: 8,
-      marginBottom: 32,
+      height: 58,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+    },
+    logoutIconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'absolute',
+      left: 12,
     },
     logoutButtonText: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: '700',
       color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    logoutArrow: {
+      position: 'absolute',
+      right: 16,
     },
   });
 }

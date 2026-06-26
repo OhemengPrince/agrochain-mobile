@@ -5,7 +5,8 @@ import QRCode from 'react-native-qrcode-svg';
 import { FarmerStackParamList, ProduceBatch, BatchStatus } from '../../types';
 import { getBatchById, addProcessingStage, updateBatchStatus } from '../../api/produceApi';
 import { formatDate } from '../../utils/formatters';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
@@ -22,6 +23,8 @@ const NEXT_STATUS: Record<BatchStatus, BatchStatus | null> = {
 };
 
 export default function BatchDetailScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { batchId } = route.params;
   const [batch, setBatch] = useState<ProduceBatch | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,95 +171,99 @@ export default function BatchDetailScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-  },
-  variety: {
-    fontSize: 14,
-    color: colors.gray,
-    marginTop: 2,
-  },
-  status: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primaryGreen,
-    marginTop: 6,
-  },
-  qrContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  label: {
-    fontSize: 13,
-    color: colors.gray,
-  },
-  value: {
-    fontSize: 13,
-    color: colors.darkText,
-    fontWeight: '600',
-  },
-  button: {
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.darkText,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  emptyText: {
-    color: colors.gray,
-    fontSize: 13,
-  },
-  stageItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  stageName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.darkText,
-  },
-  stageDescription: {
-    fontSize: 13,
-    color: colors.gray,
-    marginTop: 2,
-  },
-  stageDate: {
-    fontSize: 11,
-    color: colors.gray,
-    marginTop: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 46,
-    fontSize: 15,
-    marginTop: 8,
-  },
-  textArea: {
-    height: 80,
-    paddingTop: 10,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    variety: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    status: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+      marginTop: 6,
+    },
+    qrContainer: {
+      alignItems: 'center',
+      marginVertical: 20,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    label: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    value: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    button: {
+      marginTop: 16,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginTop: 24,
+      marginBottom: 8,
+    },
+    emptyText: {
+      color: colors.secondaryText,
+      fontSize: 13,
+    },
+    stageItem: {
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    stageName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    stageDescription: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    stageDate: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 46,
+      fontSize: 15,
+      marginTop: 8,
+      color: colors.text,
+      backgroundColor: colors.inputBackground,
+    },
+    textArea: {
+      height: 80,
+      paddingTop: 10,
+    },
+  });
+}

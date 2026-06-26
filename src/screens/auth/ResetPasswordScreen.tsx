@@ -3,7 +3,8 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { verifyResetOtp, resetPassword } from '../../api/authApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
 
@@ -11,6 +12,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const { email } = route.params;
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +50,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         value={otp}
         onChangeText={setOtp}
         placeholder="123456"
+        placeholderTextColor={colors.secondaryText}
         keyboardType="number-pad"
         maxLength={6}
       />
@@ -56,7 +60,8 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         style={styles.input}
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+        placeholder="••••••••"
+        placeholderTextColor={colors.secondaryText}
         secureTextEntry
       />
 
@@ -65,40 +70,43 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.darkText,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.gray,
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.darkText,
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 46,
-    fontSize: 15,
-  },
-  button: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 24,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginBottom: 24,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 6,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 46,
+      fontSize: 15,
+      color: colors.text,
+    },
+    button: {
+      marginTop: 24,
+    },
+  });
+}

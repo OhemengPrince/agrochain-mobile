@@ -3,13 +3,16 @@ import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FarmerStackParamList } from '../../types';
 import { createBatch } from '../../api/produceApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'CreateBatch'>;
 
 export default function CreateBatchScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [cropName, setCropName] = useState('');
   const [variety, setVariety] = useState('');
   const [quantityKg, setQuantityKg] = useState('');
@@ -68,36 +71,40 @@ export default function CreateBatchScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.darkText,
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 46,
-    fontSize: 15,
-  },
-  button: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 6,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 46,
+      fontSize: 15,
+      color: colors.text,
+      backgroundColor: colors.inputBackground,
+    },
+    button: {
+      marginTop: 24,
+    },
+  });
+}

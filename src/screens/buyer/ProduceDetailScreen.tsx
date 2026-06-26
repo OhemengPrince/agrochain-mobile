@@ -5,7 +5,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BuyerStackParamList, ProduceBatch } from '../../types';
 import { getBatchById } from '../../api/produceApi';
 import { formatDate, formatCurrency, getBatchStatusMeta, getCropEmoji } from '../../utils/formatters';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -13,6 +14,8 @@ import ErrorMessage from '../../components/ErrorMessage';
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
 export default function ProduceDetailScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { batchId } = route.params;
   const [batch, setBatch] = useState<ProduceBatch | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,130 +135,132 @@ export default function ProduceDetailScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  headerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...cardShadow,
-  },
-  emojiWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: colors.lightGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  emoji: {
-    fontSize: 28,
-  },
-  headerBody: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  variety: {
-    fontSize: 14,
-    color: colors.secondaryText,
-    marginTop: 2,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  infoCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...cardShadow,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  label: {
-    fontSize: 13,
-    color: colors.secondaryText,
-  },
-  value: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 10,
-  },
-  emptyText: {
-    color: colors.secondaryText,
-    fontSize: 13,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  timelineDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primaryGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 1,
-  },
-  timelineBody: {
-    flex: 1,
-  },
-  stageName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  stageDescription: {
-    fontSize: 13,
-    color: colors.secondaryText,
-    marginTop: 2,
-  },
-  stageDate: {
-    fontSize: 11,
-    color: colors.secondaryText,
-    marginTop: 4,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 16,
+      paddingBottom: 32,
+    },
+    headerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      ...cardShadow,
+    },
+    emojiWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: colors.lightGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    emoji: {
+      fontSize: 28,
+    },
+    headerBody: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    variety: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 8,
+      marginTop: 8,
+    },
+    statusBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+    infoCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      ...cardShadow,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 9,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+      paddingBottom: 0,
+    },
+    label: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    value: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 10,
+    },
+    emptyText: {
+      color: colors.secondaryText,
+      fontSize: 13,
+    },
+    timelineItem: {
+      flexDirection: 'row',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    timelineDot: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      marginTop: 1,
+    },
+    timelineBody: {
+      flex: 1,
+    },
+    stageName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    stageDescription: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    stageDate: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+  });
+}

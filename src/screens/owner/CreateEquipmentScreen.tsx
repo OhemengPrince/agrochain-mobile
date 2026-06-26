@@ -1,11 +1,58 @@
-﻿import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+﻿import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, EquipmentCategory } from '../../types';
 import { createEquipment } from '../../api/equipmentApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
+
+function usePressAnimation() {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
+    ]).start();
+  };
+
+  return {
+    scale,
+    opacity,
+    onPressIn: () => animateTo(0.97, 0.95, 100),
+    onPressOut: () => animateTo(1, 1, 150),
+  };
+}
+
+function CategoryChip({
+  label,
+  active,
+  onPress,
+  styles,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
+
+  return (
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
+      <Pressable
+        style={[styles.chip, active && styles.chipActive]}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+      >
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'CreateEquipment'>;
 
@@ -20,6 +67,8 @@ const CATEGORIES: EquipmentCategory[] = [
 ];
 
 export default function CreateEquipmentScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [name, setName] = useState('');
   const [category, setCategory] = useState<EquipmentCategory>('TRACTOR');
   const [description, setDescription] = useState('');
@@ -54,20 +103,24 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <Text style={styles.label}>Equipment Name</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="John Deere Tractor" />
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder="John Deere Tractor"
+        placeholderTextColor={colors.secondaryText}
+      />
 
       <Text style={styles.label}>Category</Text>
       <View style={styles.chipRow}>
         {CATEGORIES.map((c) => (
-          <TouchableOpacity
+          <CategoryChip
             key={c}
-            style={[styles.chip, category === c && styles.chipActive]}
+            label={c.replace(/_/g, ' ')}
+            active={category === c}
             onPress={() => setCategory(c)}
-          >
-            <Text style={[styles.chipText, category === c && styles.chipTextActive]}>
-              {c.replace(/_/g, ' ')}
-            </Text>
-          </TouchableOpacity>
+            styles={styles}
+          />
         ))}
       </View>
 
@@ -77,6 +130,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         value={description}
         onChangeText={setDescription}
         placeholder="Describe the equipment's condition and capabilities"
+        placeholderTextColor={colors.secondaryText}
         multiline
       />
 
@@ -86,78 +140,94 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         value={dailyRate}
         onChangeText={setDailyRate}
         placeholder="150"
+        placeholderTextColor={colors.secondaryText}
         keyboardType="numeric"
       />
 
       <Text style={styles.label}>Region</Text>
-      <TextInput style={styles.input} value={region} onChangeText={setRegion} placeholder="Ashanti" />
+      <TextInput
+        style={styles.input}
+        value={region}
+        onChangeText={setRegion}
+        placeholder="Ashanti"
+        placeholderTextColor={colors.secondaryText}
+      />
 
       <Text style={styles.label}>District</Text>
-      <TextInput style={styles.input} value={district} onChangeText={setDistrict} placeholder="Kumasi" />
+      <TextInput
+        style={styles.input}
+        value={district}
+        onChangeText={setDistrict}
+        placeholder="Kumasi"
+        placeholderTextColor={colors.secondaryText}
+      />
 
       <AppButton title="List Equipment" onPress={handleCreate} loading={loading} style={styles.button} />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.darkText,
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 46,
-    fontSize: 15,
-  },
-  textArea: {
-    height: 90,
-    paddingTop: 10,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: {
-    backgroundColor: colors.lightGreen,
-    borderColor: colors.primaryGreen,
-  },
-  chipText: {
-    fontSize: 12,
-    color: colors.gray,
-  },
-  chipTextActive: {
-    color: colors.primaryGreen,
-    fontWeight: '600',
-  },
-  button: {
-    marginTop: 24,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 6,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 46,
+      fontSize: 15,
+      color: colors.text,
+    },
+    textArea: {
+      height: 90,
+      paddingTop: 10,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chipActive: {
+      backgroundColor: colors.lightGreen,
+      borderColor: colors.primaryGreen,
+    },
+    chipText: {
+      fontSize: 12,
+      color: colors.secondaryText,
+    },
+    chipTextActive: {
+      color: colors.primaryGreen,
+      fontWeight: '600',
+    },
+    button: {
+      marginTop: 24,
+    },
+  });
+}

@@ -1,7 +1,5 @@
 import React, { createContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const THEME_STORAGE_KEY = '@agrochain/theme';
+import { getTheme, saveTheme } from '../utils/storage';
 
 export interface ThemeColors {
   background: string;
@@ -76,7 +74,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        const stored = await getTheme();
         setIsDarkMode(stored === 'dark');
       } finally {
         setIsLoading(false);
@@ -87,7 +85,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => {
       const next = !prev;
-      AsyncStorage.setItem(THEME_STORAGE_KEY, next ? 'dark' : 'light').catch(() => {});
+      saveTheme(next ? 'dark' : 'light').catch(() => {});
       return next;
     });
   }, []);

@@ -3,7 +3,8 @@ import { View, Text, TextInput, StyleSheet, ScrollView, Switch } from 'react-nat
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Equipment } from '../../types';
 import { getEquipmentById, updateEquipment, deleteEquipment } from '../../api/equipmentApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -11,6 +12,8 @@ import ErrorMessage from '../../components/ErrorMessage';
 type Props = NativeStackScreenProps<OwnerStackParamList, 'EditEquipment'>;
 
 export default function EditEquipmentScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { equipmentId } = route.params;
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [name, setName] = useState('');
@@ -90,13 +93,19 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
       <ErrorMessage message={error} />
 
       <Text style={styles.label}>Equipment Name</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} />
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholderTextColor={colors.secondaryText}
+      />
 
       <Text style={styles.label}>Description</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
         value={description}
         onChangeText={setDescription}
+        placeholderTextColor={colors.secondaryText}
         multiline
       />
 
@@ -105,6 +114,7 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
         style={styles.input}
         value={dailyRate}
         onChangeText={setDailyRate}
+        placeholderTextColor={colors.secondaryText}
         keyboardType="numeric"
       />
 
@@ -129,46 +139,49 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.darkText,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.darkText,
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 46,
-    fontSize: 15,
-  },
-  textArea: {
-    height: 90,
-    paddingTop: 10,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  button: {
-    marginTop: 16,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 6,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 46,
+      fontSize: 15,
+      color: colors.text,
+    },
+    textArea: {
+      height: 90,
+      paddingTop: 10,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    button: {
+      marginTop: 16,
+    },
+  });
+}

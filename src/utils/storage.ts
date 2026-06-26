@@ -4,6 +4,7 @@ import { USE_MOCK_DATA } from '../config';
 
 const TOKEN_KEY = '@agrochain/token';
 const USER_KEY = '@agrochain/user';
+const THEME_KEY = '@agrochain/theme';
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -57,11 +58,26 @@ export async function removeUser(): Promise<void> {
   await AsyncStorage.removeItem(USER_KEY);
 }
 
+export async function saveTheme(theme: 'dark' | 'light'): Promise<void> {
+  if (USE_MOCK_DATA) {
+    memoryStore[THEME_KEY] = theme;
+    return;
+  }
+  await AsyncStorage.setItem(THEME_KEY, theme);
+}
+
+export async function getTheme(): Promise<string | null> {
+  if (USE_MOCK_DATA) {
+    return memoryStore[THEME_KEY] ?? null;
+  }
+  return AsyncStorage.getItem(THEME_KEY);
+}
+
 export async function clearAll(): Promise<void> {
   if (USE_MOCK_DATA) {
     delete memoryStore[TOKEN_KEY];
     delete memoryStore[USER_KEY];
     return;
   }
-  await AsyncStorage.removeMany([TOKEN_KEY, USER_KEY]);
+  await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
 }

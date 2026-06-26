@@ -4,7 +4,8 @@ import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-ca
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BuyerStackParamList } from '../../types';
 import { scanQrCode } from '../../api/produceApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import AppButton from '../../components/AppButton';
@@ -12,6 +13,8 @@ import AppButton from '../../components/AppButton';
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerQrScanner'>;
 
 export default function QrScannerScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -66,20 +69,22 @@ export default function QrScannerScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.darkText,
-  },
-  camera: {
-    flex: 1,
-  },
-  message: {
-    color: colors.darkText,
-    textAlign: 'center',
-    margin: 20,
-  },
-  button: {
-    margin: 20,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#1C1C1C',
+    },
+    camera: {
+      flex: 1,
+    },
+    message: {
+      color: colors.white,
+      textAlign: 'center',
+      margin: 20,
+    },
+    button: {
+      margin: 20,
+    },
+  });
+}

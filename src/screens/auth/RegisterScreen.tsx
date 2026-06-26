@@ -8,13 +8,15 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList, UserRole } from '../../types';
 import { register } from '../../api/authApi';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
@@ -28,7 +30,94 @@ const ROLE_OPTIONS: { value: UserRole; label: string; icon: keyof typeof Ionicon
   { value: 'BUYER', label: 'Buyer', icon: 'cart-outline' },
 ];
 
+function usePressAnimation() {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
+    ]).start();
+  };
+
+  return {
+    scale,
+    opacity,
+    onPressIn: () => animateTo(0.97, 0.95, 100),
+    onPressOut: () => animateTo(1, 1, 150),
+    onFocus: () => animateTo(1.02, 1, 100),
+    onBlur: () => animateTo(1, 1, 150),
+  };
+}
+
+function RoleCard({
+  option,
+  selected,
+  scaleAnim,
+  onPress,
+  styles,
+  colors,
+}: {
+  option: { value: UserRole; label: string; icon: keyof typeof Ionicons.glyphMap };
+  selected: boolean;
+  scaleAnim: Animated.Value;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateOpacityTo = (toOpacity: number, duration: number) => {
+    Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }).start();
+  };
+
+  return (
+    <Animated.View style={[styles.roleCardWrap, { transform: [{ scale: scaleAnim }], opacity }]}>
+      <Pressable
+        style={[styles.roleCard, selected && styles.roleCardSelected]}
+        onPress={onPress}
+        onPressIn={() => animateOpacityTo(0.95, 100)}
+        onPressOut={() => animateOpacityTo(1, 150)}
+      >
+        <Ionicons name={option.icon} size={28} color={selected ? colors.white : colors.secondaryText} />
+        <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>{option.label}</Text>
+        {selected && <View style={styles.roleGoldBar} />}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function RegisterButton({
+  loading,
+  onPress,
+  styles,
+  colors,
+}: {
+  loading: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
+  const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
+
+  return (
+    <Animated.View
+      style={[styles.registerButtonWrap, loading && styles.registerButtonDisabled, { transform: [{ scale }], opacity }]}
+    >
+      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={loading}>
+        <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.registerButton}>
+          <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
+          {!loading && <Ionicons name="checkmark-circle" size={20} color={colors.white} />}
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function RegisterScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -253,26 +342,15 @@ export default function RegisterScreen({ navigation }: Props) {
           {ROLE_OPTIONS.map((option, index) => {
             const selected = role === option.value;
             return (
-              <Animated.View
+              <RoleCard
                 key={option.value}
-                style={[styles.roleCardWrap, { transform: [{ scale: roleScaleAnims[index] }] }]}
-              >
-                <TouchableOpacity
-                  style={[styles.roleCard, selected && styles.roleCardSelected]}
-                  onPress={() => setRole(option.value)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons
-                    name={option.icon}
-                    size={28}
-                    color={selected ? colors.white : colors.secondaryText}
-                  />
-                  <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
-                    {option.label}
-                  </Text>
-                  {selected && <View style={styles.roleGoldBar} />}
-                </TouchableOpacity>
-              </Animated.View>
+                option={option}
+                selected={selected}
+                scaleAnim={roleScaleAnims[index]}
+                onPress={() => setRole(option.value)}
+                styles={styles}
+                colors={colors}
+              />
             );
           })}
         </View>
@@ -291,17 +369,7 @@ export default function RegisterScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleRegister}
-          disabled={loading}
-          style={[styles.registerButtonWrap, loading && styles.registerButtonDisabled]}
-        >
-          <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.registerButton}>
-            <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
-            {!loading && <Ionicons name="checkmark-circle" size={20} color={colors.white} />}
-          </LinearGradient>
-        </TouchableOpacity>
+        <RegisterButton loading={loading} onPress={handleRegister} styles={styles} colors={colors} />
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
@@ -314,280 +382,282 @@ export default function RegisterScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F4F3',
-  },
-  hero: {
-    height: SCREEN_HEIGHT * 0.28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 40,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  heroContent: {
-    alignItems: 'center',
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  brandEmoji: {
-    fontSize: 16,
-  },
-  brandText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFD700',
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.white,
-    marginTop: 8,
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    color: colors.white,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 40,
-  },
-  sectionLabelWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 0,
-    marginBottom: 14,
-    marginTop: 8,
-  },
-  sectionLabelText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primaryGreen,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  sectionLabelLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.primaryGreen,
-    opacity: 0.3,
-    marginLeft: 12,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F7F2',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 16,
-    height: 56,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-    shadowColor: 'rgba(0,0,0,0.06)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  inputWrapFocused: {
-    borderColor: colors.primaryGreen,
-  },
-  inputWrapShort: {
-    height: 48,
-  },
-  accentBar: {
-    position: 'absolute',
-    left: 0,
-    top: '20%',
-    width: 3,
-    height: '60%',
-    borderRadius: 2,
-    backgroundColor: colors.primaryGreen,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-  },
-  phonePrefixBox: {
-    backgroundColor: colors.white,
-    borderRightWidth: 1,
-    borderRightColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 4,
-  },
-  phonePrefixText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.primaryGreen,
-  },
-  phoneInput: {
-    marginLeft: 8,
-  },
-  eyeButton: {
-    padding: 6,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  half: {
-    flex: 1,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  roleCardWrap: {
-    width: '30%',
-    height: 90,
-  },
-  roleCard: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  roleCardSelected: {
-    backgroundColor: colors.primaryGreen,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  roleLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.secondaryText,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  roleLabelSelected: {
-    color: colors.white,
-  },
-  roleGoldBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: '#FFD700',
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primaryGreen,
-    borderColor: colors.primaryGreen,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.secondaryText,
-    lineHeight: 18,
-  },
-  termsLink: {
-    color: colors.primaryGreen,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
-  registerButtonWrap: {
-    marginTop: 20,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  registerButtonDisabled: {
-    opacity: 0.7,
-  },
-  registerButton: {
-    height: 58,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  registerButtonText: {
-    color: colors.white,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  loginText: {
-    fontSize: 13,
-    color: colors.secondaryText,
-  },
-  loginLink: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primaryGreen,
-    textDecorationLine: 'underline',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    hero: {
+      height: SCREEN_HEIGHT * 0.28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: 40,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 56,
+      left: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.white,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    heroContent: {
+      alignItems: 'center',
+    },
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    brandEmoji: {
+      fontSize: 16,
+    },
+    brandText: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: '#FFD700',
+    },
+    heroTitle: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.white,
+      marginTop: 8,
+    },
+    heroSubtitle: {
+      fontSize: 13,
+      fontStyle: 'italic',
+      color: colors.white,
+      opacity: 0.8,
+      marginTop: 4,
+    },
+    card: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      marginTop: -30,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    content: {
+      paddingHorizontal: 24,
+      paddingTop: 28,
+      paddingBottom: 40,
+    },
+    sectionLabelWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingLeft: 0,
+      marginBottom: 14,
+      marginTop: 8,
+    },
+    sectionLabelText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.primaryGreen,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+    },
+    sectionLabelLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.primaryGreen,
+      opacity: 0.3,
+      marginLeft: 12,
+    },
+    inputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBackground,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 16,
+      height: 56,
+      paddingHorizontal: 14,
+      marginBottom: 14,
+      shadowColor: 'rgba(0,0,0,0.06)',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 1,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    inputWrapFocused: {
+      borderColor: colors.primaryGreen,
+    },
+    inputWrapShort: {
+      height: 48,
+    },
+    accentBar: {
+      position: 'absolute',
+      left: 0,
+      top: '20%',
+      width: 3,
+      height: '60%',
+      borderRadius: 2,
+      backgroundColor: colors.primaryGreen,
+    },
+    inputIcon: {
+      marginRight: 10,
+    },
+    input: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+    },
+    phonePrefixBox: {
+      backgroundColor: colors.white,
+      borderRightWidth: 1,
+      borderRightColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginRight: 4,
+    },
+    phonePrefixText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.primaryGreen,
+    },
+    phoneInput: {
+      marginLeft: 8,
+    },
+    eyeButton: {
+      padding: 6,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    half: {
+      flex: 1,
+    },
+    roleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    roleCardWrap: {
+      width: '30%',
+      height: 90,
+    },
+    roleCard: {
+      flex: 1,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.white,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    roleCardSelected: {
+      backgroundColor: colors.primaryGreen,
+      borderWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    roleLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+    roleLabelSelected: {
+      color: colors.white,
+    },
+    roleGoldBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 3,
+      backgroundColor: '#FFD700',
+    },
+    termsRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primaryGreen,
+      borderColor: colors.primaryGreen,
+    },
+    termsText: {
+      flex: 1,
+      fontSize: 12,
+      color: colors.secondaryText,
+      lineHeight: 18,
+    },
+    termsLink: {
+      color: colors.primaryGreen,
+      fontWeight: '700',
+      textDecorationLine: 'underline',
+    },
+    registerButtonWrap: {
+      marginTop: 20,
+      shadowColor: '#FFD700',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    registerButtonDisabled: {
+      opacity: 0.7,
+    },
+    registerButton: {
+      height: 58,
+      borderRadius: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    registerButtonText: {
+      color: colors.white,
+      fontSize: 17,
+      fontWeight: '700',
+    },
+    loginRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 20,
+    },
+    loginText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    loginLink: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+      textDecorationLine: 'underline',
+    },
+  });
+}
