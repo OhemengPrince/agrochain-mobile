@@ -1,0 +1,145 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Equipment } from '../types';
+import { formatCurrency } from '../utils/formatters';
+import { colors } from '../constants/colors';
+import { cardShadow } from '../constants/shadows';
+import StarRating from './StarRating';
+
+interface EquipmentCardProps {
+  equipment: Equipment;
+  onPress: () => void;
+}
+
+export default function EquipmentCard({ equipment, onPress }: EquipmentCardProps) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.imageWrapper}>
+        {equipment.imageUrl ? (
+          <Image source={{ uri: equipment.imageUrl }} style={styles.image} />
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Ionicons name="construct" size={32} color={colors.primaryGreenLight} />
+          </View>
+        )}
+        <View style={styles.priceBadge}>
+          <Text style={styles.priceBadgeText}>{formatCurrency(equipment.dailyRate)}/day</Text>
+        </View>
+        {!equipment.isAvailable && (
+          <View style={styles.unavailableBadge}>
+            <Text style={styles.unavailableBadgeText}>Unavailable</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.name} numberOfLines={1}>{equipment.name}</Text>
+        <View style={styles.locationRow}>
+          <Ionicons name="location" size={13} color={colors.secondaryText} />
+          <Text style={styles.location}>
+            {equipment.district}, {equipment.region}
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          {equipment.averageRating !== undefined ? (
+            <View style={styles.ratingRow}>
+              <StarRating rating={equipment.averageRating} size={13} />
+              {equipment.totalReviews !== undefined && (
+                <Text style={styles.reviewCount}>({equipment.totalReviews})</Text>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.noRating}>No reviews yet</Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...cardShadow,
+  },
+  imageWrapper: {
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: 140,
+  },
+  imagePlaceholder: {
+    backgroundColor: colors.lightGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    padding: 14,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  location: {
+    fontSize: 13,
+    color: colors.secondaryText,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: colors.secondaryText,
+  },
+  noRating: {
+    fontSize: 12,
+    color: colors.secondaryText,
+  },
+  priceBadge: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  priceBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  unavailableBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: colors.errorRed,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  unavailableBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+});

@@ -1,0 +1,424 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
+import { searchEquipment } from '../../api/equipmentApi';
+import { colors } from '../../constants/colors';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import ErrorMessage from '../../components/ErrorMessage';
+import StarRating from '../../components/StarRating';
+
+type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
+
+const CATEGORIES: { label: string; value: EquipmentCategory | undefined; emoji: string }[] = [
+  { label: 'All', value: undefined, emoji: '' },
+  { label: 'Tractor', value: 'TRACTOR', emoji: '🚜' },
+  { label: 'Harvester', value: 'HARVESTER', emoji: '🌾' },
+  { label: 'Irrigation', value: 'IRRIGATION_PUMP', emoji: '💧' },
+  { label: 'Sprayer', value: 'SPRAYER', emoji: '🌿' },
+  { label: 'Tiller', value: 'PLOUGH', emoji: '⚙️' },
+];
+
+const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
+  TRACTOR: require('../../assets/equipment/tractor.jpg'),
+  HARVESTER: require('../../assets/equipment/harvester.jpg'),
+  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
+  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
+  PLOUGH: require('../../assets/equipment/tiller.jpg'),
+  TRAILER: require('../../assets/equipment/sheller.jpg'),
+  OTHER: require('../../assets/equipment/tractor.jpg'),
+};
+
+export default function EquipmentListScreen({ navigation, route }: Props) {
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [query, setQuery] = useState(route.params?.query ?? '');
+  const [category, setCategory] = useState<EquipmentCategory | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEquipment = useCallback(async (searchQuery: string, cat?: EquipmentCategory) => {
+    setError(null);
+    try {
+      const data = await searchEquipment({ query: searchQuery || undefined, category: cat });
+      setEquipment(data);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Failed to load equipment.');
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await loadEquipment(route.params?.query ?? '', undefined);
+      setLoading(false);
+    })();
+  }, [loadEquipment]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadEquipment(query, category);
+    setRefreshing(false);
+  };
+
+  const handleCategoryPress = (cat: EquipmentCategory | undefined) => {
+    setCategory(cat);
+    loadEquipment(query, cat);
+  };
+
+  if (loading) {
+    return <LoadingOverlay message="Loading equipment..." />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.stickyHeader}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => loadEquipment(query, category)}
+              placeholder="Search tractors, harvesters..."
+              placeholderTextColor={colors.secondaryText}
+              returnKeyType="search"
+            />
+          </View>
+          <TouchableOpacity style={styles.filterButton} onPress={() => loadEquipment(query, category)}>
+            <Ionicons name="filter" size={18} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={CATEGORIES}
+          horizontal
+          keyExtractor={(item) => item.label}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsList}
+          renderItem={({ item }) => {
+            const active = item.value === category;
+            return (
+              <TouchableOpacity
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => handleCategoryPress(item.value)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {item.emoji ? `${item.emoji} ${item.label}` : item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
+
+      <ErrorMessage message={error} />
+
+      <FlatList
+        data={equipment}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsTitle}>Equipment Near You</Text>
+            <Text style={styles.resultsCount}>{equipment.length} found</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
+          >
+            <View style={styles.imageWrap}>
+              <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} />
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
+              </View>
+              <View style={[styles.availabilityBadge, !item.isAvailable && styles.unavailableBadge]}>
+                <Text style={styles.availabilityBadgeText}>
+                  {item.isAvailable ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.body}>
+              <Text style={styles.name}>{item.name}</Text>
+
+              <View style={styles.ownerRow}>
+                <View style={styles.ownerAvatar}>
+                  <Text style={styles.ownerAvatarText}>{item.ownerName.charAt(0).toUpperCase()}</Text>
+                </View>
+                <Text style={styles.ownerName} numberOfLines={1}>{item.ownerName}</Text>
+                <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
+              </View>
+
+              <View style={styles.detailsRow}>
+                <View style={styles.detailItem}>
+                  <Ionicons name="location" size={12} color={colors.secondaryText} />
+                  <Text style={styles.detailText}>{item.district}, {item.region}</Text>
+                </View>
+                {item.averageRating !== undefined && (
+                  <View style={styles.detailItem}>
+                    <StarRating rating={item.averageRating} size={12} />
+                    {item.totalReviews !== undefined && (
+                      <Text style={styles.detailText}>({item.totalReviews})</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.priceRow}>
+                <View style={styles.priceWrap}>
+                  <Text style={styles.priceValue}>GHS {item.dailyRate}</Text>
+                  <Text style={styles.priceUnit}>/day</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.bookNowButton}
+                  onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
+                >
+                  <Text style={styles.bookNowText}>Book Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        ListEmptyComponent={<Text style={styles.emptyText}>No equipment found.</Text>}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  stickyHeader: {
+    backgroundColor: colors.white,
+    paddingTop: 12,
+    paddingBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    height: 50,
+    paddingHorizontal: 14,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+  },
+  filterButton: {
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 10,
+    padding: 10,
+  },
+  chipsList: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 8,
+  },
+  chipActive: {
+    backgroundColor: colors.primaryGreen,
+    borderColor: colors.primaryGreen,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.secondaryText,
+  },
+  chipTextActive: {
+    color: colors.white,
+    fontWeight: '700',
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  resultsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  resultsCount: {
+    fontSize: 13,
+    color: colors.secondaryText,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  imageWrap: {
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: 180,
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: colors.accentAmber,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  availabilityBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  unavailableBadge: {
+    backgroundColor: colors.errorRed,
+  },
+  availabilityBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  body: {
+    padding: 14,
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  ownerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  ownerAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.primaryGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerAvatarText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  ownerName: {
+    fontSize: 13,
+    color: colors.secondaryText,
+    flexShrink: 1,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailText: {
+    fontSize: 12,
+    color: colors.secondaryText,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  priceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+  },
+  priceValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.primaryGreen,
+  },
+  priceUnit: {
+    fontSize: 13,
+    color: colors.secondaryText,
+  },
+  bookNowButton: {
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  bookNowText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: colors.secondaryText,
+    marginTop: 40,
+  },
+});

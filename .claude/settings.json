@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\HTML\\\\agrochain-mobile\"; npx tsc --noEmit; Write-Output \"EXITCODE:$LASTEXITCODE\")",
+      "PowerShell(Start-Sleep -Seconds 5; $resp = Invoke-WebRequest -Uri \"http://localhost:8084/index.ts.bundle?platform=android&dev=true\" -TimeoutSec 90 -UseBasicParsing; Write-Output \"STATUS:$\\($resp.StatusCode\\) LENGTH:$\\($resp.RawContentLength\\)\")",
+      "PowerShell(Start-Sleep -Seconds 5; $resp = Invoke-WebRequest -Uri \"http://localhost:8085/index.ts.bundle?platform=android&dev=true\" -TimeoutSec 90 -UseBasicParsing; Write-Output \"STATUS:$\\($resp.StatusCode\\) LENGTH:$\\($resp.RawContentLength\\)\")",
+      "PowerShell(Start-Sleep -Seconds 5; $resp = Invoke-WebRequest -Uri \"http://localhost:8086/index.ts.bundle?platform=android&dev=true\" -TimeoutSec 90 -UseBasicParsing; Write-Output \"STATUS:$\\($resp.StatusCode\\) LENGTH:$\\($resp.RawContentLength\\)\")",
+      "PowerShell(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\HTML\\\\agrochain-mobile\"; npx tsc --noEmit 2>&1 | Select-Object -First 100; Write-Output \"EXITCODE:$LASTEXITCODE\")",
+      "PowerShell(Start-Sleep -Seconds 6; $resp = Invoke-WebRequest -Uri \"http://localhost:8087/index.ts.bundle?platform=android&dev=true\" -TimeoutSec 90 -UseBasicParsing; Write-Output \"STATUS:$\\($resp.StatusCode\\) LENGTH:$\\($resp.RawContentLength\\)\")",
+      "PowerShell(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\HTML\\\\agrochain-mobile\"; npx tsc --noEmit 2>&1 | Select-Object -First 150; Write-Output \"EXITCODE:$LASTEXITCODE\")",
+      "PowerShell(Start-Sleep -Seconds 6; $resp = Invoke-WebRequest -Uri \"http://localhost:8088/index.ts.bundle?platform=android&dev=true\" -TimeoutSec 90 -UseBasicParsing; Write-Output \"STATUS:$\\($resp.StatusCode\\) LENGTH:$\\($resp.RawContentLength\\)\")"
+    ]
+  },
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true
+  }
+}
