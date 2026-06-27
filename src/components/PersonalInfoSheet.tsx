@@ -5,6 +5,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 
+export interface PersonalInfoExtraRow {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}
+
 interface PersonalInfoSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -13,6 +19,7 @@ interface PersonalInfoSheetProps {
   phone: string;
   location: string;
   memberSince: string;
+  extraRows?: PersonalInfoExtraRow[];
 }
 
 function InfoRow({
@@ -52,6 +59,7 @@ export default function PersonalInfoSheet({
   phone,
   location,
   memberSince,
+  extraRows = [],
 }: PersonalInfoSheetProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
@@ -93,7 +101,23 @@ export default function PersonalInfoSheet({
         <InfoRow icon="mail-outline" label="Email" value={email} styles={styles} />
         <InfoRow icon="call-outline" label="Phone" value={phone} styles={styles} />
         <InfoRow icon="location-outline" label="Location" value={location} styles={styles} />
-        <InfoRow icon="calendar-outline" label="Member Since" value={memberSince} isLast styles={styles} />
+        <InfoRow
+          icon="calendar-outline"
+          label="Member Since"
+          value={memberSince}
+          isLast={extraRows.length === 0}
+          styles={styles}
+        />
+        {extraRows.map((row, index) => (
+          <InfoRow
+            key={row.label}
+            icon={row.icon}
+            label={row.label}
+            value={row.value}
+            isLast={index === extraRows.length - 1}
+            styles={styles}
+          />
+        ))}
 
         <Pressable
           onPress={() => {

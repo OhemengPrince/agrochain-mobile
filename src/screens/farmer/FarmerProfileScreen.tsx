@@ -55,23 +55,25 @@ const SAMPLE_REVIEWS = [
   },
 ];
 
-const BIO_TEXT = 'Smallholder farmer from Kumasi specializing in maize and cassava farming 🌽';
+const BIO_TEXT = 'Smallholder farmer from Kumasi specializing in maize and cassava farming';
 
 function PressableScale({
   children,
   style,
   onPress,
+  baseScale = 1,
 }: {
   children: React.ReactNode;
   style?: object;
   onPress?: () => void;
+  baseScale?: number;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(baseScale)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
   const animateTo = (toScale: number, toOpacity: number, duration: number) => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.spring(scale, { toValue: toScale * baseScale, useNativeDriver: true, tension: 300, friction: 10 }),
       Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
     ]).start();
   };
@@ -207,7 +209,7 @@ export default function FarmerProfileScreen(_props: Props) {
               </View>
             )}
             <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
+              <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -216,24 +218,37 @@ export default function FarmerProfileScreen(_props: Props) {
             <Text style={styles.roleBadgeText}>FARMER</Text>
           </View>
 
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.locationText}>{locationLabel}</Text>
+          </View>
+
           <View style={styles.bioRow}>
             <Text style={styles.bioText}>{BIO_TEXT}</Text>
             <TouchableOpacity onPress={() => showComingSoon('Edit bio')} hitSlop={8}>
-              <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.85)" />
+              <Ionicons name="pencil-outline" size={12} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.memberSinceRow}>
+            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
           </View>
         </LinearGradient>
 
         <View style={styles.statsRow}>
           <PressableScale style={styles.statCard}>
+            <Ionicons name="construct-outline" size={20} color={colors.primaryGreen} />
             <Text style={styles.statValue}>{bookings.length}</Text>
             <Text style={styles.statLabel}>Rentals</Text>
           </PressableScale>
-          <PressableScale style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValueAmber]}>4.8 ⭐</Text>
+          <PressableScale style={[styles.statCard, styles.statCardActive]} baseScale={1.05}>
+            <Ionicons name="star" size={20} color={colors.accentAmber} />
+            <Text style={[styles.statValue, styles.statValueAmber]}>4.8</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
+            <Ionicons name="leaf-outline" size={20} color={colors.primaryGreen} />
             <Text style={styles.statValue}>{batches.length}</Text>
             <Text style={styles.statLabel}>Batches</Text>
           </PressableScale>
@@ -267,16 +282,16 @@ export default function FarmerProfileScreen(_props: Props) {
                 </LinearGradient>
               </PressableScale>
               <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSold)}</Text>
-                  <Text style={styles.activityLabel}>Total Sold</Text>
+                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                  <Text style={styles.activityValueGreen}>{formatCurrency(totalSold)}</Text>
+                  <Text style={styles.activityLabel}>Total Earned</Text>
                 </LinearGradient>
               </PressableScale>
             </View>
           </LinearGradient>
         </View>
 
-        <View style={styles.premiumCardWrap}>
+        <View style={[styles.premiumCardWrap, styles.reviewsCardWrap]}>
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
               <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
@@ -288,29 +303,31 @@ export default function FarmerProfileScreen(_props: Props) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.ratingOverviewBlock}>
-              <Text style={styles.ratingBigNumber}>4.8</Text>
-              <View style={styles.ratingStarsRow}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
+            <View style={styles.ratingOverviewRow}>
+              <View style={styles.ratingOverviewLeft}>
+                <Text style={styles.ratingBigNumber}>4.8</Text>
+                <View style={styles.ratingStarsRow}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Ionicons key={i} name="star" size={14} color={colors.accentAmber} />
+                  ))}
+                </View>
+                <Text style={styles.ratingCountText}>17 reviews</Text>
+              </View>
+
+              <View style={styles.ratingBarsWrap}>
+                {RATING_BREAKDOWN.map((row) => (
+                  <View key={row.stars} style={styles.ratingBarRow}>
+                    <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                    <View style={styles.ratingBarTrack}>
+                      <LinearGradient
+                        colors={['#FF8F00', '#FFB300']}
+                        style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.ratingBarCount}>{row.count}</Text>
+                  </View>
                 ))}
               </View>
-              <Text style={styles.ratingCountText}>17 reviews</Text>
-            </View>
-
-            <View style={styles.ratingBarsWrap}>
-              {RATING_BREAKDOWN.map((row) => (
-                <View key={row.stars} style={styles.ratingBarRow}>
-                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                  <View style={styles.ratingBarTrack}>
-                    <LinearGradient
-                      colors={['#FF8F00', '#FFB300']}
-                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                    />
-                  </View>
-                  <Text style={styles.ratingBarCount}>{row.count}</Text>
-                </View>
-              ))}
             </View>
 
             {SAMPLE_REVIEWS.map((review) => (
@@ -355,10 +372,10 @@ export default function FarmerProfileScreen(_props: Props) {
                 ) : (
                   <>
                     <View style={styles.logoutIconCircle}>
-                      <Ionicons name="log-out" size={18} color="#FFFFFF" />
+                      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
                     </View>
                     <Text style={styles.logoutButtonText}>Log Out</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
+                    <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
                   </>
                 )}
               </LinearGradient>
@@ -376,7 +393,11 @@ export default function FarmerProfileScreen(_props: Props) {
         onChangePassword={() => showComingSoon('Change Password')}
         onRateApp={() => showComingSoon('Rate the App')}
         onContactSupport={() => showComingSoon('Contact Support')}
-        extraItems={[{ icon: 'language-outline', label: 'Language', onPress: () => showComingSoon('Language') }]}
+        extraItems={[
+          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => showComingSoon('My Certifications') },
+          { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => showComingSoon('Season Report') },
+          { icon: 'document-text-outline', label: 'Privacy Policy', onPress: () => showComingSoon('Privacy Policy') },
+        ]}
       />
 
       <PersonalInfoSheet
@@ -387,6 +408,7 @@ export default function FarmerProfileScreen(_props: Props) {
         phone={user.phoneNumber}
         location={locationLabel}
         memberSince={memberSince}
+        extraRows={[{ icon: 'ribbon-outline', label: 'Certifications', value: 'None yet' }]}
       />
     </View>
   );
@@ -461,7 +483,9 @@ function createStyles(colors: ThemeColors) {
       marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: colors.accentAmber,
+      backgroundColor: colors.primaryGreenDark,
+      borderWidth: 1,
+      borderColor: '#FFFFFF',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
@@ -472,12 +496,22 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 10,
+    },
+    locationText: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+    },
     bioRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      marginTop: 12,
+      marginTop: 10,
       maxWidth: 280,
     },
     bioText: {
@@ -486,6 +520,16 @@ function createStyles(colors: ThemeColors) {
       color: 'rgba(255,255,255,0.85)',
       textAlign: 'center',
       flexShrink: 1,
+    },
+    memberSinceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 8,
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
     },
     statsRow: {
       flexDirection: 'row',
@@ -499,11 +543,18 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 16,
       padding: 16,
       alignItems: 'center',
+      gap: 4,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
-      elevation: 4,
+      elevation: 3,
+    },
+    statCardActive: {
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+      shadowOpacity: 0.15,
+      elevation: 5,
     },
     statValue: {
       fontSize: 24,
@@ -603,16 +654,16 @@ function createStyles(colors: ThemeColors) {
       width: '48%',
     },
     activityBox: {
-      borderRadius: 16,
-      padding: 16,
+      borderRadius: 14,
+      padding: 14,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(26,107,46,0.1)',
+      borderColor: 'rgba(26,107,46,0.08)',
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      elevation: 1,
     },
     activityValueGreen: {
       fontSize: 20,
@@ -635,9 +686,17 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.accentAmber,
     },
-    ratingOverviewBlock: {
+    reviewsCardWrap: {
+      borderColor: 'rgba(255,143,0,0.2)',
+    },
+    ratingOverviewRow: {
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 16,
       marginBottom: 16,
+    },
+    ratingOverviewLeft: {
+      alignItems: 'center',
     },
     ratingBigNumber: {
       fontSize: 56,
@@ -658,8 +717,8 @@ function createStyles(colors: ThemeColors) {
       marginTop: 4,
     },
     ratingBarsWrap: {
+      flex: 1,
       gap: 6,
-      marginBottom: 8,
     },
     ratingBarRow: {
       flexDirection: 'row',

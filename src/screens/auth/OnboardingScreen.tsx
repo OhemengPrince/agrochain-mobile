@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,104 +18,130 @@ import { AuthStackParamList } from '../../types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_PADDING = 32;
-const SLIDE_WIDTH = SCREEN_WIDTH - CARD_PADDING * 2;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const AUTO_SWIPE_INTERVAL_MS = 4000;
 
 interface Slide {
+  image: any;
+  titleColor: string;
   title: string;
   description: string;
 }
 
 const SLIDES: Slide[] = [
   {
+    image: require('../../../assets/images/onboarding-hero.jpg'),
+    titleColor: '#FFD700',
     title: 'Grow More. Earn More.',
     description:
       'Rent equipment, trace your harvest and connect with buyers — all in one app built for Ghanaian farmers.',
   },
   {
+    image: require('../../../assets/images/onboarding2.jpg'),
+    titleColor: '#FFFFFF',
     title: 'Rent Any Farm Equipment',
-    description:
-      'Find tractors, harvesters and irrigation pumps near you, ready to book in just a few taps.',
+    description: 'Find tractors, harvesters and irrigation systems near you in minutes.',
   },
   {
+    image: require('../../../assets/images/onboarding3.jpg'),
+    titleColor: '#FFFFFF',
     title: 'Sell Direct to Buyers',
-    description:
-      'Connect with verified agri-buyers across Ghana and get the best price for every harvest.',
+    description: 'Connect with verified agri-buyers across Ghana and get the best price for your produce.',
   },
 ];
 
 export default function OnboardingScreen({ navigation }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+  const listRef = useRef<FlatList<Slide>>(null);
+  const isTouchingRef = useRef(false);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isTouchingRef.current) return;
+      const next = (activeIndexRef.current + 1) % SLIDES.length;
+      listRef.current?.scrollToOffset({ offset: next * SCREEN_WIDTH, animated: true });
+      setActiveIndex(next);
+    }, AUTO_SWIPE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / SLIDE_WIDTH);
+    const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
     setActiveIndex(index);
   };
+
+  const activeSlide = SLIDES[activeIndex];
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <ImageBackground
-        source={require('../../../assets/images/onboarding-hero.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(10,50,20,0.92)']}
-          locations={[0, 0.5, 1]}
-          style={styles.overlay}
-        />
 
-        <View style={styles.topSection}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoEmoji}>🌾</Text>
-          </View>
-          <Text style={styles.logoText}>AgroChain</Text>
-          <Text style={styles.tagline}>From Field to Market</Text>
+      <FlatList
+        ref={listRef}
+        data={SLIDES}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.title}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        onTouchStart={() => {
+          isTouchingRef.current = true;
+        }}
+        onTouchEnd={() => {
+          isTouchingRef.current = false;
+        }}
+        renderItem={({ item }) => (
+          <ImageBackground source={item.image} style={styles.slide} resizeMode="cover">
+            <LinearGradient
+              colors={['transparent', 'rgba(10,50,20,0.92)']}
+              locations={[0, 0.85]}
+              style={styles.overlay}
+            />
+            <View style={styles.slideContent}>
+              <Text style={[styles.title, { color: item.titleColor }]}>{item.title}</Text>
+              <Text style={styles.description}>{item.description}</Text>
+            </View>
+          </ImageBackground>
+        )}
+      />
+
+      <View style={styles.topSection} pointerEvents="none">
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoEmoji}>🌾</Text>
+        </View>
+        <Text style={[styles.logoText, { color: activeSlide.titleColor }]}>AgroChain</Text>
+        <Text style={[styles.tagline, { color: activeSlide.titleColor }]}>From Field to Market</Text>
+      </View>
+
+      <View style={styles.bottomSection}>
+        <View style={styles.dotsRow}>
+          {SLIDES.map((_, index) => (
+            <View key={index} style={[styles.dot, index === activeIndex && styles.dotActive]} />
+          ))}
         </View>
 
-        <View style={styles.bottomCard}>
-          <FlatList
-            data={SLIDES}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.title}
-            onMomentumScrollEnd={handleMomentumScrollEnd}
-            style={styles.slideList}
-            renderItem={({ item }) => (
-              <View style={styles.slide}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.description}>{item.description}</Text>
-              </View>
-            )}
-          />
+        <View style={styles.actions}>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Register')}>
+            <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
 
-          <View style={styles.dotsRow}>
-            {SLIDES.map((_, index) => (
-              <View key={index} style={[styles.dot, index === activeIndex && styles.dotActive]} />
-            ))}
-          </View>
-
-          <View style={styles.actions}>
-            <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Register')}>
-              <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Get Started</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.secondaryButtonText}>I already have an account</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          </TouchableOpacity>
         </View>
-      </ImageBackground>
+      </View>
     </View>
   );
 }
@@ -125,11 +151,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A3214',
   },
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    marginTop: 40,
+  slide: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   overlay: {
     position: 'absolute',
@@ -137,6 +161,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  slideContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 32,
+    paddingBottom: 260,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 10,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 6,
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   topSection: {
     position: 'absolute',
@@ -163,7 +210,6 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 42,
     fontWeight: '900',
-    color: '#FFD700',
     letterSpacing: 3,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 2, height: 2 },
@@ -172,51 +218,27 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 14,
     fontStyle: 'italic',
-    color: '#FFD700',
-    opacity: 0.85,
+    opacity: 0.9,
     marginTop: 4,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 8,
   },
-  bottomCard: {
+  bottomSection: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '45%',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    padding: CARD_PADDING,
-    justifyContent: 'space-between',
-  },
-  slideList: {
-    flexGrow: 0,
-  },
-  slide: {
-    width: SLIDE_WIDTH,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: '#FFFFFF',
-    opacity: 0.75,
+    paddingHorizontal: 32,
+    paddingBottom: 40,
+    paddingTop: 16,
   },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginBottom: 20,
   },
   dot: {
     width: 8,
