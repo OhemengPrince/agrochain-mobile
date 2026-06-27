@@ -13,5 +13,19 @@
   },
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git status --porcelain 2>/dev/null | grep -q . && (git add -A && git commit -m \"Auto-save: session changes\" --quiet && git push --quiet 2>/dev/null); true",
+            "timeout": 30,
+            "statusMessage": "Auto-saving changes to GitHub..."
+          }
+        ]
+      }
+    ]
   }
 }
