@@ -231,7 +231,8 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                   <Text style={styles.scanBannerTitle}>Scan Produce QR</Text>
                   <Text style={styles.scanBannerSubtitle}>Verify origin instantly</Text>
                   <View style={styles.scanNowButton}>
-                    <Text style={styles.scanNowButtonText}>Scan Now →</Text>
+                    <Text style={styles.scanNowButtonText}>Scan Now</Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.white} />
                   </View>
                 </View>
               </LinearGradient>
@@ -393,6 +394,9 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 8,
     },
     scanNowButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
       alignSelf: 'flex-start',
       borderWidth: 1.5,
       borderColor: colors.white,

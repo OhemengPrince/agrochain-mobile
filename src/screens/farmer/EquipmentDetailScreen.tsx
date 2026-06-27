@@ -213,7 +213,10 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
             </View>
             <View style={styles.ownerMiddle}>
               <Text style={styles.ownerName}>{equipment.ownerName}</Text>
-              <Text style={styles.verifiedText}>Verified Owner ✓</Text>
+              <View style={styles.verifiedRow}>
+                <Text style={styles.verifiedText}>Verified Owner</Text>
+                <Ionicons name="checkmark-circle" size={13} color={colors.primaryGreen} />
+              </View>
               <StarRating rating={ratingValue} size={14} />
             </View>
             <View style={styles.ownerActions}>
@@ -229,7 +232,11 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
               <Text style={styles.specLabel}>Per Day</Text>
             </View>
             <View style={styles.specBox}>
-              <Text style={styles.specEmoji}>{equipment.isAvailable ? '✅' : '⛔'}</Text>
+              <Ionicons
+                name={equipment.isAvailable ? 'checkmark-circle' : 'close-circle-outline'}
+                size={20}
+                color={equipment.isAvailable ? '#16A34A' : '#DC2626'}
+              />
               <Text style={equipment.isAvailable ? styles.specValueGreen : styles.specValueRed}>
                 {equipment.isAvailable ? 'Available' : 'Unavailable'}
               </Text>
@@ -250,8 +257,9 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
                   {equipment.district}, {equipment.region} Region
                 </Text>
               </View>
-              <Pressable onPress={comingSoon}>
-                <Text style={styles.viewMapText}>View on Map →</Text>
+              <Pressable onPress={comingSoon} style={styles.viewMapRow}>
+                <Text style={styles.viewMapText}>View on Map</Text>
+                <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
               </Pressable>
             </View>
             <Text style={styles.distanceText}>12.5 km from you</Text>
@@ -489,11 +497,16 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.text,
     },
+    verifiedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+      marginBottom: 4,
+    },
     verifiedText: {
       fontSize: 12,
       color: colors.primaryGreen,
-      marginTop: 2,
-      marginBottom: 4,
     },
     ownerActions: {
       flexDirection: 'row',
@@ -558,6 +571,11 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '700',
       color: colors.text,
+    },
+    viewMapRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
     },
     viewMapText: {
       fontSize: 12,

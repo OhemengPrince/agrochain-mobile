@@ -15,9 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FarmerStackParamList, Booking, ProduceBatch } from '../../types';
-import { getMyBookings } from '../../api/bookingApi';
-import { getMyBatches } from '../../api/produceApi';
+import { OwnerStackParamList, Booking, Equipment, EquipmentCategory } from '../../types';
+import { getMyListings } from '../../api/equipmentApi';
+import { getIncomingBookings } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -26,36 +26,46 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 
-type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
+type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
+
+const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
+  TRACTOR: require('../../assets/equipment/tractor.jpg'),
+  HARVESTER: require('../../assets/equipment/harvester.jpg'),
+  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
+  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
+  PLOUGH: require('../../assets/equipment/tiller.jpg'),
+  TRAILER: require('../../assets/equipment/sheller.jpg'),
+  OTHER: require('../../assets/equipment/tractor.jpg'),
+};
 
 // Illustrative placeholder data — this app has no backend model for
-// reviews received by a farmer, so this section is static demo content.
+// reviews received by an equipment owner, so this section is static demo content.
 const RATING_BREAKDOWN: { stars: number; percentage: number; count: number }[] = [
-  { stars: 5, percentage: 80, count: 10 },
-  { stars: 4, percentage: 60, count: 5 },
-  { stars: 3, percentage: 20, count: 2 },
-  { stars: 2, percentage: 5, count: 0 },
+  { stars: 5, percentage: 78, count: 14 },
+  { stars: 4, percentage: 55, count: 6 },
+  { stars: 3, percentage: 15, count: 1 },
+  { stars: 2, percentage: 0, count: 0 },
   { stars: 1, percentage: 0, count: 0 },
 ];
 
 const SAMPLE_REVIEWS = [
   {
     id: 'r1',
-    reviewer: 'Nana Yeboah',
-    date: '2026-05-12',
+    reviewer: 'Kwame Asante',
+    date: '2026-05-20',
     rating: 5,
-    comment: 'Returned the tractor on time and in great condition. Easy to work with!',
+    comment: 'Tractor was well maintained and ready exactly on time. Will rent again.',
   },
   {
     id: 'r2',
-    reviewer: 'Efua Darko',
-    date: '2026-04-02',
+    reviewer: 'Akosua Mensah',
+    date: '2026-04-18',
     rating: 4,
-    comment: 'Good communication throughout the rental period.',
+    comment: 'Good equipment, owner was responsive throughout the booking.',
   },
 ];
 
-const BIO_TEXT = 'Smallholder farmer from Kumasi specializing in maize and cassava farming 🌽';
+const BIO_TEXT = 'Equipment owner with 5 tractors and harvesters serving farmers across Ashanti Region 🚜';
 
 function PressableScale({
   children,
@@ -89,16 +99,26 @@ function PressableScale({
   );
 }
 
-export default function FarmerProfileScreen(_props: Props) {
+function isBookingActive(booking: Booking): boolean {
+  if (booking.status !== 'CONFIRMED') return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(booking.startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(booking.endDate);
+  end.setHours(0, 0, 0, 0);
+  return start <= today && today <= end;
+}
+
+export default function OwnerProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
+  const [listings, setListings] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [batches, setBatches] = useState<ProduceBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
@@ -106,9 +126,9 @@ export default function FarmerProfileScreen(_props: Props) {
   const logoutScale = useRef(new Animated.Value(1)).current;
 
   const loadData = useCallback(async () => {
-    const [bookingsData, batchesData] = await Promise.all([getMyBookings(), getMyBatches()]);
+    const [listingsData, bookingsData] = await Promise.all([getMyListings(), getIncomingBookings()]);
+    setListings(listingsData);
     setBookings(bookingsData);
-    setBatches(batchesData);
   }, []);
 
   useEffect(() => {
@@ -171,6 +191,21 @@ export default function FarmerProfileScreen(_props: Props) {
     ]);
   };
 
+  const handleAddEquipment = () => {
+    const parent = navigation.getParent() as any;
+    parent?.navigate('OwnerEquipment', { screen: 'CreateEquipment' });
+  };
+
+  const handleManageEquipment = () => {
+    const parent = navigation.getParent() as any;
+    parent?.navigate('OwnerEquipment', { screen: 'OwnerEquipmentList' });
+  };
+
+  const handleEditEquipment = (equipmentId: string) => {
+    const parent = navigation.getParent() as any;
+    parent?.navigate('OwnerEquipment', { screen: 'EditEquipment', params: { equipmentId } });
+  };
+
   if (loading || !user) {
     return <LoadingOverlay message="Loading profile..." />;
   }
@@ -180,16 +215,28 @@ export default function FarmerProfileScreen(_props: Props) {
   const memberSince = formatDate(user.createdAt);
   const avatarSource = avatarUri ?? user.profileImageUrl;
 
-  const totalSpent = bookings.reduce((sum, b) => sum + b.totalCost, 0);
-  const totalSold = batches
-    .filter((b) => b.status === 'SOLD' && b.pricePerKg !== undefined)
-    .reduce((sum, b) => sum + b.quantityKg * (b.pricePerKg ?? 0), 0);
+  const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
+  const pendingBookings = bookings.filter((b) => b.status === 'PENDING');
+  const activeBookings = bookings.filter(isBookingActive);
+
+  const totalEarnings = completedBookings
+    .filter((b) => b.paymentStatus === 'PAID')
+    .reduce((sum, b) => sum + b.totalCost, 0);
+
+  const now = new Date();
+  const thisMonthEarnings = completedBookings
+    .filter((b) => b.paymentStatus === 'PAID')
+    .filter((b) => {
+      const created = new Date(b.createdAt);
+      return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
+    })
+    .reduce((sum, b) => sum + b.totalCost, 0);
 
   const styles = createStyles(colors);
 
   return (
     <View style={styles.container}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
@@ -207,35 +254,42 @@ export default function FarmerProfileScreen(_props: Props) {
               </View>
             )}
             <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
+              <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.name}>{user.fullName}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>FARMER</Text>
+            <Text style={styles.roleBadgeText}>EQUIPMENT OWNER</Text>
+          </View>
+
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.locationText}>{locationLabel}</Text>
           </View>
 
           <View style={styles.bioRow}>
             <Text style={styles.bioText}>{BIO_TEXT}</Text>
             <TouchableOpacity onPress={() => showComingSoon('Edit bio')} hitSlop={8}>
-              <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.85)" />
+              <Ionicons name="pencil-outline" size={12} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
         </LinearGradient>
 
         <View style={styles.statsRow}>
           <PressableScale style={styles.statCard}>
             <Text style={styles.statValue}>{bookings.length}</Text>
-            <Text style={styles.statLabel}>Rentals</Text>
+            <Text style={styles.statLabel}>Total Rentals</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValueAmber]}>4.8 ⭐</Text>
+            <Text style={[styles.statValue, styles.statValueAmber]}>4.7 ⭐</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
-            <Text style={styles.statValue}>{batches.length}</Text>
-            <Text style={styles.statLabel}>Batches</Text>
+            <Text style={[styles.statValue, styles.statValueSmall]}>{formatCurrency(totalEarnings)}</Text>
+            <Text style={styles.statLabel}>Earnings</Text>
           </PressableScale>
         </View>
 
@@ -243,35 +297,75 @@ export default function FarmerProfileScreen(_props: Props) {
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
               <View style={styles.premiumIconCircle}>
-                <Ionicons name="leaf" size={18} color={colors.primaryGreen} />
+                <Ionicons name="construct-outline" size={18} color={colors.primaryGreen} />
               </View>
-              <Text style={styles.premiumHeaderText}>Farming Activity</Text>
+              <Text style={styles.premiumHeaderText}>My Equipment</Text>
+              <TouchableOpacity onPress={handleManageEquipment} style={styles.seeAllWrap}>
+                <View style={styles.seeAllRow}>
+                  <Text style={styles.seeAllText}>Manage</Text>
+                  <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
+                </View>
+              </TouchableOpacity>
             </View>
-            <View style={styles.activityGrid}>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
-                  <Text style={styles.activityLabel}>Equipment Rented</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
-                  <Text style={styles.activityLabel}>Total Spent</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
-                  <Text style={styles.activityLabel}>Produce Logged</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSold)}</Text>
-                  <Text style={styles.activityLabel}>Total Sold</Text>
-                </LinearGradient>
-              </PressableScale>
+
+            {listings.length === 0 ? (
+              <Text style={styles.emptyText}>You haven't listed any equipment yet.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentScroll}>
+                {listings.map((item) => (
+                  <PressableScale
+                    key={item.id}
+                    style={styles.miniEquipmentCard}
+                    onPress={() => handleEditEquipment(item.id)}
+                  >
+                    <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.miniEquipmentImage} />
+                    <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
+                    <View style={styles.miniEquipmentStatusRow}>
+                      <View
+                        style={[
+                          styles.miniEquipmentDot,
+                          { backgroundColor: item.isAvailable ? '#16A34A' : '#DC2626' },
+                        ]}
+                      />
+                      <Text style={styles.miniEquipmentRate}>{formatCurrency(item.dailyRate)}/day</Text>
+                    </View>
+                  </PressableScale>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.addEquipmentButton} onPress={handleAddEquipment}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primaryGreen} />
+              <Text style={styles.addEquipmentButtonText}>Add Equipment</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.premiumCardWrap}>
+          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+            <View style={styles.premiumHeaderRow}>
+              <View style={styles.premiumIconCircle}>
+                <Ionicons name="cash-outline" size={18} color={colors.primaryGreen} />
+              </View>
+              <Text style={styles.premiumHeaderText}>Earnings Summary</Text>
+            </View>
+            <View style={styles.earningsGrid}>
+              <View style={styles.earningsBox}>
+                <Text style={styles.earningsValueGreen}>{formatCurrency(thisMonthEarnings)}</Text>
+                <Text style={styles.earningsLabel}>This Month</Text>
+              </View>
+              <View style={styles.earningsBox}>
+                <Text style={styles.earningsValueGreen}>{formatCurrency(totalEarnings)}</Text>
+                <Text style={styles.earningsLabel}>Total Earned</Text>
+              </View>
+              <View style={styles.earningsBox}>
+                <Text style={styles.earningsValueGray}>{completedBookings.length} rentals</Text>
+                <Text style={styles.earningsLabel}>Completed</Text>
+              </View>
+              <View style={styles.earningsBox}>
+                <Text style={styles.earningsValueAmber}>{pendingBookings.length + activeBookings.length} rentals</Text>
+                <Text style={styles.earningsLabel}>Pending</Text>
+              </View>
             </View>
           </LinearGradient>
         </View>
@@ -280,7 +374,7 @@ export default function FarmerProfileScreen(_props: Props) {
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
               <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                <Ionicons name="star" size={18} color={colors.accentAmber} />
+                <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
               </View>
               <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
               <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
@@ -289,13 +383,13 @@ export default function FarmerProfileScreen(_props: Props) {
             </View>
 
             <View style={styles.ratingOverviewBlock}>
-              <Text style={styles.ratingBigNumber}>4.8</Text>
+              <Text style={styles.ratingBigNumber}>4.7</Text>
               <View style={styles.ratingStarsRow}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
                 ))}
               </View>
-              <Text style={styles.ratingCountText}>17 reviews</Text>
+              <Text style={styles.ratingCountText}>21 reviews</Text>
             </View>
 
             <View style={styles.ratingBarsWrap}>
@@ -355,10 +449,10 @@ export default function FarmerProfileScreen(_props: Props) {
                 ) : (
                   <>
                     <View style={styles.logoutIconCircle}>
-                      <Ionicons name="log-out" size={18} color="#FFFFFF" />
+                      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
                     </View>
                     <Text style={styles.logoutButtonText}>Log Out</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
+                    <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
                   </>
                 )}
               </LinearGradient>
@@ -376,7 +470,10 @@ export default function FarmerProfileScreen(_props: Props) {
         onChangePassword={() => showComingSoon('Change Password')}
         onRateApp={() => showComingSoon('Rate the App')}
         onContactSupport={() => showComingSoon('Contact Support')}
-        extraItems={[{ icon: 'language-outline', label: 'Language', onPress: () => showComingSoon('Language') }]}
+        extraItems={[
+          { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
+          { icon: 'bar-chart-outline', label: 'Earnings Report', onPress: () => showComingSoon('Earnings Report') },
+        ]}
       />
 
       <PersonalInfoSheet
@@ -461,7 +558,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: colors.accentAmber,
+      backgroundColor: '#1565C0',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
@@ -472,12 +569,22 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 10,
+    },
+    locationText: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+    },
     bioRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      marginTop: 12,
+      marginTop: 10,
       maxWidth: 280,
     },
     bioText: {
@@ -486,6 +593,11 @@ function createStyles(colors: ThemeColors) {
       color: 'rgba(255,255,255,0.85)',
       textAlign: 'center',
       flexShrink: 1,
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 8,
     },
     statsRow: {
       flexDirection: 'row',
@@ -513,42 +625,13 @@ function createStyles(colors: ThemeColors) {
     statValueAmber: {
       color: colors.accentAmber,
     },
+    statValueSmall: {
+      fontSize: 18,
+    },
     statLabel: {
       fontSize: 12,
       color: colors.secondaryText,
       marginTop: 2,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      margin: 16,
-      marginTop: 0,
-      padding: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    cardSpaced: {
-      marginTop: 20,
-    },
-    cardHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    cardHeaderLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-    },
-    cardHeaderText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.primaryGreen,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
@@ -593,47 +676,103 @@ function createStyles(colors: ThemeColors) {
     seeAllWrap: {
       paddingHorizontal: 2,
     },
-    activityGrid: {
+    seeAllRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    activityBoxOuter: {
-      width: '48%',
-    },
-    activityBox: {
-      borderRadius: 16,
-      padding: 16,
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(26,107,46,0.1)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    activityValueGreen: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#1A6B2E',
-    },
-    activityValueAmber: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#FF8F00',
-    },
-    activityLabel: {
-      fontSize: 12,
-      color: '#6B7280',
-      marginTop: 4,
-      textAlign: 'center',
+      gap: 2,
     },
     seeAllText: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.accentAmber,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    equipmentScroll: {
+      gap: 12,
+      paddingBottom: 4,
+    },
+    miniEquipmentCard: {
+      width: 110,
+    },
+    miniEquipmentImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 12,
+    },
+    miniEquipmentName: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text,
+      marginTop: 6,
+    },
+    miniEquipmentStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+    },
+    miniEquipmentDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    miniEquipmentRate: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+    },
+    addEquipmentButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+      marginTop: 14,
+    },
+    addEquipmentButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+    },
+    earningsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    earningsBox: {
+      width: '48%',
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      padding: 12,
+      alignItems: 'center',
+    },
+    earningsValueGreen: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.primaryGreen,
+    },
+    earningsValueGray: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.secondaryText,
+    },
+    earningsValueAmber: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.accentAmber,
+    },
+    earningsLabel: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginTop: 4,
+      textAlign: 'center',
     },
     ratingOverviewBlock: {
       alignItems: 'center',

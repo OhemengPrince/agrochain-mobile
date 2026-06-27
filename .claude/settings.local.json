@@ -14,7 +14,8 @@
       "Bash(ls -la .claude/)",
       "Bash(cat .claude/settings.json)",
       "Bash(cat .claude/settings.local.json)",
-      "Bash(node -e \"const s = require\\('./.claude/settings.json'\\); console.log\\(JSON.stringify\\(s.hooks, null, 2\\)\\);\")"
+      "Bash(node -e \"const s = require\\('./.claude/settings.json'\\); console.log\\(JSON.stringify\\(s.hooks, null, 2\\)\\);\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

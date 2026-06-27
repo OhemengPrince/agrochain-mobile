@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 
 interface StarRatingProps {
@@ -27,10 +28,9 @@ export default function StarRating({
           <StarComponent
             key={star}
             onPress={onChange ? () => onChange(star) : undefined}
+            style={{ marginRight: 1 }}
           >
-            <Text style={{ fontSize: size, color: filled ? colors.accentAmber : colors.border, marginRight: 1 }}>
-              {'★'}
-            </Text>
+            <Ionicons name={filled ? 'star' : 'star-outline'} size={size} color={filled ? colors.accentAmber : colors.border} />
           </StarComponent>
         );
       })}

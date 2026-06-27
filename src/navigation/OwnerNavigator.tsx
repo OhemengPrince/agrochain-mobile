@@ -12,8 +12,7 @@ import CreateEquipmentScreen from '../screens/owner/CreateEquipmentScreen';
 import EditEquipmentScreen from '../screens/owner/EditEquipmentScreen';
 import IncomingBookingsScreen from '../screens/owner/IncomingBookingsScreen';
 import BookingDetailScreen from '../screens/shared/BookingDetailScreen';
-import ProfileScreen from '../screens/shared/ProfileScreen';
-import SettingsScreen from '../screens/shared/SettingsScreen';
+import OwnerProfileScreen from '../screens/owner/OwnerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 
 const Tab = createBottomTabNavigator<OwnerStackParamList>();
@@ -65,8 +64,7 @@ function BookingsStack() {
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="OwnerProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="OwnerSettings" component={SettingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="OwnerProfileMain" component={OwnerProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

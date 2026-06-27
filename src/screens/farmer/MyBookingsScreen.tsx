@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FarmerStackParamList, Booking } from '../../types';
 import { getMyBookings, cancelBooking } from '../../api/bookingApi';
@@ -229,9 +230,18 @@ function PremiumBookingCard({
         <View style={styles.divider} />
 
         <View style={styles.infoChipsRow}>
-          <Text style={styles.infoChipText}>📅 {formatDate(booking.startDate)} - {formatDate(booking.endDate)}</Text>
-          <Text style={styles.infoChipText}>⏱️ {days} days</Text>
-          <Text style={styles.infoChipCost}>💰 {formatCurrency(booking.totalCost)}</Text>
+          <View style={styles.infoChip}>
+            <Ionicons name="calendar-outline" size={12} color={colors.secondaryText} />
+            <Text style={styles.infoChipText}>{formatDate(booking.startDate)} - {formatDate(booking.endDate)}</Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Ionicons name="time-outline" size={12} color={colors.secondaryText} />
+            <Text style={styles.infoChipText}>{days} days</Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Ionicons name="cash-outline" size={12} color={colors.primaryGreen} />
+            <Text style={styles.infoChipCost}>{formatCurrency(booking.totalCost)}</Text>
+          </View>
         </View>
       </Pressable>
 
@@ -518,6 +528,11 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 14,
+    },
+    infoChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
     infoChipText: {
       fontSize: 12,

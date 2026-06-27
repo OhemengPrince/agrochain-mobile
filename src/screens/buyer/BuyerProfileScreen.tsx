@@ -15,47 +15,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FarmerStackParamList, Booking, ProduceBatch } from '../../types';
-import { getMyBookings } from '../../api/bookingApi';
-import { getMyBatches } from '../../api/produceApi';
+import { BuyerStackParamList, ProduceBatch } from '../../types';
+import { getProduceCatalogue } from '../../api/produceApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 
-type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
+type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
-// Illustrative placeholder data — this app has no backend model for
-// reviews received by a farmer, so this section is static demo content.
-const RATING_BREAKDOWN: { stars: number; percentage: number; count: number }[] = [
-  { stars: 5, percentage: 80, count: 10 },
-  { stars: 4, percentage: 60, count: 5 },
-  { stars: 3, percentage: 20, count: 2 },
-  { stars: 2, percentage: 5, count: 0 },
-  { stars: 1, percentage: 0, count: 0 },
+// Illustrative placeholder data — this app has no backend model for produce
+// purchases/orders made by a buyer, so this section is static demo content.
+const RECENT_PURCHASES = [
+  { id: 'p1', emoji: '🌽', crop: 'Maize', quantity: '500kg', farmer: 'Kwame Asante', date: '2026-03-15', amount: 'GHS 1,750' },
+  { id: 'p2', emoji: '🍠', crop: 'Cassava', quantity: '300kg', farmer: 'Abena Owusu', date: '2026-03-02', amount: 'GHS 900' },
+  { id: 'p3', emoji: '🍫', crop: 'Cocoa', quantity: '200kg', farmer: 'Kofi Mensah', date: '2026-02-20', amount: 'GHS 4,800' },
 ];
 
-const SAMPLE_REVIEWS = [
-  {
-    id: 'r1',
-    reviewer: 'Nana Yeboah',
-    date: '2026-05-12',
-    rating: 5,
-    comment: 'Returned the tractor on time and in great condition. Easy to work with!',
-  },
-  {
-    id: 'r2',
-    reviewer: 'Efua Darko',
-    date: '2026-04-02',
-    rating: 4,
-    comment: 'Good communication throughout the rental period.',
-  },
-];
-
-const BIO_TEXT = 'Smallholder farmer from Kumasi specializing in maize and cassava farming 🌽';
+const BIO_TEXT = 'Verified agri-buyer sourcing quality produce from Ghanaian farmers for export markets 🌍';
 
 function PressableScale({
   children,
@@ -89,16 +69,19 @@ function PressableScale({
   );
 }
 
-export default function FarmerProfileScreen(_props: Props) {
+interface Supplier {
+  farmerName: string;
+  cropName: string;
+}
+
+export default function BuyerProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
-  const [bookings, setBookings] = useState<Booking[]>([]);
   const [batches, setBatches] = useState<ProduceBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
@@ -106,9 +89,8 @@ export default function FarmerProfileScreen(_props: Props) {
   const logoutScale = useRef(new Animated.Value(1)).current;
 
   const loadData = useCallback(async () => {
-    const [bookingsData, batchesData] = await Promise.all([getMyBookings(), getMyBatches()]);
-    setBookings(bookingsData);
-    setBatches(batchesData);
+    const data = await getProduceCatalogue({});
+    setBatches(data);
   }, []);
 
   useEffect(() => {
@@ -180,16 +162,20 @@ export default function FarmerProfileScreen(_props: Props) {
   const memberSince = formatDate(user.createdAt);
   const avatarSource = avatarUri ?? user.profileImageUrl;
 
-  const totalSpent = bookings.reduce((sum, b) => sum + b.totalCost, 0);
-  const totalSold = batches
-    .filter((b) => b.status === 'SOLD' && b.pricePerKg !== undefined)
-    .reduce((sum, b) => sum + b.quantityKg * (b.pricePerKg ?? 0), 0);
+  const suppliers: Supplier[] = [];
+  const seenFarmers = new Set<string>();
+  for (const batch of batches) {
+    if (!seenFarmers.has(batch.farmerName)) {
+      seenFarmers.add(batch.farmerName);
+      suppliers.push({ farmerName: batch.farmerName, cropName: batch.cropName });
+    }
+  }
 
   const styles = createStyles(colors);
 
   return (
     <View style={styles.container}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
@@ -207,35 +193,42 @@ export default function FarmerProfileScreen(_props: Props) {
               </View>
             )}
             <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
+              <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.name}>{user.fullName}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>FARMER</Text>
+            <Text style={styles.roleBadgeText}>AGRI-BUYER</Text>
+          </View>
+
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.locationText}>{locationLabel}</Text>
           </View>
 
           <View style={styles.bioRow}>
             <Text style={styles.bioText}>{BIO_TEXT}</Text>
             <TouchableOpacity onPress={() => showComingSoon('Edit bio')} hitSlop={8}>
-              <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.85)" />
+              <Ionicons name="pencil-outline" size={12} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
         </LinearGradient>
 
         <View style={styles.statsRow}>
           <PressableScale style={styles.statCard}>
-            <Text style={styles.statValue}>{bookings.length}</Text>
-            <Text style={styles.statLabel}>Rentals</Text>
+            <Text style={styles.statValue}>24</Text>
+            <Text style={styles.statLabel}>Purchases</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValueAmber]}>4.8 ⭐</Text>
+            <Text style={[styles.statValue, styles.statValueAmber]}>4.9 ⭐</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
-            <Text style={styles.statValue}>{batches.length}</Text>
-            <Text style={styles.statLabel}>Batches</Text>
+            <Text style={styles.statValue}>{suppliers.length || 8}</Text>
+            <Text style={styles.statLabel}>Suppliers</Text>
           </PressableScale>
         </View>
 
@@ -243,100 +236,106 @@ export default function FarmerProfileScreen(_props: Props) {
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
               <View style={styles.premiumIconCircle}>
-                <Ionicons name="leaf" size={18} color={colors.primaryGreen} />
+                <Ionicons name="cart-outline" size={18} color={colors.primaryGreen} />
               </View>
-              <Text style={styles.premiumHeaderText}>Farming Activity</Text>
+              <Text style={styles.premiumHeaderText}>Recent Purchases</Text>
+              <TouchableOpacity onPress={() => showComingSoon('All purchases')} style={styles.seeAllWrap}>
+                <View style={styles.seeAllRow}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
+                </View>
+              </TouchableOpacity>
             </View>
-            <View style={styles.activityGrid}>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
-                  <Text style={styles.activityLabel}>Equipment Rented</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
-                  <Text style={styles.activityLabel}>Total Spent</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
-                  <Text style={styles.activityLabel}>Produce Logged</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSold)}</Text>
-                  <Text style={styles.activityLabel}>Total Sold</Text>
-                </LinearGradient>
-              </PressableScale>
-            </View>
+
+            {RECENT_PURCHASES.map((purchase, index) => (
+              <View key={purchase.id}>
+                <View style={styles.purchaseRow}>
+                  <Text style={styles.purchaseEmoji}>{purchase.emoji}</Text>
+                  <View style={styles.purchaseBody}>
+                    <Text style={styles.purchaseCrop}>
+                      {purchase.crop} <Text style={styles.purchaseQuantity}>· {purchase.quantity}</Text>
+                    </Text>
+                    <Text style={styles.purchaseMeta}>
+                      {purchase.farmer} · {formatDate(purchase.date)}
+                    </Text>
+                  </View>
+                  <Text style={styles.purchaseAmount}>{purchase.amount}</Text>
+                </View>
+                {index < RECENT_PURCHASES.length - 1 && <View style={styles.purchaseDivider} />}
+              </View>
+            ))}
           </LinearGradient>
         </View>
 
         <View style={styles.premiumCardWrap}>
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
-              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                <Ionicons name="star" size={18} color={colors.accentAmber} />
+              <View style={styles.premiumIconCircle}>
+                <Ionicons name="checkmark-circle-outline" size={18} color={colors.primaryGreen} />
               </View>
-              <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
-              <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
+              <Text style={styles.premiumHeaderText}>My Suppliers</Text>
             </View>
 
-            <View style={styles.ratingOverviewBlock}>
-              <Text style={styles.ratingBigNumber}>4.8</Text>
-              <View style={styles.ratingStarsRow}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
-                ))}
-              </View>
-              <Text style={styles.ratingCountText}>17 reviews</Text>
-            </View>
-
-            <View style={styles.ratingBarsWrap}>
-              {RATING_BREAKDOWN.map((row) => (
-                <View key={row.stars} style={styles.ratingBarRow}>
-                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                  <View style={styles.ratingBarTrack}>
-                    <LinearGradient
-                      colors={['#FF8F00', '#FFB300']}
-                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                    />
+            {suppliers.length === 0 ? (
+              <Text style={styles.emptyText}>No suppliers yet.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suppliersScroll}>
+                {suppliers.slice(0, 8).map((supplier) => (
+                  <View key={supplier.farmerName} style={styles.supplierCard}>
+                    <View style={styles.supplierAvatar}>
+                      <Text style={styles.supplierAvatarText}>{supplier.farmerName.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.supplierNameRow}>
+                      <Text style={styles.supplierName} numberOfLines={1}>{supplier.farmerName}</Text>
+                      <Ionicons name="checkmark-circle" size={12} color={colors.primaryGreen} />
+                    </View>
+                    <Text style={styles.supplierCrop} numberOfLines={1}>{supplier.cropName}</Text>
+                    <View style={styles.supplierRatingRow}>
+                      <Ionicons name="star" size={11} color={colors.accentAmber} />
+                      <Text style={styles.supplierRating}>4.8</Text>
+                    </View>
                   </View>
-                  <Text style={styles.ratingBarCount}>{row.count}</Text>
+                ))}
+              </ScrollView>
+            )}
+          </LinearGradient>
+        </View>
+
+        <View style={[styles.premiumCardWrap, styles.subscriptionCardWrap]}>
+          <LinearGradient colors={['rgba(255,143,0,0.04)', 'rgba(255,143,0,0.09)']} style={styles.premiumCardGradient}>
+            <View style={styles.premiumHeaderRow}>
+              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
+              </View>
+              <Text style={styles.subscriptionHeaderText}>Subscription Status</Text>
+            </View>
+
+            <View style={styles.planRow}>
+              <Text style={styles.planName}>Pro Buyer</Text>
+              <Ionicons name="checkmark-circle" size={20} color={colors.primaryGreen} />
+            </View>
+
+            <View style={styles.benefitsList}>
+              {[
+                'Unlimited catalogue access',
+                'PDF compliance reports',
+                'Priority farmer contact',
+                'Market price alerts',
+              ].map((benefit) => (
+                <View key={benefit} style={styles.benefitRow}>
+                  <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
+                  <Text style={styles.benefitText}>{benefit}</Text>
                 </View>
               ))}
             </View>
 
-            {SAMPLE_REVIEWS.map((review) => (
-              <PressableScale key={review.id} style={styles.reviewCardOuter}>
-                <View style={styles.reviewCard}>
-                  <View style={styles.reviewHeaderRow}>
-                    <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
-                    </View>
-                    <Text style={styles.reviewerName}>{review.reviewer}</Text>
-                    <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
-                  </View>
-                  <View style={styles.reviewStarsRow}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Ionicons
-                        key={i}
-                        name="star"
-                        size={12}
-                        color={i < review.rating ? colors.accentAmber : colors.border}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                </View>
-              </PressableScale>
-            ))}
+            <Text style={styles.expiryText}>Valid until Dec 2026</Text>
+
+            <TouchableOpacity onPress={() => showComingSoon('Upgrade plan')}>
+              <LinearGradient colors={[colors.accentAmber, '#E65100']} style={styles.upgradeButton}>
+                <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </LinearGradient>
         </View>
 
@@ -355,10 +354,10 @@ export default function FarmerProfileScreen(_props: Props) {
                 ) : (
                   <>
                     <View style={styles.logoutIconCircle}>
-                      <Ionicons name="log-out" size={18} color="#FFFFFF" />
+                      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
                     </View>
                     <Text style={styles.logoutButtonText}>Log Out</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
+                    <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
                   </>
                 )}
               </LinearGradient>
@@ -376,7 +375,10 @@ export default function FarmerProfileScreen(_props: Props) {
         onChangePassword={() => showComingSoon('Change Password')}
         onRateApp={() => showComingSoon('Rate the App')}
         onContactSupport={() => showComingSoon('Contact Support')}
-        extraItems={[{ icon: 'language-outline', label: 'Language', onPress: () => showComingSoon('Language') }]}
+        extraItems={[
+          { icon: 'document-outline', label: 'My PDF Reports', onPress: () => showComingSoon('My PDF Reports') },
+          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => showComingSoon('Export Preferences') },
+        ]}
       />
 
       <PersonalInfoSheet
@@ -461,7 +463,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: colors.accentAmber,
+      backgroundColor: '#FF8F00',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
@@ -472,12 +474,22 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 10,
+    },
+    locationText: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+    },
     bioRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      marginTop: 12,
+      marginTop: 10,
       maxWidth: 280,
     },
     bioText: {
@@ -486,6 +498,11 @@ function createStyles(colors: ThemeColors) {
       color: 'rgba(255,255,255,0.85)',
       textAlign: 'center',
       flexShrink: 1,
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 8,
     },
     statsRow: {
       flexDirection: 'row',
@@ -518,38 +535,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 2,
     },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      margin: 16,
-      marginTop: 0,
-      padding: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    cardSpaced: {
-      marginTop: 20,
-    },
-    cardHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    cardHeaderLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-    },
-    cardHeaderText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.primaryGreen,
-    },
     premiumCardWrap: {
       marginHorizontal: 16,
       marginTop: 20,
@@ -563,6 +548,10 @@ function createStyles(colors: ThemeColors) {
       shadowOpacity: 0.1,
       shadowRadius: 10,
       elevation: 4,
+    },
+    subscriptionCardWrap: {
+      borderColor: 'rgba(255,143,0,0.35)',
+      shadowColor: '#FF8F00',
     },
     premiumCardGradient: {
       padding: 16,
@@ -590,156 +579,157 @@ function createStyles(colors: ThemeColors) {
       color: colors.primaryGreen,
       flex: 1,
     },
+    subscriptionHeaderText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.accentAmber,
+      flex: 1,
+    },
     seeAllWrap: {
       paddingHorizontal: 2,
     },
-    activityGrid: {
+    seeAllRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    activityBoxOuter: {
-      width: '48%',
-    },
-    activityBox: {
-      borderRadius: 16,
-      padding: 16,
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(26,107,46,0.1)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    activityValueGreen: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#1A6B2E',
-    },
-    activityValueAmber: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#FF8F00',
-    },
-    activityLabel: {
-      fontSize: 12,
-      color: '#6B7280',
-      marginTop: 4,
-      textAlign: 'center',
+      gap: 2,
     },
     seeAllText: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.accentAmber,
     },
-    ratingOverviewBlock: {
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    ratingBigNumber: {
-      fontSize: 56,
-      fontWeight: '800',
-      color: '#FF8F00',
-      textShadowColor: 'rgba(255,143,0,0.3)',
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 6,
-    },
-    ratingStarsRow: {
-      flexDirection: 'row',
-      gap: 2,
-      marginTop: 4,
-    },
-    ratingCountText: {
+    emptyText: {
       fontSize: 13,
       color: colors.secondaryText,
-      marginTop: 4,
     },
-    ratingBarsWrap: {
-      gap: 6,
-      marginBottom: 8,
-    },
-    ratingBarRow: {
+    purchaseRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      paddingVertical: 10,
+      gap: 10,
     },
-    ratingBarLabel: {
-      fontSize: 12,
-      color: colors.secondaryText,
-      width: 22,
+    purchaseEmoji: {
+      fontSize: 24,
     },
-    ratingBarTrack: {
+    purchaseBody: {
       flex: 1,
-      height: 8,
-      borderRadius: 10,
-      backgroundColor: '#F0F0F0',
-      overflow: 'hidden',
     },
-    ratingBarFill: {
-      height: 8,
-      borderRadius: 10,
+    purchaseCrop: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
     },
-    ratingBarCount: {
+    purchaseQuantity: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.secondaryText,
+    },
+    purchaseMeta: {
       fontSize: 12,
       color: colors.secondaryText,
-      width: 18,
-      textAlign: 'right',
+      marginTop: 2,
     },
-    reviewCardOuter: {
-      marginTop: 12,
+    purchaseAmount: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.primaryGreen,
     },
-    reviewCard: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      padding: 12,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+    purchaseDivider: {
+      height: 1,
+      backgroundColor: colors.divider,
     },
-    reviewHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
+    suppliersScroll: {
+      gap: 12,
+      paddingBottom: 4,
     },
-    reviewAvatar: {
-      width: 28,
-      height: 28,
+    supplierCard: {
+      width: 110,
+      backgroundColor: colors.inputBackground,
       borderRadius: 14,
+      padding: 12,
+      alignItems: 'center',
+    },
+    supplierAvatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: colors.primaryGreen,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    reviewAvatarText: {
-      fontSize: 12,
+    supplierAvatarText: {
+      fontSize: 16,
       fontWeight: '700',
       color: '#FFFFFF',
     },
-    reviewerName: {
-      fontSize: 14,
+    supplierNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      marginTop: 8,
+      maxWidth: '100%',
+    },
+    supplierName: {
+      fontSize: 12,
       fontWeight: '700',
       color: colors.text,
-      flex: 1,
+      flexShrink: 1,
     },
-    reviewDate: {
+    supplierCrop: {
       fontSize: 11,
       color: colors.secondaryText,
+      marginTop: 2,
     },
-    reviewStarsRow: {
+    supplierRatingRow: {
       flexDirection: 'row',
-      gap: 2,
-      marginTop: 6,
+      alignItems: 'center',
+      gap: 3,
+      marginTop: 4,
     },
-    reviewComment: {
+    supplierRating: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    planRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    planName: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.accentAmber,
+    },
+    benefitsList: {
+      marginTop: 12,
+      gap: 8,
+    },
+    benefitRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    benefitText: {
       fontSize: 13,
-      fontStyle: 'italic',
+      color: colors.text,
+    },
+    expiryText: {
+      fontSize: 12,
       color: colors.secondaryText,
-      marginTop: 6,
-      lineHeight: 18,
+      marginTop: 12,
+    },
+    upgradeButton: {
+      height: 48,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 14,
+    },
+    upgradeButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
     logoutGlowWrap: {
       marginHorizontal: 16,

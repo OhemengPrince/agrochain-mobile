@@ -10,8 +10,7 @@ import BuyerHomeScreen from '../screens/buyer/BuyerHomeScreen';
 import CatalogueScreen from '../screens/buyer/CatalogueScreen';
 import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
 import QrScannerScreen from '../screens/buyer/QrScannerScreen';
-import ProfileScreen from '../screens/shared/ProfileScreen';
-import SettingsScreen from '../screens/shared/SettingsScreen';
+import BuyerProfileScreen from '../screens/buyer/BuyerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 
 const Tab = createBottomTabNavigator<BuyerStackParamList>();
@@ -48,8 +47,7 @@ function ScannerStack() {
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="BuyerProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="BuyerSettings" component={SettingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BuyerProfileMain" component={BuyerProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

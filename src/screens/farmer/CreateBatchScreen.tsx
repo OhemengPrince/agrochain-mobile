@@ -138,7 +138,7 @@ function LocationButton({
       <Pressable style={styles.locationButton} onPress={onPress} disabled={loading}>
         <Ionicons name="location" size={16} color="#1A6B2E" />
         <Text style={styles.locationButtonText}>
-          {loading ? 'Capturing location...' : '📍 Capture My Location'}
+          {loading ? 'Capturing location...' : 'Capture My Location'}
         </Text>
       </Pressable>
     </Animated.View>

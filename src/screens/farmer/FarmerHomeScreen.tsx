@@ -254,7 +254,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
           <View style={styles.locationRow}>
-            <Text style={styles.locationText}>📍 {locationLabel}</Text>
+            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.locationText}> {locationLabel}</Text>
           </View>
           <View style={styles.searchBar}>
             <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
@@ -343,7 +344,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
               <Text style={styles.bannerSubtitle}>Find equipment near you in minutes</Text>
             </View>
             <TouchableOpacity style={styles.bannerButton} onPress={() => goToEquipmentTab()}>
-              <Text style={styles.bannerButtonText}>Browse Now →</Text>
+              <Text style={styles.bannerButtonText}>Browse Now</Text>
+              <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
             </TouchableOpacity>
           </ImageBackground>
         </View>
@@ -427,6 +429,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       marginTop: 6,
     },
     locationText: {
@@ -598,6 +602,9 @@ function createStyles(colors: ThemeColors) {
       marginTop: 4,
     },
     bannerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
       alignSelf: 'flex-end',
       backgroundColor: colors.white,
       borderRadius: 20,
