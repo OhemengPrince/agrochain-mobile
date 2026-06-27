@@ -74,6 +74,58 @@ function PressableScale({ onPress, style, children }: PressableScaleProps) {
   );
 }
 
+function GradientActionButton({
+  onPress,
+  label,
+  icon,
+  gradient,
+  height,
+  shadowColor,
+  styles,
+}: {
+  onPress: () => void;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  gradient: [string, string];
+  height: number;
+  shadowColor: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { scale, onPressIn, onPressOut } = usePressAnimation();
+  return (
+    <Animated.View style={[styles.gradientButtonShadow, { shadowColor, transform: [{ scale }] }]}>
+      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
+        <LinearGradient colors={gradient} style={[styles.gradientButton, { height }]}>
+          <Ionicons name={icon} size={20} color="#FFFFFF" style={styles.gradientButtonIcon} />
+          <Text style={styles.gradientButtonText}>{label}</Text>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function OutlineDangerButton({
+  onPress,
+  label,
+  icon,
+  styles,
+}: {
+  onPress: () => void;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { scale, onPressIn, onPressOut } = usePressAnimation();
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable style={styles.dangerOutlineButton} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
+        <Ionicons name={icon} size={18} color="#DC2626" style={styles.gradientButtonIcon} />
+        <Text style={styles.dangerOutlineButtonText}>{label}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 type DerivedStatus = 'PENDING' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
 
 function deriveStatus(booking: Booking): DerivedStatus {
@@ -306,15 +358,6 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
             style={styles.button}
           />
         )}
-        {booking.status === 'PENDING' || booking.status === 'CONFIRMED' ? (
-          <AppButton
-            title="Cancel Booking"
-            variant="outline"
-            onPress={() => runAction(cancelBooking)}
-            loading={actionLoading}
-            style={styles.button}
-          />
-        ) : null}
         {isOwner && booking.status === 'CONFIRMED' && (
           <AppButton
             title="Mark as Completed"
@@ -333,19 +376,33 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
           </PressableScale>
         )}
 
-        <View style={styles.secondaryActionRow}>
-          <PressableScale
-            style={styles.outlineActionButton}
+        <View style={styles.bottomActionsGroup}>
+          {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+            <GradientActionButton
+              label="Cancel Booking"
+              icon="log-out-outline"
+              gradient={['#DC2626', '#991B1B']}
+              height={56}
+              shadowColor="#DC2626"
+              styles={styles}
+              onPress={() => runAction(cancelBooking)}
+            />
+          )}
+          <GradientActionButton
+            label="Contact Owner"
+            icon="call"
+            gradient={[colors.primaryGreen, colors.primaryGreenLight]}
+            height={56}
+            shadowColor={colors.primaryGreen}
+            styles={styles}
             onPress={() => handlePlaceholder('You will be able to message the owner soon.')}
-          >
-            <Text style={styles.outlineActionButtonText}>Contact Owner</Text>
-          </PressableScale>
-          <Pressable
+          />
+          <OutlineDangerButton
+            label="Report Issue"
+            icon="warning-outline"
+            styles={styles}
             onPress={() => handlePlaceholder('Issue reporting will be available soon.')}
-            style={styles.reportIssueButton}
-          >
-            <Text style={styles.reportIssueText}>Report Issue</Text>
-          </Pressable>
+          />
         </View>
       </ScrollView>
 
@@ -602,7 +659,7 @@ function createStyles(colors: ThemeColors) {
     },
     scrollContent: {
       padding: 16,
-      paddingBottom: 32,
+      paddingBottom: 0,
     },
     statusBanner: {
       flexDirection: 'row',
@@ -848,19 +905,46 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
     },
-    secondaryActionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    bottomActionsGroup: {
       gap: 12,
       marginTop: 16,
+      marginBottom: 32,
     },
-    reportIssueButton: {
-      paddingVertical: 14,
-      paddingHorizontal: 12,
+    gradientButtonShadow: {
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
+      borderRadius: 16,
     },
-    reportIssueText: {
-      color: colors.errorRed,
-      fontSize: 14,
+    gradientButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+    },
+    gradientButtonIcon: {
+      marginRight: 8,
+    },
+    gradientButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    dangerOutlineButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: '#DC2626',
+    },
+    dangerOutlineButtonText: {
+      color: '#DC2626',
+      fontSize: 16,
       fontWeight: '700',
     },
     button: {

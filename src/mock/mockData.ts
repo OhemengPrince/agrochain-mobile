@@ -7,10 +7,12 @@ import {
 } from '../types';
 
 // ===== Users =====
-// Demo login accounts (any password works in mock mode):
-//   farmer@agrochain.com  -> Farmer dashboard
-//   owner@agrochain.com   -> Equipment Owner dashboard
-//   buyer@agrochain.com   -> Buyer dashboard
+// Mock login accepts any email/password. A known demo email logs in as that
+// exact account; any other email infers a role from its text ('owner'/'buyer'
+// -> that role, otherwise farmer) and logs in as that role's demo account:
+//   farmer@agrochain.com  -> Farmer dashboard (Kwame Asante)
+//   owner@agrochain.com   -> Equipment Owner dashboard (Nana Yeboah)
+//   buyer@agrochain.com   -> Buyer dashboard (Kofi Agyemang)
 
 export const MOCK_FARMERS: User[] = [
   {
@@ -109,7 +111,7 @@ export const MOCK_OWNERS: User[] = [
 export const MOCK_BUYERS: User[] = [
   {
     id: 'by1',
-    fullName: 'Linda Osei',
+    fullName: 'Kofi Agyemang',
     email: 'buyer@agrochain.com',
     phoneNumber: '0244001122',
     role: 'BUYER',
@@ -155,8 +157,8 @@ export const MOCK_EQUIPMENT: Equipment[] = [
   },
   {
     id: 'eq2',
-    ownerId: 'o2',
-    ownerName: 'Efua Darko',
+    ownerId: 'o1',
+    ownerName: 'Nana Yeboah',
     name: 'New Holland TC5070 Combine Harvester',
     category: 'HARVESTER',
     description:
@@ -245,8 +247,8 @@ export const MOCK_BOOKINGS: Booking[] = [
     equipmentName: 'New Holland TC5070 Combine Harvester',
     farmerId: 'f2',
     farmerName: 'Akosua Mensah',
-    ownerId: 'o2',
-    ownerName: 'Efua Darko',
+    ownerId: 'o1',
+    ownerName: 'Nana Yeboah',
     startDate: '2026-06-20',
     endDate: '2026-06-21',
     totalCost: 600,

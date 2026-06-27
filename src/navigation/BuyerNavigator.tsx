@@ -20,9 +20,9 @@ const Stack = createNativeStackNavigator<BuyerStackParamList>();
 function HomeStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="BuyerHomeMain" component={BuyerHomeScreen} options={{ title: 'AgroChain' }} />
-      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ title: 'Produce' }} />
-      <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ title: 'Scan QR Code' }} />
+      <Stack.Screen name="BuyerHomeMain" component={BuyerHomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -30,8 +30,8 @@ function HomeStack() {
 function CatalogueStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="BuyerCatalogueList" component={CatalogueScreen} options={{ title: 'Catalogue' }} />
-      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ title: 'Produce' }} />
+      <Stack.Screen name="BuyerCatalogueList" component={CatalogueScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -39,8 +39,8 @@ function CatalogueStack() {
 function ScannerStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ title: 'Scan QR Code' }} />
-      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ title: 'Produce' }} />
+      <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

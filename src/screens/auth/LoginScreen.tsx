@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../types';
-import { login as loginApi } from '../../api/authApi';
+import { AuthStackParamList, User } from '../../types';
+import { login as loginApi, loginAsRole } from '../../api/authApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -27,6 +27,12 @@ const DEMO_ACCOUNTS: { label: string; email: string }[] = [
   { label: 'Farmer', email: 'farmer@agrochain.com' },
   { label: 'Owner', email: 'owner@agrochain.com' },
   { label: 'Buyer', email: 'buyer@agrochain.com' },
+];
+
+const ROLE_CARDS: { role: User['role']; emoji: string; label: string; color: string }[] = [
+  { role: 'FARMER', emoji: '🧑‍🌾', label: 'Login as Farmer', color: '#1A6B2E' },
+  { role: 'EQUIPMENT_OWNER', emoji: '🚜', label: 'Login as Equipment Owner', color: '#1565C0' },
+  { role: 'BUYER', emoji: '🛒', label: 'Login as Buyer', color: '#FF8F00' },
 ];
 
 function usePressAnimation() {
@@ -110,6 +116,40 @@ function DemoChip({
   );
 }
 
+function RoleCard({
+  emoji,
+  label,
+  color,
+  disabled,
+  onPress,
+  styles,
+}: {
+  emoji: string;
+  label: string;
+  color: string;
+  disabled: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
+
+  return (
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
+      <Pressable
+        style={[styles.roleCard, { backgroundColor: color }]}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={disabled}
+      >
+        <Text style={styles.roleCardEmoji}>{emoji}</Text>
+        <Text style={styles.roleCardLabel}>{label}</Text>
+        <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function LoginScreen({ navigation }: Props) {
   const { login } = useAuth();
   const { colors } = useTheme();
@@ -122,8 +162,8 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     setError(null);
-    if (!email || !password) {
-      setError('Please enter your email and password.');
+    if (!email) {
+      setError('Please enter your email.');
       return;
     }
     setLoading(true);
@@ -131,7 +171,7 @@ export default function LoginScreen({ navigation }: Props) {
       const response = await loginApi({ email, password });
       await login(response.token, response.user);
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Invalid email or password.');
+      setError(err?.response?.data?.message ?? 'Could not log in.');
     } finally {
       setLoading(false);
     }
@@ -147,6 +187,19 @@ export default function LoginScreen({ navigation }: Props) {
       await login(response.token, response.user);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Could not log in with the demo account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleLogin = async (role: User['role']) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await loginAsRole(role);
+      await login(response.token, response.user);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Could not log in.');
     } finally {
       setLoading(false);
     }
@@ -249,6 +302,23 @@ export default function LoginScreen({ navigation }: Props) {
                 label={account.label}
                 disabled={loading}
                 onPress={() => handleDemoLogin(account.email)}
+                styles={styles}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.roleSwitcherSection}>
+          <Text style={styles.roleSwitcherLabel}>Quick demo access — tap a role to jump straight in:</Text>
+          <View style={styles.roleCardsStack}>
+            {ROLE_CARDS.map((card) => (
+              <RoleCard
+                key={card.role}
+                emoji={card.emoji}
+                label={card.label}
+                color={card.color}
+                disabled={loading}
+                onPress={() => handleRoleLogin(card.role)}
                 styles={styles}
               />
             ))}
@@ -439,6 +509,40 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '700',
       color: colors.primaryGreen,
+    },
+    roleSwitcherSection: {
+      marginTop: 28,
+    },
+    roleSwitcherLabel: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    roleCardsStack: {
+      gap: 12,
+    },
+    roleCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 64,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      gap: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    roleCardEmoji: {
+      fontSize: 24,
+    },
+    roleCardLabel: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
   });
 }

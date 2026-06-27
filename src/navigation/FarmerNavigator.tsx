@@ -24,8 +24,8 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerHomeMain" component={FarmerHomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ title: 'Details' }} />
-      <Stack.Screen name="FarmerNotifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
+      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="FarmerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -33,8 +33,8 @@ function HomeStack() {
 function EquipmentStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="FarmerEquipmentList" component={EquipmentListScreen} options={{ title: 'Equipment' }} />
-      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ title: 'Details' }} />
+      <Stack.Screen name="FarmerEquipmentList" component={EquipmentListScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -42,8 +42,8 @@ function EquipmentStack() {
 function BookingsStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="FarmerBookingsList" component={MyBookingsScreen} options={{ title: 'My Bookings' }} />
-      <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ title: 'Booking' }} />
+      <Stack.Screen name="FarmerBookingsList" component={MyBookingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -51,9 +51,9 @@ function BookingsStack() {
 function TraceabilityStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="FarmerBatchesList" component={MyBatchesScreen} options={{ title: 'My Batches' }} />
-      <Stack.Screen name="CreateBatch" component={CreateBatchScreen} options={{ title: 'New Batch' }} />
-      <Stack.Screen name="BatchDetail" component={BatchDetailScreen} options={{ title: 'Batch Details' }} />
+      <Stack.Screen name="FarmerBatchesList" component={MyBatchesScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CreateBatch" component={CreateBatchScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BatchDetail" component={BatchDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

@@ -25,7 +25,7 @@ function DashboardStack() {
       <Stack.Screen
         name="OwnerDashboardMain"
         component={OwnerDashboardScreen}
-        options={{ title: 'AgroChain' }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -34,7 +34,7 @@ function DashboardStack() {
 function ListingsStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen name="OwnerEquipmentList" component={MyListingsScreen} options={{ title: 'My Equipment' }} />
+      <Stack.Screen name="OwnerEquipmentList" component={MyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="CreateEquipment"
         component={CreateEquipmentScreen}
@@ -55,9 +55,9 @@ function BookingsStack() {
       <Stack.Screen
         name="OwnerBookingsList"
         component={IncomingBookingsScreen}
-        options={{ title: 'Bookings' }}
+        options={{ headerShown: false }}
       />
-      <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ title: 'Booking' }} />
+      <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -109,6 +109,7 @@ export default function OwnerNavigator() {
         component={NotificationsScreen}
         options={{
           title: 'Alerts',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon name="notifications" focused={focused} />,
           tabBarLabel: ({ focused }) => <TabLabel label="Alerts" focused={focused} />,
         }}

@@ -1,19 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BuyerStackParamList, ProduceBatch } from '../../types';
 import { getBatchById } from '../../api/produceApi';
-import { formatDate, formatCurrency, getBatchStatusMeta, getCropEmoji } from '../../utils/formatters';
+import { formatDate, formatCurrency, getCropEmoji } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import AppButton from '../../components/AppButton';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
-export default function ProduceDetailScreen({ route }: Props) {
+function usePressAnimation() {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
+    ]).start();
+  };
+
+  return {
+    scale,
+    opacity,
+    onPressIn: () => animateTo(0.97, 0.95, 100),
+    onPressOut: () => animateTo(1, 1, 150),
+  };
+}
+
+export default function ProduceDetailScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const { batchId } = route.params;
@@ -36,6 +57,16 @@ export default function ProduceDetailScreen({ route }: Props) {
     })();
   }, [batchId]);
 
+  const contactPress = usePressAnimation();
+
+  const handleContact = () => {
+    Alert.alert('Contact Farmer', 'Messaging is coming soon. This is a placeholder action.');
+  };
+
+  const handleDownloadReport = () => {
+    Alert.alert('Download PDF Report', 'PDF report generation is coming soon. This is a placeholder action.');
+  };
+
   if (loading) {
     return <LoadingOverlay message="Loading produce details..." />;
   }
@@ -48,90 +79,168 @@ export default function ProduceDetailScreen({ route }: Props) {
     );
   }
 
-  const statusMeta = getBatchStatusMeta(batch.status);
+  const batchRef = batch.id.slice(-6).toUpperCase();
+  const farmerInitial = batch.farmerName.charAt(0).toUpperCase();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.headerCard}>
-        <View style={styles.emojiWrap}>
-          <Text style={styles.emoji}>{getCropEmoji(batch.cropName)}</Text>
+    <View style={styles.container}>
+      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={22} color={colors.white} />
+          </Pressable>
+          <Text style={styles.headerRef}>REF #{batchRef}</Text>
         </View>
-        <View style={styles.headerBody}>
-          <Text style={styles.title}>{batch.cropName}</Text>
-          {batch.variety ? <Text style={styles.variety}>{batch.variety}</Text> : null}
-          <View style={[styles.statusBadge, { backgroundColor: statusMeta.background }]}>
-            <Text style={[styles.statusBadgeText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+        <View style={styles.headerCropRow}>
+          <Text style={styles.headerEmoji}>{getCropEmoji(batch.cropName)}</Text>
+          <View>
+            <Text style={styles.headerTitle}>{batch.cropName}</Text>
+            {batch.variety ? <Text style={styles.headerVariety}>{batch.variety}</Text> : null}
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
-      <View style={styles.infoCard}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Farmer</Text>
-          <Text style={styles.value}>{batch.farmerName}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Quantity</Text>
-          <Text style={styles.value}>{batch.quantityKg} kg</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Location</Text>
-          <Text style={styles.value}>
-            {batch.district}, {batch.region}
-          </Text>
-        </View>
-        {batch.pricePerKg !== undefined && (
-          <View style={[styles.row, styles.rowLast]}>
-            <Text style={styles.label}>Price</Text>
-            <Text style={styles.value}>{formatCurrency(batch.pricePerKg)}/kg</Text>
-          </View>
-        )}
-      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ErrorMessage message={error} />
 
-      <Text style={styles.sectionTitle}>Traceability Timeline</Text>
-      {batch.processingStages.length === 0 ? (
-        <View style={styles.infoCard}>
-          <Text style={styles.emptyText}>No processing stages recorded yet.</Text>
-        </View>
-      ) : (
-        <View style={styles.infoCard}>
-          {batch.processingStages.map((stage, index) => (
-            <View
-              key={stage.id}
-              style={[styles.timelineItem, index === batch.processingStages.length - 1 && styles.rowLast]}
-            >
-              <View style={styles.timelineDot}>
-                <Ionicons name="checkmark" size={12} color={colors.white} />
+        {/* FARMER CARD */}
+        <View style={styles.card}>
+          <View style={styles.farmerRow}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{farmerInitial}</Text>
+            </View>
+            <View style={styles.farmerBody}>
+              <View style={styles.farmerNameRow}>
+                <Text style={styles.farmerName}>{batch.farmerName}</Text>
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark-circle" size={12} color={colors.primaryGreen} />
+                  <Text style={styles.verifiedBadgeText}>Verified</Text>
+                </View>
               </View>
-              <View style={styles.timelineBody}>
-                <Text style={styles.stageName}>{stage.stageName}</Text>
-                <Text style={styles.stageDescription}>{stage.description}</Text>
-                <Text style={styles.stageDate}>{formatDate(stage.timestamp)}</Text>
+              <Text style={styles.farmerRegion}>{batch.district}, {batch.region}</Text>
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={13} color={colors.accentAmber} />
+                <Text style={styles.ratingText}>4.7</Text>
+                <Text style={styles.ratingSubtext}>(illustrative rating)</Text>
               </View>
             </View>
-          ))}
+          </View>
+          <Animated.View style={{ transform: [{ scale: contactPress.scale }], opacity: contactPress.opacity }}>
+            <Pressable
+              style={styles.contactButtonSmall}
+              onPress={handleContact}
+              onPressIn={contactPress.onPressIn}
+              onPressOut={contactPress.onPressOut}
+            >
+              <Ionicons name="chatbubble-ellipses" size={15} color={colors.white} />
+              <Text style={styles.contactButtonSmallText}>Contact</Text>
+            </Pressable>
+          </Animated.View>
         </View>
-      )}
 
-      {batch.inputs.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Inputs Used</Text>
-          <View style={styles.infoCard}>
-            {batch.inputs.map((input, index) => (
+        {/* PRODUCE INFO */}
+        <Text style={styles.sectionTitle}>Produce Info</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Crop</Text>
+            <Text style={styles.value}>{batch.cropName}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Quantity</Text>
+            <Text style={styles.value}>{batch.quantityKg} kg</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Harvest Date</Text>
+            <Text style={styles.value}>
+              {batch.harvestedDate ? formatDate(batch.harvestedDate) : 'Not yet harvested'}
+            </Text>
+          </View>
+          <View style={[styles.row, !batch.pricePerKg && styles.rowLast]}>
+            <Text style={styles.label}>Farm Location</Text>
+            <View style={styles.locationValueRow}>
+              <Ionicons name="location" size={13} color={colors.secondaryText} />
+              <Text style={styles.value}>{batch.district}, {batch.region}</Text>
+            </View>
+          </View>
+          {batch.pricePerKg !== undefined && (
+            <View style={[styles.row, styles.rowLast]}>
+              <Text style={styles.label}>Price</Text>
+              <Text style={styles.priceValue}>{formatCurrency(batch.pricePerKg)}/kg</Text>
+            </View>
+          )}
+        </View>
+
+        {/* TRACEABILITY TIMELINE */}
+        <Text style={styles.sectionTitle}>Traceability Timeline</Text>
+        {batch.processingStages.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.emptyText}>No processing stages recorded yet.</Text>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            {batch.processingStages.map((stage, index) => (
               <View
-                key={`${input.name}-${index}`}
-                style={[styles.row, index === batch.inputs.length - 1 && styles.rowLast]}
+                key={stage.id}
+                style={[styles.timelineItem, index === batch.processingStages.length - 1 && styles.rowLast]}
               >
-                <Text style={styles.label}>{input.name}</Text>
-                <Text style={styles.value}>
-                  {input.quantity} • {formatDate(input.appliedDate)}
-                </Text>
+                <View style={styles.timelineDotColumn}>
+                  <View style={styles.timelineDot}>
+                    <Ionicons name="checkmark" size={12} color={colors.white} />
+                  </View>
+                  {index !== batch.processingStages.length - 1 && <View style={styles.timelineLine} />}
+                </View>
+                <View style={styles.timelineBody}>
+                  <Text style={styles.stageName}>{stage.stageName}</Text>
+                  <Text style={styles.stageDescription}>{stage.description}</Text>
+                  <Text style={styles.stageDate}>{formatDate(stage.timestamp)}</Text>
+                </View>
               </View>
             ))}
           </View>
-        </>
-      )}
-    </ScrollView>
+        )}
+
+        {/* INPUTS USED */}
+        <Text style={styles.sectionTitle}>Inputs Used</Text>
+        {batch.inputs.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.emptyText}>No inputs recorded for this batch.</Text>
+          </View>
+        ) : (
+          <View style={styles.chipsWrap}>
+            {batch.inputs.map((input, index) => (
+              <View key={`${input.name}-${index}`} style={styles.inputChip}>
+                <Ionicons name="flask-outline" size={13} color={colors.primaryGreen} />
+                <Text style={styles.inputChipText}>{input.name} • {input.quantity}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* CERTIFICATIONS */}
+        <Text style={styles.sectionTitle}>Certifications</Text>
+        <View style={styles.certRow}>
+          <View style={styles.certBadge}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.primaryGreen} />
+            <Text style={styles.certBadgeText}>Quality Assured</Text>
+          </View>
+          <View style={styles.certBadge}>
+            <Ionicons name="leaf" size={16} color={colors.primaryGreen} />
+            <Text style={styles.certBadgeText}>Organic Practices</Text>
+          </View>
+        </View>
+
+        {/* ACTION BUTTONS */}
+        <View style={styles.actionsSection}>
+          <AppButton title="Contact Farmer" onPress={handleContact} style={styles.actionButton} />
+          <AppButton
+            title="Download PDF Report"
+            onPress={handleDownloadReport}
+            variant="outline"
+            style={styles.actionButton}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -141,66 +250,155 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
+    header: {
+      paddingHorizontal: 16,
+      paddingTop: 56,
+      paddingBottom: 20,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
+    },
+    headerTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    backButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerRef: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: 'rgba(255,255,255,0.85)',
+      letterSpacing: 0.5,
+    },
+    headerCropRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 18,
+    },
+    headerEmoji: {
+      fontSize: 36,
+      marginRight: 12,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.white,
+    },
+    headerVariety: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+      marginTop: 2,
+    },
+    scroll: {
+      flex: 1,
+    },
     content: {
       padding: 16,
       paddingBottom: 32,
     },
-    headerCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    card: {
       backgroundColor: colors.card,
       borderRadius: 16,
       padding: 16,
       marginBottom: 16,
       ...cardShadow,
     },
-    emojiWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 14,
-      backgroundColor: colors.lightGreen,
+    farmerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    avatarCircle: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.primaryGreen,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,
     },
-    emoji: {
-      fontSize: 28,
-    },
-    headerBody: {
-      flex: 1,
-    },
-    title: {
+    avatarText: {
       fontSize: 20,
       fontWeight: '800',
+      color: colors.white,
+    },
+    farmerBody: {
+      flex: 1,
+    },
+    farmerNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    farmerName: {
+      fontSize: 16,
+      fontWeight: '700',
       color: colors.text,
     },
-    variety: {
-      fontSize: 14,
-      color: colors.secondaryText,
-      marginTop: 2,
-    },
-    statusBadge: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: 9,
-      paddingVertical: 4,
+    verifiedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: colors.lightGreen,
       borderRadius: 8,
-      marginTop: 8,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
     },
-    statusBadgeText: {
+    verifiedBadgeText: {
       fontSize: 10,
-      fontWeight: '800',
-      letterSpacing: 0.3,
+      fontWeight: '700',
+      color: colors.primaryGreen,
     },
-    infoCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      ...cardShadow,
+    farmerRegion: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 3,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 6,
+    },
+    ratingText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    ratingSubtext: {
+      fontSize: 11,
+      color: colors.secondaryText,
+    },
+    contactButtonSmall: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: colors.primaryGreen,
+      borderRadius: 12,
+      paddingVertical: 10,
+      marginTop: 14,
+    },
+    contactButtonSmallText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 10,
     },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'center',
       paddingVertical: 9,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -218,11 +416,15 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       fontWeight: '600',
     },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: 10,
+    locationValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    priceValue: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.primaryGreen,
     },
     emptyText: {
       color: colors.secondaryText,
@@ -230,9 +432,11 @@ function createStyles(colors: ThemeColors) {
     },
     timelineItem: {
       flexDirection: 'row',
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      paddingBottom: 14,
+    },
+    timelineDotColumn: {
+      alignItems: 'center',
+      marginRight: 12,
     },
     timelineDot: {
       width: 22,
@@ -241,11 +445,16 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.primaryGreen,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: 12,
-      marginTop: 1,
+    },
+    timelineLine: {
+      width: 2,
+      flex: 1,
+      backgroundColor: colors.border,
+      marginTop: 4,
     },
     timelineBody: {
       flex: 1,
+      paddingTop: 1,
     },
     stageName: {
       fontSize: 14,
@@ -261,6 +470,55 @@ function createStyles(colors: ThemeColors) {
       fontSize: 11,
       color: colors.secondaryText,
       marginTop: 4,
+    },
+    chipsWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 16,
+    },
+    inputChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.lightGreen,
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    inputChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primaryGreen,
+    },
+    certRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginBottom: 8,
+    },
+    certBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    certBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    actionsSection: {
+      marginTop: 12,
+      gap: 12,
+    },
+    actionButton: {
+      width: '100%',
     },
   });
 }

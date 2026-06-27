@@ -66,11 +66,29 @@ export async function verifyOtp(payload: VerifyOtpPayload): Promise<AuthResponse
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
   if (USE_MOCK_DATA) {
-    // No backend yet: always succeed, no validation at all. Log in as the
-    // first farmer in mockData regardless of what was typed.
-    return mockDelay({ token: generateMockId('token'), user: MOCK_USERS[0] });
+    // No backend yet: accept any password and log in as any email. If the
+    // email matches a known mock account use it, otherwise infer the role
+    // from the email text and fall back to that role's demo account.
+    const existing = findUserByEmail(payload.email);
+    const role = existing?.role ?? inferRoleFromEmail(payload.email);
+    const user =
+      existing ??
+      MOCK_USERS.find((u) => u.role === role) ??
+      MOCK_USERS[0];
+    return mockDelay({ token: generateMockId('token'), user });
   }
   const { data } = await apiClient.post<AuthResponse>('/auth/login', payload);
+  return data;
+}
+
+export async function loginAsRole(role: User['role']): Promise<AuthResponse> {
+  if (USE_MOCK_DATA) {
+    const user = MOCK_USERS.find((u) => u.role === role) ?? MOCK_USERS[0];
+    return mockDelay({ token: generateMockId('token'), user });
+  }
+  const demoEmail =
+    role === 'EQUIPMENT_OWNER' ? 'owner@agrochain.com' : role === 'BUYER' ? 'buyer@agrochain.com' : 'farmer@agrochain.com';
+  const { data } = await apiClient.post<AuthResponse>('/auth/login', { email: demoEmail, password: 'demo1234' });
   return data;
 }
 
