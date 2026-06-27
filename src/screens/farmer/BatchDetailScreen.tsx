@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Sha
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { FarmerStackParamList, ProduceBatch, BatchStatus } from '../../types';
 import { getBatchById, addProcessingStage, updateBatchStatus } from '../../api/produceApi';
@@ -186,9 +187,9 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
 
   if (!batch) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <ErrorMessage message={error ?? 'Batch not found.'} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -199,7 +200,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
     batch.processingStages.length > 0;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -344,7 +345,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -388,7 +389,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 100,
     },
     card: {
       backgroundColor: colors.card,

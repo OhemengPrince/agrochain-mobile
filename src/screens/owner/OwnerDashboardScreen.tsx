@@ -24,6 +24,7 @@ import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
 
@@ -318,8 +319,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   const greeting = getTimeOfDayGreeting();
 
   return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
     <ScrollView
-      style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
@@ -438,6 +439,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
       <MarketNewsFeed />
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -448,7 +450,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     content: {
-      paddingBottom: 32,
+      paddingBottom: 100,
     },
     header: {
       paddingTop: 56,

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   SectionList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppNotification, NotificationType } from '../../types';
@@ -221,7 +222,7 @@ export default function NotificationsScreen() {
   const sections = groupNotifications(notifications);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
         <TouchableOpacity onPress={handleMarkAllRead}>
@@ -261,7 +262,7 @@ export default function NotificationsScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -305,7 +306,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 8,
     },
     listContentContainer: {
-      paddingBottom: 24,
+      paddingBottom: 100,
     },
     emptyContentContainer: {
       flexGrow: 1,

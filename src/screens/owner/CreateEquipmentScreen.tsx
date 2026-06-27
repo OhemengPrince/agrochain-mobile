@@ -9,6 +9,7 @@ import { createEquipment } from '../../api/equipmentApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -127,7 +128,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -231,7 +232,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
           </Pressable>
         </Animated.View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -266,7 +267,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 100,
     },
     label: {
       fontSize: 13,

@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { verifyResetOtp, resetPassword } from '../../api/authApi';
@@ -38,7 +39,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>Reset Password</Text>
       <Text style={styles.subtitle}>Enter the OTP sent to {email} and your new password.</Text>
 
@@ -66,7 +67,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       />
 
       <AppButton title="Reset Password" onPress={handleReset} loading={loading} style={styles.button} />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -11,10 +11,12 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Booking } from '../../types';
 import { getMyBookings, cancelBooking } from '../../api/bookingApi';
 import { formatCurrency, formatDate, daysBetween } from '../../utils/formatters';
@@ -337,7 +339,7 @@ export default function MyBookingsScreen({ navigation }: Props) {
   const filterLabel = FILTER_TABS.find((t) => t.key === filter)?.label ?? 'All';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Text style={styles.headerTitle}>My Bookings</Text>
         <Text style={styles.headerSubtitle}>{bookings.length} total bookings</Text>
@@ -397,7 +399,7 @@ export default function MyBookingsScreen({ navigation }: Props) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -409,6 +411,7 @@ function createStyles(colors: ThemeColors) {
     },
     header: {
       padding: 20,
+      paddingTop: Platform.OS === 'ios' ? 55 : 20,
     },
     headerTitle: {
       fontSize: 24,
@@ -464,7 +467,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 14,
-      paddingBottom: 24,
+      paddingBottom: 100,
       flexGrow: 1,
     },
     card: {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -73,9 +74,9 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
   if (!batch) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <ErrorMessage message={error ?? 'Produce batch not found.'} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -83,7 +84,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
   const farmerInitial = batch.farmerName.charAt(0).toUpperCase();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -240,7 +241,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -300,7 +301,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 32,
+      paddingBottom: 100,
     },
     card: {
       backgroundColor: colors.card,

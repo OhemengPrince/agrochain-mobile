@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated } fr
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, InputItem } from '../../types';
 import { createBatch } from '../../api/produceApi';
 import { useTheme } from '../../hooks/useTheme';
@@ -202,7 +203,7 @@ export default function CreateBatchScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerRow}>
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -329,7 +330,7 @@ export default function CreateBatchScreen({ navigation }: Props) {
 
         <SubmitButton title="Submit Harvest Log" onPress={handleCreate} loading={loading} styles={styles} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -367,7 +368,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 100,
     },
     progressRow: {
       flexDirection: 'row',

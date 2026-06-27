@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, Pressable, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -176,7 +177,7 @@ export default function CatalogueScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Text style={styles.headerTitle}>Produce Catalogue</Text>
 
@@ -252,7 +253,7 @@ export default function CatalogueScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No produce found.</Text>}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -356,7 +357,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingHorizontal: 14,
-      paddingBottom: 24,
+      paddingBottom: 100,
       paddingTop: 4,
     },
     card: {

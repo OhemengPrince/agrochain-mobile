@@ -21,6 +21,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerBookingsList'>;
 
@@ -217,7 +218,7 @@ export default function IncomingBookingsScreen({ navigation }: Props) {
   const filterLabel = FILTER_TABS.find((t) => t.key === filter)?.label ?? 'Pending';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Text style={styles.headerTitle}>Booking Requests</Text>
         <Text style={styles.headerSubtitle}>{bookings.length} total requests</Text>
@@ -270,7 +271,7 @@ export default function IncomingBookingsScreen({ navigation }: Props) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -348,6 +349,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       padding: 14,
+      paddingBottom: 100,
       flexGrow: 1,
     },
     card: {

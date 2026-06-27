@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { forgotPassword } from '../../api/authApi';
@@ -35,7 +36,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>Forgot Password</Text>
       <Text style={styles.subtitle}>
         Enter your email and we'll send you a code to reset your password.
@@ -54,7 +55,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       />
 
       <AppButton title="Send Reset Code" onPress={handleSubmit} loading={loading} style={styles.button} />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { FarmerStackParamList, ProduceBatch, BatchStatus } from '../../types';
 import { getMyBatches } from '../../api/produceApi';
@@ -230,7 +231,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>My Harvest</Text>
@@ -298,7 +299,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
       />
 
       <Fab onPress={() => navigation.navigate('CreateBatch')} styles={styles} />
-    </View>
+    </SafeAreaView>
   );
 }
 

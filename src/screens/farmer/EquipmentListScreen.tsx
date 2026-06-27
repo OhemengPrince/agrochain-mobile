@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
 import { useTheme } from '../../hooks/useTheme';
@@ -12,14 +13,14 @@ import StarRating from '../../components/StarRating';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
-const CATEGORIES: { label: string; value: EquipmentCategory | undefined; emoji: string }[] = [
-  { label: 'All', value: undefined, emoji: '' },
-  { label: 'Tractor', value: 'TRACTOR', emoji: '🚜' },
-  { label: 'Harvester', value: 'HARVESTER', emoji: '🌾' },
-  { label: 'Irrigation', value: 'IRRIGATION_PUMP', emoji: '💧' },
-  { label: 'Sprayer', value: 'SPRAYER', emoji: '🌿' },
-  { label: 'Tiller', value: 'PLOUGH', emoji: '⚙️' },
-  { label: 'Sheller', value: 'TRAILER', emoji: '🌰' },
+const CATEGORIES: { label: string; value: EquipmentCategory | undefined }[] = [
+  { label: 'All', value: undefined },
+  { label: 'Tractor', value: 'TRACTOR' },
+  { label: 'Harvester', value: 'HARVESTER' },
+  { label: 'Irrigation', value: 'IRRIGATION_PUMP' },
+  { label: 'Sprayer', value: 'SPRAYER' },
+  { label: 'Tiller', value: 'PLOUGH' },
+  { label: 'Sheller', value: 'TRAILER' },
 ];
 
 const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
@@ -176,7 +177,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   const region = equipment[0]?.region ?? 'Ashanti Region';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>Find Equipment</Text>
@@ -219,9 +220,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => handleCategoryPress(item.value)}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {item.emoji ? `${item.emoji} ${item.label}` : item.label}
-              </Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
         }}
@@ -250,7 +249,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No equipment found.</Text>}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -312,13 +311,15 @@ function createStyles(colors: ThemeColors) {
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 24,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipActive: {
     backgroundColor: colors.primaryGreen,
@@ -339,7 +340,7 @@ function createStyles(colors: ThemeColors) {
     fontWeight: '700',
   },
   list: {
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   resultsHeader: {
     flexDirection: 'row',

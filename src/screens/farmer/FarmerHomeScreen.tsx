@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment, ProduceBatch, Booking, AppNotification } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
 import { getMyBatches } from '../../api/produceApi';
@@ -241,9 +242,10 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
@@ -395,7 +397,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

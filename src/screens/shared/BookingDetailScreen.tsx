@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,9 +223,9 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
 
   if (!booking) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <ErrorMessage message={error ?? 'Booking not found.'} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -241,7 +242,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const statusBanner = getStatusBannerMeta(derivedStatus, booking, colors);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
@@ -446,7 +447,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

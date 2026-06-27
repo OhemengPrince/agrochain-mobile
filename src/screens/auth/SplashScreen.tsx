@@ -1,5 +1,6 @@
 ﻿import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -19,11 +20,11 @@ export default function SplashScreen({ navigation }: Props) {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Text style={styles.logo}>AgroChain</Text>
       <Text style={styles.tagline}>From Farm to Market, Tracked.</Text>
       <ActivityIndicator color={colors.white} style={styles.spinner} />
-    </View>
+    </SafeAreaView>
   );
 }
 

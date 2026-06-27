@@ -22,6 +22,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerEquipmentList'>;
 
@@ -199,7 +200,7 @@ export default function MyListingsScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <View>
@@ -241,7 +242,7 @@ export default function MyListingsScreen({ navigation }: Props) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -285,6 +286,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       padding: 14,
+      paddingBottom: 100,
       flexGrow: 1,
     },
     card: {

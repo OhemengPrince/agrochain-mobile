@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -196,7 +197,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <FlatList
         data={[]}
         keyExtractor={() => 'x'}
@@ -312,7 +313,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -323,7 +324,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     list: {
-      paddingBottom: 24,
+      paddingBottom: 100,
     },
     header: {
       paddingHorizontal: 20,

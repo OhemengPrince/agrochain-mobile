@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { colors } from '../constants/colors';
@@ -17,9 +18,9 @@ export function getTabBarOptions(themeColors: ThemeColors): BottomTabNavigationO
     tabBarActiveTintColor: themeColors.primaryGreen,
     tabBarInactiveTintColor: themeColors.secondaryText,
     tabBarStyle: {
-      height: 65,
+      height: Platform.OS === 'ios' ? 65 : 60,
       paddingTop: 8,
-      paddingBottom: 8,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 8,
       backgroundColor: themeColors.tabBarBackground,
       borderTopWidth: 0,
       ...topShadow,

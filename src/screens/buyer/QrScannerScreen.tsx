@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -70,10 +71,10 @@ export default function QrScannerScreen({ navigation }: Props) {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <Text style={styles.message}>Camera access is required to scan QR codes.</Text>
         <AppButton title="Grant Permission" onPress={requestPermission} style={styles.button} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -83,7 +84,7 @@ export default function QrScannerScreen({ navigation }: Props) {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <CameraView
         style={styles.camera}
         facing="back"
@@ -122,7 +123,7 @@ export default function QrScannerScreen({ navigation }: Props) {
 
       <ErrorMessage message={error} />
       {loading && <LoadingOverlay message="Looking up produce..." />}
-    </View>
+    </SafeAreaView>
   );
 }
 

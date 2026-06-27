@@ -10,11 +10,13 @@ import {
   ActivityIndicator,
   Pressable,
   Animated,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Booking, ProduceBatch } from '../../types';
 import { getMyBookings } from '../../api/bookingApi';
 import { getMyBatches } from '../../api/produceApi';
@@ -188,7 +190,7 @@ export default function FarmerProfileScreen(_props: Props) {
   const styles = createStyles(colors);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
@@ -398,7 +400,7 @@ export default function FarmerProfileScreen(_props: Props) {
         location={locationLabel}
         memberSince={memberSince}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -410,8 +412,9 @@ function createStyles(colors: ThemeColors) {
     },
     header: {
       paddingHorizontal: 20,
-      paddingTop: 16,
+      paddingTop: Platform.OS === 'ios' ? 60 : 40,
       paddingBottom: 28,
+      minHeight: 280,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -435,9 +438,9 @@ function createStyles(colors: ThemeColors) {
       position: 'relative',
     },
     avatar: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
+      width: 100,
+      height: 100,
+      borderRadius: 50,
       borderWidth: 3,
       borderColor: '#FFFFFF',
     },
@@ -465,7 +468,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     name: {
-      fontSize: 24,
+      fontSize: 26,
       fontWeight: '800',
       color: '#FFFFFF',
       marginTop: 10,
@@ -737,7 +740,7 @@ function createStyles(colors: ThemeColors) {
     logoutGlowWrap: {
       marginHorizontal: 16,
       marginTop: 24,
-      paddingBottom: 40,
+      paddingBottom: 100,
       shadowColor: '#DC2626',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4,

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
 import { getEquipmentById } from '../../api/equipmentApi';
 import { createBooking } from '../../api/bookingApi';
@@ -151,9 +152,9 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
 
   if (!equipment) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <ErrorMessage message={error ?? 'Equipment not found.'} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -162,7 +163,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const ownerInitial = equipment.ownerName?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
           <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.heroImage} />
@@ -350,7 +351,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
           </Pressable>
         </Animated.View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
