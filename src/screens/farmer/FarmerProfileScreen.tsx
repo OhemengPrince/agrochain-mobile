@@ -61,19 +61,17 @@ function PressableScale({
   children,
   style,
   onPress,
-  baseScale = 1,
 }: {
   children: React.ReactNode;
   style?: object;
   onPress?: () => void;
-  baseScale?: number;
 }) {
-  const scale = useRef(new Animated.Value(baseScale)).current;
+  const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
   const animateTo = (toScale: number, toOpacity: number, duration: number) => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: toScale * baseScale, useNativeDriver: true, tension: 300, friction: 10 }),
+      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
       Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
     ]).start();
   };
@@ -230,25 +228,19 @@ export default function FarmerProfileScreen(_props: Props) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.memberSinceRow}>
-            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
-          </View>
+          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
         </LinearGradient>
 
         <View style={styles.statsRow}>
           <PressableScale style={styles.statCard}>
-            <Ionicons name="construct-outline" size={20} color={colors.primaryGreen} />
             <Text style={styles.statValue}>{bookings.length}</Text>
             <Text style={styles.statLabel}>Rentals</Text>
           </PressableScale>
-          <PressableScale style={[styles.statCard, styles.statCardActive]} baseScale={1.05}>
-            <Ionicons name="star" size={20} color={colors.accentAmber} />
-            <Text style={[styles.statValue, styles.statValueAmber]}>4.8</Text>
+          <PressableScale style={styles.statCard}>
+            <Text style={[styles.statValue, styles.statValueAmber]}>4.8 ⭐</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </PressableScale>
           <PressableScale style={styles.statCard}>
-            <Ionicons name="leaf-outline" size={20} color={colors.primaryGreen} />
             <Text style={styles.statValue}>{batches.length}</Text>
             <Text style={styles.statLabel}>Batches</Text>
           </PressableScale>
@@ -291,7 +283,7 @@ export default function FarmerProfileScreen(_props: Props) {
           </LinearGradient>
         </View>
 
-        <View style={[styles.premiumCardWrap, styles.reviewsCardWrap]}>
+        <View style={styles.premiumCardWrap}>
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
             <View style={styles.premiumHeaderRow}>
               <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
@@ -303,31 +295,29 @@ export default function FarmerProfileScreen(_props: Props) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.ratingOverviewRow}>
-              <View style={styles.ratingOverviewLeft}>
-                <Text style={styles.ratingBigNumber}>4.8</Text>
-                <View style={styles.ratingStarsRow}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Ionicons key={i} name="star" size={14} color={colors.accentAmber} />
-                  ))}
-                </View>
-                <Text style={styles.ratingCountText}>17 reviews</Text>
-              </View>
-
-              <View style={styles.ratingBarsWrap}>
-                {RATING_BREAKDOWN.map((row) => (
-                  <View key={row.stars} style={styles.ratingBarRow}>
-                    <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                    <View style={styles.ratingBarTrack}>
-                      <LinearGradient
-                        colors={['#FF8F00', '#FFB300']}
-                        style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                      />
-                    </View>
-                    <Text style={styles.ratingBarCount}>{row.count}</Text>
-                  </View>
+            <View style={styles.ratingOverviewBlock}>
+              <Text style={styles.ratingBigNumber}>4.8</Text>
+              <View style={styles.ratingStarsRow}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
                 ))}
               </View>
+              <Text style={styles.ratingCountText}>17 reviews</Text>
+            </View>
+
+            <View style={styles.ratingBarsWrap}>
+              {RATING_BREAKDOWN.map((row) => (
+                <View key={row.stars} style={styles.ratingBarRow}>
+                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                  <View style={styles.ratingBarTrack}>
+                    <LinearGradient
+                      colors={['#FF8F00', '#FFB300']}
+                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.ratingBarCount}>{row.count}</Text>
+                </View>
+              ))}
             </View>
 
             {SAMPLE_REVIEWS.map((review) => (
@@ -396,7 +386,6 @@ export default function FarmerProfileScreen(_props: Props) {
         extraItems={[
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => showComingSoon('My Certifications') },
           { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => showComingSoon('Season Report') },
-          { icon: 'document-text-outline', label: 'Privacy Policy', onPress: () => showComingSoon('Privacy Policy') },
         ]}
       />
 
@@ -408,7 +397,6 @@ export default function FarmerProfileScreen(_props: Props) {
         phone={user.phoneNumber}
         location={locationLabel}
         memberSince={memberSince}
-        extraRows={[{ icon: 'ribbon-outline', label: 'Certifications', value: 'None yet' }]}
       />
     </View>
   );
@@ -483,9 +471,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: colors.primaryGreenDark,
-      borderWidth: 1,
-      borderColor: '#FFFFFF',
+      backgroundColor: colors.primaryGreen,
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
@@ -521,15 +507,10 @@ function createStyles(colors: ThemeColors) {
       textAlign: 'center',
       flexShrink: 1,
     },
-    memberSinceRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      marginTop: 8,
-    },
     memberSinceText: {
       fontSize: 12,
       color: 'rgba(255,255,255,0.8)',
+      marginTop: 8,
     },
     statsRow: {
       flexDirection: 'row',
@@ -543,18 +524,11 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 16,
       padding: 16,
       alignItems: 'center',
-      gap: 4,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
-      elevation: 3,
-    },
-    statCardActive: {
-      borderWidth: 1.5,
-      borderColor: colors.primaryGreen,
-      shadowOpacity: 0.15,
-      elevation: 5,
+      elevation: 4,
     },
     statValue: {
       fontSize: 24,
@@ -568,38 +542,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       color: colors.secondaryText,
       marginTop: 2,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      margin: 16,
-      marginTop: 0,
-      padding: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    cardSpaced: {
-      marginTop: 20,
-    },
-    cardHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    cardHeaderLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-    },
-    cardHeaderText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.primaryGreen,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
@@ -686,17 +628,9 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.accentAmber,
     },
-    reviewsCardWrap: {
-      borderColor: 'rgba(255,143,0,0.2)',
-    },
-    ratingOverviewRow: {
-      flexDirection: 'row',
+    ratingOverviewBlock: {
       alignItems: 'center',
-      gap: 16,
       marginBottom: 16,
-    },
-    ratingOverviewLeft: {
-      alignItems: 'center',
     },
     ratingBigNumber: {
       fontSize: 56,
@@ -717,8 +651,8 @@ function createStyles(colors: ThemeColors) {
       marginTop: 4,
     },
     ratingBarsWrap: {
-      flex: 1,
       gap: 6,
+      marginBottom: 8,
     },
     ratingBarRow: {
       flexDirection: 'row',
