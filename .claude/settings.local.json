@@ -10,7 +10,10 @@
       "Bash(echo \"EXIT_CODE=$?\")",
       "Bash(xargs grep -l \"CameraView\")",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(ls -la .claude/)",
+      "Bash(cat .claude/settings.json)",
+      "Bash(cat .claude/settings.local.json)"
     ]
   }
 }
