@@ -28,6 +28,7 @@ import { cardShadow } from '../../constants/shadows';
 import { formatCategory, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import StarRating from '../../components/StarRating';
+import MarketNewsFeed from '../../components/MarketNewsFeed';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerHomeMain'>;
 
@@ -367,6 +368,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             ))}
           </ScrollView>
         </View>
+
+        <MarketNewsFeed />
 
         <View style={[styles.section, styles.lastSection]}>
           <Text style={styles.sectionTitle}>My Recent Activity</Text>

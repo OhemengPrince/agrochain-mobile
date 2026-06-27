@@ -38,12 +38,12 @@ function ListingsStack() {
       <Stack.Screen
         name="CreateEquipment"
         component={CreateEquipmentScreen}
-        options={{ title: 'Add Equipment' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="EditEquipment"
         component={EditEquipmentScreen}
-        options={{ title: 'Edit Equipment' }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -66,7 +66,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="OwnerSettings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="OwnerSettings" component={SettingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

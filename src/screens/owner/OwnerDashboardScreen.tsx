@@ -23,6 +23,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import MarketNewsFeed from '../../components/MarketNewsFeed';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
 
@@ -434,6 +435,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           ))}
         </ScrollView>
       )}
+
+      <MarketNewsFeed />
     </ScrollView>
   );
 }

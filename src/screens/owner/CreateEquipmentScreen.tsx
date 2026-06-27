@@ -1,11 +1,13 @@
-﻿import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, EquipmentCategory } from '../../types';
 import { createEquipment } from '../../api/equipmentApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import AppButton from '../../components/AppButton';
 import ErrorMessage from '../../components/ErrorMessage';
 
 function usePressAnimation() {
@@ -69,6 +71,7 @@ const CATEGORIES: EquipmentCategory[] = [
 export default function CreateEquipmentScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [category, setCategory] = useState<EquipmentCategory>('TRACTOR');
   const [description, setDescription] = useState('');
@@ -77,6 +80,25 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const submitAnim = usePressAnimation();
+
+  const handlePickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to add an equipment photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const handleCreate = async () => {
     setError(null);
@@ -87,7 +109,15 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      await createEquipment({ name, category, description, dailyRate: rate, region, district });
+      await createEquipment({
+        name,
+        category,
+        description,
+        dailyRate: rate,
+        region,
+        district,
+        imageUrl: photoUri ?? undefined,
+      });
       navigation.navigate('OwnerEquipmentList');
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to create equipment listing.');
@@ -97,73 +127,111 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>List New Equipment</Text>
+    <View style={styles.container}>
+      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Add Equipment</Text>
+        <View style={styles.backButtonSpacer} />
+      </LinearGradient>
 
-      <ErrorMessage message={error} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ErrorMessage message={error} />
 
-      <Text style={styles.label}>Equipment Name</Text>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="John Deere Tractor"
-        placeholderTextColor={colors.secondaryText}
-      />
+        <Text style={styles.label}>Photo</Text>
+        <Pressable style={styles.photoUpload} onPress={handlePickPhoto}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <Ionicons name="camera" size={28} color={colors.primaryGreen} />
+              <Text style={styles.photoPlaceholderText}>Add a photo</Text>
+            </View>
+          )}
+        </Pressable>
 
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.chipRow}>
-        {CATEGORIES.map((c) => (
-          <CategoryChip
-            key={c}
-            label={c.replace(/_/g, ' ')}
-            active={category === c}
-            onPress={() => setCategory(c)}
-            styles={styles}
+        <View style={styles.card}>
+          <Text style={styles.label}>Equipment Name</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="John Deere Tractor"
+            placeholderTextColor={colors.secondaryText}
           />
-        ))}
-      </View>
 
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Describe the equipment's condition and capabilities"
-        placeholderTextColor={colors.secondaryText}
-        multiline
-      />
+          <Text style={styles.label}>Category</Text>
+          <View style={styles.chipRow}>
+            {CATEGORIES.map((c) => (
+              <CategoryChip
+                key={c}
+                label={c.replace(/_/g, ' ')}
+                active={category === c}
+                onPress={() => setCategory(c)}
+                styles={styles}
+              />
+            ))}
+          </View>
 
-      <Text style={styles.label}>Daily Rate (GHS)</Text>
-      <TextInput
-        style={styles.input}
-        value={dailyRate}
-        onChangeText={setDailyRate}
-        placeholder="150"
-        placeholderTextColor={colors.secondaryText}
-        keyboardType="numeric"
-      />
+          <Text style={styles.label}>Daily Rate (GHS)</Text>
+          <TextInput
+            style={styles.input}
+            value={dailyRate}
+            onChangeText={setDailyRate}
+            placeholder="150"
+            placeholderTextColor={colors.secondaryText}
+            keyboardType="numeric"
+          />
 
-      <Text style={styles.label}>Region</Text>
-      <TextInput
-        style={styles.input}
-        value={region}
-        onChangeText={setRegion}
-        placeholder="Ashanti"
-        placeholderTextColor={colors.secondaryText}
-      />
+          <View style={styles.row}>
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>Region</Text>
+              <TextInput
+                style={styles.input}
+                value={region}
+                onChangeText={setRegion}
+                placeholder="Ashanti"
+                placeholderTextColor={colors.secondaryText}
+              />
+            </View>
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>District</Text>
+              <TextInput
+                style={styles.input}
+                value={district}
+                onChangeText={setDistrict}
+                placeholder="Kumasi"
+                placeholderTextColor={colors.secondaryText}
+              />
+            </View>
+          </View>
 
-      <Text style={styles.label}>District</Text>
-      <TextInput
-        style={styles.input}
-        value={district}
-        onChangeText={setDistrict}
-        placeholder="Kumasi"
-        placeholderTextColor={colors.secondaryText}
-      />
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe the equipment's condition and capabilities"
+            placeholderTextColor={colors.secondaryText}
+            multiline
+          />
+        </View>
 
-      <AppButton title="List Equipment" onPress={handleCreate} loading={loading} style={styles.button} />
-    </ScrollView>
+        <Animated.View style={{ transform: [{ scale: submitAnim.scale }], opacity: submitAnim.opacity }}>
+          <Pressable
+            onPress={handleCreate}
+            onPressIn={submitAnim.onPressIn}
+            onPressOut={submitAnim.onPressOut}
+            disabled={loading}
+          >
+            <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.submitButton}>
+              <Text style={styles.submitButtonText}>{loading ? 'Listing...' : 'List Equipment'}</Text>
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -173,14 +241,32 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    content: {
-      padding: 20,
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingTop: 56,
+      paddingBottom: 18,
+      paddingHorizontal: 16,
     },
-    title: {
-      fontSize: 22,
+    backButton: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    backButtonSpacer: {
+      width: 36,
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 18,
       fontWeight: '800',
-      color: colors.text,
-      marginBottom: 16,
+      color: '#FFFFFF',
+    },
+    content: {
+      padding: 16,
+      paddingBottom: 40,
     },
     label: {
       fontSize: 13,
@@ -189,18 +275,63 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 6,
       marginTop: 12,
     },
+    photoUpload: {
+      height: 140,
+      borderRadius: 16,
+      marginBottom: 4,
+      overflow: 'hidden',
+    },
+    photoPreview: {
+      width: '100%',
+      height: '100%',
+    },
+    photoPlaceholder: {
+      flex: 1,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      backgroundColor: colors.inputBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    photoPlaceholderText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primaryGreen,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 16,
+      marginTop: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 4,
+    },
     input: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      height: 46,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      height: 48,
       fontSize: 15,
       color: colors.text,
+      backgroundColor: colors.inputBackground,
     },
     textArea: {
-      height: 90,
-      paddingTop: 10,
+      height: 96,
+      paddingTop: 12,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    rowItem: {
+      flex: 1,
     },
     chipRow: {
       flexDirection: 'row',
@@ -208,7 +339,7 @@ function createStyles(colors: ThemeColors) {
       gap: 8,
     },
     chip: {
-      paddingHorizontal: 12,
+      paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 20,
       borderWidth: 1,
@@ -224,10 +355,19 @@ function createStyles(colors: ThemeColors) {
     },
     chipTextActive: {
       color: colors.primaryGreen,
-      fontWeight: '600',
+      fontWeight: '700',
     },
-    button: {
+    submitButton: {
+      height: 54,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
       marginTop: 24,
+    },
+    submitButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
     },
   });
 }

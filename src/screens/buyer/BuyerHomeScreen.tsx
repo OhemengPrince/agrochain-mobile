@@ -11,6 +11,7 @@ import { cardShadow } from '../../constants/shadows';
 import { formatCurrency, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import MarketNewsFeed from '../../components/MarketNewsFeed';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerHomeMain'>;
 
@@ -304,6 +305,8 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 />
               </View>
             )}
+
+            <MarketNewsFeed />
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}

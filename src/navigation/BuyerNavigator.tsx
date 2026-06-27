@@ -49,7 +49,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="BuyerProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="BuyerSettings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="BuyerSettings" component={SettingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
