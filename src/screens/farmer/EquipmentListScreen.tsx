@@ -19,6 +19,7 @@ const CATEGORIES: { label: string; value: EquipmentCategory | undefined; emoji: 
   { label: 'Irrigation', value: 'IRRIGATION_PUMP', emoji: '💧' },
   { label: 'Sprayer', value: 'SPRAYER', emoji: '🌿' },
   { label: 'Tiller', value: 'PLOUGH', emoji: '⚙️' },
+  { label: 'Sheller', value: 'TRAILER', emoji: '🌰' },
 ];
 
 const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
@@ -78,6 +79,9 @@ function EquipmentListCard({
               {item.isAvailable ? 'Available' : 'Unavailable'}
             </Text>
           </View>
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceBadgeText}>GHS {item.dailyRate}/day</Text>
+          </View>
         </View>
 
         <View style={styles.body}>
@@ -106,11 +110,10 @@ function EquipmentListCard({
             )}
           </View>
 
-          <View style={styles.priceRow}>
-            <View style={styles.priceWrap}>
-              <Text style={styles.priceValue}>GHS {item.dailyRate}</Text>
-              <Text style={styles.priceUnit}>/day</Text>
-            </View>
+          <View style={styles.bottomRow}>
+            <TouchableOpacity onPress={onPress}>
+              <Text style={styles.viewDetailsText}>View Details →</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.bookNowButton} onPress={onPress}>
               <Text style={styles.bookNowText}>Book Now</Text>
             </TouchableOpacity>
@@ -160,52 +163,68 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     loadEquipment(query, cat);
   };
 
+  const handleClearQuery = () => {
+    setQuery('');
+    loadEquipment('', category);
+  };
+
   if (loading) {
     return <LoadingOverlay message="Loading equipment..." />;
   }
 
+  const region = equipment[0]?.region ?? 'Ashanti Region';
+
   return (
     <View style={styles.container}>
-      <View style={styles.stickyHeader}>
-        <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={() => loadEquipment(query, category)}
-              placeholder="Search tractors, harvesters..."
-              placeholderTextColor={colors.secondaryText}
-              returnKeyType="search"
-            />
-          </View>
+      <View style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitle}>Find Equipment</Text>
           <TouchableOpacity style={styles.filterButton} onPress={() => loadEquipment(query, category)}>
-            <Ionicons name="filter" size={18} color={colors.white} />
+            <Ionicons name="options-outline" size={18} color={colors.white} />
           </TouchableOpacity>
         </View>
+        <Text style={styles.headerSubtitle}>{region} • {equipment.length} available</Text>
 
-        <FlatList
-          data={CATEGORIES}
-          horizontal
-          keyExtractor={(item) => item.label}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsList}
-          renderItem={({ item }) => {
-            const active = item.value === category;
-            return (
-              <TouchableOpacity
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => handleCategoryPress(item.value)}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {item.emoji ? `${item.emoji} ${item.label}` : item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={() => loadEquipment(query, category)}
+            placeholder="Search tractors, harvesters..."
+            placeholderTextColor={colors.secondaryText}
+            returnKeyType="search"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={handleClearQuery}>
+              <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      <FlatList
+        data={CATEGORIES}
+        horizontal
+        keyExtractor={(item) => item.label}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsList}
+        style={styles.chipsRow}
+        renderItem={({ item }) => {
+          const active = item.value === category;
+          return (
+            <TouchableOpacity
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => handleCategoryPress(item.value)}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {item.emoji ? `${item.emoji} ${item.label}` : item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
 
       <ErrorMessage message={error} />
 
@@ -240,32 +259,40 @@ function createStyles(colors: ThemeColors) {
     flex: 1,
     backgroundColor: colors.background,
   },
-  stickyHeader: {
+  header: {
     backgroundColor: colors.white,
-    paddingTop: 12,
-    paddingBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  searchRow: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    gap: 10,
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  filterButton: {
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 12,
+    padding: 10,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: colors.secondaryText,
+    marginTop: 4,
   },
   searchBar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    height: 50,
-    paddingHorizontal: 14,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    height: 52,
+    paddingHorizontal: 16,
+    marginTop: 14,
   },
   searchIcon: {
     marginRight: 8,
@@ -275,20 +302,18 @@ function createStyles(colors: ThemeColors) {
     fontSize: 15,
     color: colors.text,
   },
-  filterButton: {
-    backgroundColor: colors.primaryGreen,
-    borderRadius: 10,
-    padding: 10,
+  chipsRow: {
+    flexGrow: 0,
+    marginTop: 16,
   },
   chipsList: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
+    paddingHorizontal: 16,
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
@@ -297,6 +322,11 @@ function createStyles(colors: ThemeColors) {
   chipActive: {
     backgroundColor: colors.primaryGreen,
     borderColor: colors.primaryGreen,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chipText: {
     fontSize: 13,
@@ -308,13 +338,13 @@ function createStyles(colors: ThemeColors) {
     fontWeight: '700',
   },
   list: {
-    paddingHorizontal: 16,
     paddingBottom: 24,
   },
   resultsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 12,
   },
@@ -328,22 +358,25 @@ function createStyles(colors: ThemeColors) {
     color: colors.secondaryText,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 20,
+    marginHorizontal: 16,
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 5,
   },
   imageWrap: {
     position: 'relative',
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 200,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   categoryBadge: {
     position: 'absolute',
@@ -351,7 +384,7 @@ function createStyles(colors: ThemeColors) {
     left: 12,
     backgroundColor: colors.accentAmber,
     borderRadius: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 4,
   },
   categoryBadgeText: {
@@ -363,16 +396,30 @@ function createStyles(colors: ThemeColors) {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: colors.primaryGreen,
+    backgroundColor: '#16A34A',
     borderRadius: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 4,
   },
   unavailableBadge: {
-    backgroundColor: colors.errorRed,
+    backgroundColor: '#DC2626',
   },
   availabilityBadgeText: {
     fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  priceBadge: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  priceBadgeText: {
+    fontSize: 13,
     fontWeight: '700',
     color: colors.white,
   },
@@ -380,7 +427,7 @@ function createStyles(colors: ThemeColors) {
     padding: 14,
   },
   name: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
@@ -423,39 +470,31 @@ function createStyles(colors: ThemeColors) {
     fontSize: 12,
     color: colors.secondaryText,
   },
-  priceRow: {
+  bottomRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 12,
+    gap: 14,
+    marginTop: 14,
   },
-  priceWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 3,
-  },
-  priceValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.primaryGreen,
-  },
-  priceUnit: {
+  viewDetailsText: {
     fontSize: 13,
-    color: colors.secondaryText,
+    color: colors.primaryGreen,
+    textDecorationLine: 'underline',
   },
   bookNowButton: {
     backgroundColor: colors.primaryGreen,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 3,
   },
   bookNowText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.white,
   },
