@@ -60,10 +60,10 @@ export interface ResetPasswordPayload {
 export type EquipmentCategory =
   | 'TRACTOR'
   | 'HARVESTER'
-  | 'PLOUGH'
+  | 'TILLER'
   | 'SPRAYER'
-  | 'IRRIGATION_PUMP'
-  | 'TRAILER'
+  | 'IRRIGATION'
+  | 'SHELLER'
   | 'OTHER';
 
 export interface Equipment {

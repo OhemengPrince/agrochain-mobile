@@ -3,7 +3,7 @@ import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
+import { FarmerStackParamList, Equipment } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -14,20 +14,7 @@ import { getEquipmentImage } from '../../constants/equipmentImages';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
-const CATEGORIES = ['All', 'Tractor', 'Harvester', 'Irrigation', 'Sprayer', 'Tiller', 'Sheller'] as const;
-type CategoryFilter = (typeof CATEGORIES)[number];
-
-// Display labels don't match the underlying EquipmentCategory enum values
-// (e.g. 'Irrigation' -> 'IRRIGATION_PUMP'), so filtering needs this lookup.
-const CATEGORY_VALUES: Record<CategoryFilter, EquipmentCategory | null> = {
-  All: null,
-  Tractor: 'TRACTOR',
-  Harvester: 'HARVESTER',
-  Irrigation: 'IRRIGATION_PUMP',
-  Sprayer: 'SPRAYER',
-  Tiller: 'PLOUGH',
-  Sheller: 'TRAILER',
-};
+const CATEGORIES = ['All', 'Tractor', 'Harvester', 'Irrigation', 'Sprayer', 'Tiller', 'Sheller'];
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -131,7 +118,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   const styles = createStyles(colors);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [query, setQuery] = useState(route.params?.query ?? '');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,10 +147,6 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     setRefreshing(false);
   };
 
-  const handleCategoryPress = (cat: CategoryFilter) => {
-    setSelectedCategory(cat);
-  };
-
   const handleClearQuery = () => {
     setQuery('');
     loadEquipment('');
@@ -174,9 +157,9 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   }
 
   const equipment =
-    selectedCategory === 'All'
+    activeCategory === 'All'
       ? allEquipment
-      : allEquipment.filter((item) => item.category === CATEGORY_VALUES[selectedCategory]);
+      : allEquipment.filter((item) => item.category.toLowerCase() === activeCategory.toLowerCase());
 
   const region = equipment[0]?.region ?? 'Ashanti Region';
 
@@ -213,18 +196,41 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsList}
-        style={styles.chipsRow}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 10,
+        }}
       >
         {CATEGORIES.map((cat) => {
-          const active = cat === selectedCategory;
+          const isActive = activeCategory === cat;
           return (
             <Pressable
               key={cat}
-              onPress={() => handleCategoryPress(cat)}
-              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setActiveCategory(cat)}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 25,
+                backgroundColor: isActive ? '#1A6B2E' : '#FFFFFF',
+                borderWidth: 1.5,
+                borderColor: isActive ? '#1A6B2E' : '#E5E7EB',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+                elevation: isActive ? 4 : 1,
+              }}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat}</Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: isActive ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                {cat}
+              </Text>
             </Pressable>
           );
         })}
@@ -309,46 +315,6 @@ function createStyles(colors: ThemeColors) {
     flex: 1,
     fontSize: 15,
     color: colors.text,
-  },
-  chipsRow: {
-    flexGrow: 0,
-  },
-  chipsList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  chip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#1A6B2E',
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  chipActive: {
-    backgroundColor: '#1A6B2E',
-    borderColor: '#1A6B2E',
-    elevation: 4,
-    shadowColor: '#1A6B2E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
   },
   list: {
     paddingBottom: 120,

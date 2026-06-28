@@ -62,10 +62,10 @@ type Props = NativeStackScreenProps<OwnerStackParamList, 'CreateEquipment'>;
 const CATEGORIES: EquipmentCategory[] = [
   'TRACTOR',
   'HARVESTER',
-  'PLOUGH',
+  'TILLER',
   'SPRAYER',
-  'IRRIGATION_PUMP',
-  'TRAILER',
+  'IRRIGATION',
+  'SHELLER',
   'OTHER',
 ];
 
