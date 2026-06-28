@@ -11,6 +11,7 @@ import {
   Pressable,
   Animated,
   Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,7 +27,6 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
-import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -144,7 +144,7 @@ export default function FarmerProfileScreen(_props: Props) {
 
   const openPersonalInfo = () => {
     setDropdownVisible(false);
-    setTimeout(() => setPersonalInfoVisible(true), 200);
+    setPersonalInfoVisible(true);
   };
 
   const handleLogoutPressIn = () => {
@@ -391,15 +391,36 @@ export default function FarmerProfileScreen(_props: Props) {
         ]}
       />
 
-      <PersonalInfoSheet
+      <Modal
         visible={personalInfoVisible}
-        onClose={() => setPersonalInfoVisible(false)}
-        onEdit={() => showComingSoon('Edit profile')}
-        email={user.email}
-        phone={user.phoneNumber}
-        location={locationLabel}
-        memberSince={memberSince}
-      />
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setPersonalInfoVisible(false)}
+      >
+        <View style={styles.infoModalOverlay}>
+          <View style={styles.infoModalCard}>
+            <View style={styles.infoModalHandle} />
+            <Text style={styles.infoModalTitle}>Personal Information</Text>
+
+            {[
+              { label: 'Email', value: user.email },
+              { label: 'Phone', value: user.phoneNumber },
+              { label: 'Location', value: locationLabel },
+              { label: 'Member Since', value: memberSince },
+            ].map((item) => (
+              <View key={item.label} style={styles.infoModalRow}>
+                <Text style={styles.infoModalLabel}>{item.label}</Text>
+                <Text style={styles.infoModalValue}>{item.value}</Text>
+              </View>
+            ))}
+
+            <Pressable style={styles.infoModalCloseButton} onPress={() => setPersonalInfoVisible(false)}>
+              <Text style={styles.infoModalCloseButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -774,6 +795,60 @@ function createStyles(colors: ThemeColors) {
     logoutArrow: {
       position: 'absolute',
       right: 16,
+    },
+    infoModalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    infoModalCard: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+      paddingBottom: 48,
+    },
+    infoModalHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: '#E0E0E0',
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    infoModalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 20,
+    },
+    infoModalRow: {
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    infoModalLabel: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      marginBottom: 4,
+    },
+    infoModalValue: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    infoModalCloseButton: {
+      marginTop: 24,
+      backgroundColor: '#1A6B2E',
+      borderRadius: 16,
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    infoModalCloseButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
     },
   });
 }

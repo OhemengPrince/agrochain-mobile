@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Animated, Switch } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Pressable, Modal, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
@@ -66,37 +66,11 @@ export default function ProfileDropdownMenu({
 }: ProfileDropdownMenuProps) {
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
   const styles = createStyles(colors);
-  const anim = useRef(new Animated.Value(0)).current;
-  const [rendered, setRendered] = React.useState(visible);
-
-  useEffect(() => {
-    if (visible) {
-      setRendered(true);
-      Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-    } else if (rendered) {
-      Animated.timing(anim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
-        setRendered(false);
-      });
-    }
-  }, [visible]);
-
-  if (!rendered) return null;
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              opacity: anim,
-              transform: [
-                { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) },
-                { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
-              ],
-            },
-          ]}
-        >
+        <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.headerTitle}>Settings</Text>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -134,7 +108,7 @@ export default function ProfileDropdownMenu({
 
           <Row icon="star-outline" label="Rate the App" onPress={onRateApp} styles={styles} colors={colors} />
           <Row icon="headset-outline" label="Contact Support" onPress={onContactSupport} styles={styles} colors={colors} isLast />
-        </Animated.View>
+        </View>
       </Pressable>
     </Modal>
   );
