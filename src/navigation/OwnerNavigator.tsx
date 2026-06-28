@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OwnerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import FloatingTabIcon from '../components/FloatingTabIcon';
+import PremiumTabBar, { tabBarIcon } from '../components/PremiumTabBar';
 import OwnerDashboardScreen from '../screens/owner/OwnerDashboardScreen';
 import MyListingsScreen from '../screens/owner/MyListingsScreen';
 import CreateEquipmentScreen from '../screens/owner/CreateEquipmentScreen';
@@ -96,13 +96,13 @@ export default function OwnerNavigator() {
   const tabBarOptions = getTabBarOptions(colors);
 
   return (
-    <Tab.Navigator screenOptions={tabBarOptions}>
+    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <PremiumTabBar {...props} />}>
       <Tab.Screen
         name="OwnerDashboard"
         component={DashboardStack}
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="stats-chart" label="Dashboard" focused={focused} />,
+          tabBarIcon: tabBarIcon('grid'),
         }}
       />
       <Tab.Screen
@@ -110,7 +110,7 @@ export default function OwnerNavigator() {
         component={ListingsStack}
         options={{
           title: 'Equipment',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="construct" label="Equipment" focused={focused} />,
+          tabBarIcon: tabBarIcon('construct'),
         }}
       />
       <Tab.Screen
@@ -118,7 +118,7 @@ export default function OwnerNavigator() {
         component={MarketStack}
         options={{
           title: 'Market',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="storefront" label="Market" focused={focused} />,
+          tabBarIcon: tabBarIcon('storefront'),
         }}
       />
       <Tab.Screen
@@ -126,7 +126,7 @@ export default function OwnerNavigator() {
         component={BookingsStack}
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="calendar" label="Bookings" focused={focused} />,
+          tabBarIcon: tabBarIcon('calendar'),
         }}
       />
       <Tab.Screen
@@ -143,7 +143,7 @@ export default function OwnerNavigator() {
         component={ProfileStack}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="person" label="Profile" focused={focused} />,
+          tabBarIcon: tabBarIcon('person'),
         }}
       />
     </Tab.Navigator>

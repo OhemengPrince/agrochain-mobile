@@ -245,7 +245,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>

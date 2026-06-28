@@ -368,7 +368,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 110,
+      paddingBottom: 100,
     },
     progressRow: {
       flexDirection: 'row',

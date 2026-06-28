@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   TextInput,
   TouchableOpacity,
   Pressable,
@@ -255,29 +256,25 @@ export default function MarketplaceScreen({ navigation }: Props) {
         </View>
       </LinearGradient>
 
-      <FlatList
-        removeClippedSubviews
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        initialNumToRender={5}
-        data={CATEGORIES}
+      <ScrollView
         horizontal
-        keyExtractor={(item) => item.label}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipsList}
         style={styles.chipsRow}
-        renderItem={({ item }) => {
+      >
+        {CATEGORIES.map((item) => {
           const active = item.value === category;
           return (
             <TouchableOpacity
+              key={item.label}
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => setCategory(item.value)}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
-        }}
-      />
+        })}
+      </ScrollView>
 
       <ErrorMessage message={error} />
 
@@ -362,39 +359,49 @@ function createStyles(colors: ThemeColors) {
     },
     chipsRow: {
       flexGrow: 0,
-      marginTop: 14,
     },
     chipsList: {
       paddingHorizontal: 16,
-      gap: 8,
+      paddingVertical: 12,
     },
     chip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 24,
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginRight: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 25,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1.5,
+      borderColor: '#E5E7EB',
+      marginRight: 10,
       alignItems: 'center',
       justifyContent: 'center',
+      elevation: 1,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
     },
     chipActive: {
-      backgroundColor: colors.primaryGreen,
-      borderColor: colors.primaryGreen,
+      backgroundColor: '#1A6B2E',
+      borderColor: '#1A6B2E',
+      elevation: 4,
+      shadowColor: '#1A6B2E',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
     },
     chipText: {
       fontSize: 13,
       fontWeight: '500',
-      color: colors.secondaryText,
+      color: '#6B7280',
     },
     chipTextActive: {
-      color: colors.white,
+      color: '#FFFFFF',
       fontWeight: '700',
+      letterSpacing: 0.3,
     },
     list: {
       paddingTop: 12,
-      paddingBottom: 110,
+      paddingBottom: 100,
     },
     card: {
       backgroundColor: colors.card,

@@ -163,7 +163,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>

@@ -441,7 +441,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     content: {
-      paddingBottom: 110,
+      paddingBottom: 100,
     },
     header: {
       paddingTop: 56,

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BuyerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import FloatingTabIcon from '../components/FloatingTabIcon';
+import PremiumTabBar, { tabBarIcon } from '../components/PremiumTabBar';
 import BuyerHomeScreen from '../screens/buyer/BuyerHomeScreen';
 import CatalogueScreen from '../screens/buyer/CatalogueScreen';
 import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
@@ -79,13 +79,13 @@ export default function BuyerNavigator() {
   const tabBarOptions = getTabBarOptions(colors);
 
   return (
-    <Tab.Navigator screenOptions={tabBarOptions}>
+    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <PremiumTabBar {...props} />}>
       <Tab.Screen
         name="BuyerHome"
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="home" label="Home" focused={focused} />,
+          tabBarIcon: tabBarIcon('home'),
         }}
       />
       <Tab.Screen
@@ -93,15 +93,15 @@ export default function BuyerNavigator() {
         component={MarketStack}
         options={{
           title: 'Market',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="storefront" label="Market" focused={focused} />,
+          tabBarIcon: tabBarIcon('storefront'),
         }}
       />
       <Tab.Screen
         name="BuyerScanner"
         component={ScannerStack}
         options={{
-          title: 'Scan',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="qr-code" label="Scan" focused={focused} />,
+          title: 'Scan QR',
+          tabBarIcon: tabBarIcon('qr-code'),
         }}
       />
       <Tab.Screen
@@ -109,7 +109,7 @@ export default function BuyerNavigator() {
         component={CatalogueStack}
         options={{
           title: 'Catalogue',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="grid" label="Catalogue" focused={focused} />,
+          tabBarIcon: tabBarIcon('grid'),
         }}
       />
       <Tab.Screen
@@ -126,7 +126,7 @@ export default function BuyerNavigator() {
         component={ProfileStack}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <FloatingTabIcon name="person" label="Profile" focused={focused} />,
+          tabBarIcon: tabBarIcon('person'),
         }}
       />
     </Tab.Navigator>

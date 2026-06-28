@@ -471,7 +471,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 14,
-      paddingBottom: 110,
+      paddingBottom: 100,
       flexGrow: 1,
     },
     card: {

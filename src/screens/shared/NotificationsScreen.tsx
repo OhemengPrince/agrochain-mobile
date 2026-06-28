@@ -306,7 +306,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 8,
     },
     listContentContainer: {
-      paddingBottom: 110,
+      paddingBottom: 100,
     },
     emptyContentContainer: {
       flexGrow: 1,

@@ -303,7 +303,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     scrollContent: {
-      paddingBottom: 24,
+      paddingBottom: 100,
     },
     heroWrap: {
       width: '100%',

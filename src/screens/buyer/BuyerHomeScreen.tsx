@@ -340,7 +340,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     list: {
-      paddingBottom: 110,
+      paddingBottom: 100,
     },
     header: {
       paddingHorizontal: 20,
