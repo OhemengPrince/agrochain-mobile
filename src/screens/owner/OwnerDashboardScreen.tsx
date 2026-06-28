@@ -147,7 +147,7 @@ function MiniEquipmentCard({
   return (
     <Animated.View style={[styles.miniCardWrap, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} style={styles.miniCard}>
-        <EquipmentImage category={equipment.category} style={styles.miniCardImage} />
+        <EquipmentImage category={equipment.category} style={styles.miniCardImage} resizeMode="contain" />
         <View style={styles.miniCardBody}>
           <Text style={styles.miniCardName} numberOfLines={1}>{equipment.name}</Text>
           <Text style={styles.miniCardRate}>{formatCurrency(equipment.dailyRate)}/day</Text>

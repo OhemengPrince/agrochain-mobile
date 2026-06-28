@@ -38,7 +38,7 @@ function EquipmentCard({ equipment, onPress }: EquipmentCardProps) {
         style={styles.card}
       >
         <View style={styles.imageWrapper}>
-          <EquipmentImage category={equipment.category} style={styles.image} />
+          <EquipmentImage category={equipment.category} style={styles.image} resizeMode="contain" />
           <View style={styles.priceBadge}>
             <Text style={styles.priceBadgeText}>{formatCurrency(equipment.dailyRate)}/day</Text>
           </View>

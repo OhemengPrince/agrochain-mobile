@@ -311,7 +311,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                     style={styles.miniEquipmentCard}
                     onPress={() => handleEditEquipment(item.id)}
                   >
-                    <EquipmentImage category={item.category} style={styles.miniEquipmentImage} />
+                    <EquipmentImage category={item.category} style={styles.miniEquipmentImage} resizeMode="contain" />
                     <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.miniEquipmentStatusRow}>
                       <View
