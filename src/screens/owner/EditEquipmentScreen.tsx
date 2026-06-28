@@ -264,7 +264,7 @@ function createStyles(colors: ThemeColors) {
     },
     content: {
       padding: 16,
-      paddingBottom: 100,
+      paddingBottom: 110,
     },
     label: {
       fontSize: 13,

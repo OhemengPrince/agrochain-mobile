@@ -369,8 +369,11 @@ export default function MyBookingsScreen({ navigation }: Props) {
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={filteredBookings}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <PremiumBookingCard
@@ -468,7 +471,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 14,
-      paddingBottom: 100,
+      paddingBottom: 110,
       flexGrow: 1,
     },
     card: {

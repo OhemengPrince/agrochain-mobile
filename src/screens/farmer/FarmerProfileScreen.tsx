@@ -740,7 +740,7 @@ function createStyles(colors: ThemeColors) {
     logoutGlowWrap: {
       marginHorizontal: 16,
       marginTop: 24,
-      paddingBottom: 100,
+      paddingBottom: 110,
       shadowColor: '#DC2626',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4,

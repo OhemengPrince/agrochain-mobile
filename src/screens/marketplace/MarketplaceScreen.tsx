@@ -257,6 +257,9 @@ export default function MarketplaceScreen({ navigation }: Props) {
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={CATEGORIES}
         horizontal
         keyExtractor={(item) => item.label}
@@ -280,8 +283,11 @@ export default function MarketplaceScreen({ navigation }: Props) {
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <ListingCard
@@ -388,7 +394,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 12,
-      paddingBottom: 100,
+      paddingBottom: 110,
     },
     card: {
       backgroundColor: colors.card,

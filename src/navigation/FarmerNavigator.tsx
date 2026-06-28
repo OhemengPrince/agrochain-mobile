@@ -4,8 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { FarmerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import TabIcon from '../components/TabIcon';
-import TabLabel from '../components/TabLabel';
+import FloatingTabIcon from '../components/FloatingTabIcon';
 import FarmerHomeScreen from '../screens/farmer/FarmerHomeScreen';
 import EquipmentListScreen from '../screens/farmer/EquipmentListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
@@ -104,8 +103,7 @@ export default function FarmerNavigator() {
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} pill />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="home" label="Home" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -113,8 +111,7 @@ export default function FarmerNavigator() {
         component={EquipmentStack}
         options={{
           title: 'Equipment',
-          tabBarIcon: ({ focused }) => <TabIcon name="construct" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Equipment" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="construct" label="Equipment" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -130,8 +127,7 @@ export default function FarmerNavigator() {
         component={MarketStack}
         options={{
           title: 'Market',
-          tabBarIcon: ({ focused }) => <TabIcon name="storefront" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Market" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="storefront" label="Market" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -139,8 +135,7 @@ export default function FarmerNavigator() {
         component={TraceabilityStack}
         options={{
           title: 'Harvest',
-          tabBarIcon: ({ focused }) => <TabIcon name="leaf" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Harvest" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="leaf" label="Harvest" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -148,8 +143,7 @@ export default function FarmerNavigator() {
         component={ProfileStack}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="person" label="Profile" focused={focused} />,
         }}
       />
     </Tab.Navigator>

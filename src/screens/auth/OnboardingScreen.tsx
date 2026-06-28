@@ -86,6 +86,9 @@ export default function OnboardingScreen({ navigation }: Props) {
       <FlatList
         ref={listRef}
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={SLIDES}
         horizontal
         pagingEnabled

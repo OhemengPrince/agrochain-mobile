@@ -201,6 +201,9 @@ export default function CatalogueScreen({ navigation }: Props) {
       <View style={styles.filterBar}>
         <FlatList
           removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={5}
           data={CROP_FILTERS}
           horizontal
           keyExtractor={(item) => item.label}
@@ -241,8 +244,11 @@ export default function CatalogueScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={filteredBatches}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <CatalogueBatchCard
@@ -359,7 +365,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingHorizontal: 14,
-      paddingBottom: 100,
+      paddingBottom: 110,
       paddingTop: 4,
     },
     card: {

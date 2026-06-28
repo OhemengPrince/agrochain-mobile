@@ -14,7 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { OwnerStackParamList, Equipment, EquipmentCategory } from '../../types';
+import { OwnerStackParamList, Equipment } from '../../types';
+import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { getMyListings, updateEquipment, deleteEquipment } from '../../api/equipmentApi';
 import { formatCurrency } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -25,16 +26,6 @@ import ErrorMessage from '../../components/ErrorMessage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerEquipmentList'>;
-
-const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
-  TRACTOR: require('../../assets/equipment/tractor.jpg'),
-  HARVESTER: require('../../assets/equipment/harvester.jpg'),
-  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
-  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
-  PLOUGH: require('../../assets/equipment/tiller.jpg'),
-  TRAILER: require('../../assets/equipment/sheller.jpg'),
-  OTHER: require('../../assets/equipment/tractor.jpg'),
-};
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -217,8 +208,11 @@ export default function MyListingsScreen({ navigation }: Props) {
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={listings}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <MyEquipmentCard
@@ -287,7 +281,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       padding: 14,
-      paddingBottom: 100,
+      paddingBottom: 110,
       flexGrow: 1,
     },
     card: {
@@ -299,10 +293,12 @@ function createStyles(colors: ThemeColors) {
     },
     imageWrap: {
       position: 'relative',
+      backgroundColor: '#F0F7F2',
     },
     image: {
       width: '100%',
       height: 140,
+      backgroundColor: '#F0F7F2',
     },
     priceBadge: {
       position: 'absolute',

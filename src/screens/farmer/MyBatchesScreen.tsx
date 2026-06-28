@@ -279,8 +279,11 @@ export default function MyBatchesScreen({ navigation }: Props) {
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={filteredBatches}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <BatchListCard
@@ -391,7 +394,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 14,
-      paddingBottom: 100,
+      paddingBottom: 110,
     },
     card: {
       backgroundColor: colors.card,

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Equipment } from '../types';
@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/formatters';
 import { cardShadow } from '../constants/shadows';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
+import { getEquipmentImage } from '../constants/equipmentImages';
 import StarRating from './StarRating';
 
 interface EquipmentCardProps {
@@ -13,11 +14,13 @@ interface EquipmentCardProps {
   onPress: () => void;
 }
 
-export default function EquipmentCard({ equipment, onPress }: EquipmentCardProps) {
+function EquipmentCard({ equipment, onPress }: EquipmentCardProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
+  const [remoteImageFailed, setRemoteImageFailed] = useState(false);
+  const [fallbackImageFailed, setFallbackImageFailed] = useState(false);
 
   const animateTo = (toScale: number, toOpacity: number, duration: number) => {
     Animated.parallel([
@@ -37,8 +40,20 @@ export default function EquipmentCard({ equipment, onPress }: EquipmentCardProps
         style={styles.card}
       >
         <View style={styles.imageWrapper}>
-          {equipment.imageUrl ? (
-            <Image source={{ uri: equipment.imageUrl }} style={styles.image} resizeMode="cover" />
+          {equipment.imageUrl && !remoteImageFailed ? (
+            <Image
+              source={{ uri: equipment.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+              onError={() => setRemoteImageFailed(true)}
+            />
+          ) : !fallbackImageFailed ? (
+            <Image
+              source={getEquipmentImage(equipment.category)}
+              style={styles.image}
+              resizeMode="cover"
+              onError={() => setFallbackImageFailed(true)}
+            />
           ) : (
             <View style={[styles.image, styles.imagePlaceholder]}>
               <Ionicons name="construct" size={32} color={colors.primaryGreenLight} />
@@ -79,6 +94,8 @@ export default function EquipmentCard({ equipment, onPress }: EquipmentCardProps
   );
 }
 
+export default React.memo(EquipmentCard);
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     card: {
@@ -90,10 +107,12 @@ function createStyles(colors: ThemeColors) {
     },
     imageWrapper: {
       position: 'relative',
+      backgroundColor: '#F0F7F2',
     },
     image: {
       width: '100%',
       height: 140,
+      backgroundColor: '#F0F7F2',
     },
     imagePlaceholder: {
       backgroundColor: colors.lightGreen,

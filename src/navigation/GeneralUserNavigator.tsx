@@ -4,8 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GeneralStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import TabIcon from '../components/TabIcon';
-import TabLabel from '../components/TabLabel';
+import FloatingTabIcon from '../components/FloatingTabIcon';
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
@@ -88,8 +87,7 @@ export default function GeneralUserNavigator() {
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} pill />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="home" label="Home" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -97,8 +95,7 @@ export default function GeneralUserNavigator() {
         component={MarketStack}
         options={{
           title: 'Market',
-          tabBarIcon: ({ focused }) => <TabIcon name="storefront" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Market" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="storefront" label="Market" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -106,8 +103,7 @@ export default function GeneralUserNavigator() {
         component={ListStack}
         options={{
           title: 'List',
-          tabBarIcon: ({ focused }) => <TabIcon name="add-circle" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="List" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="add-circle" label="List" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -115,8 +111,7 @@ export default function GeneralUserNavigator() {
         component={BrowseStack}
         options={{
           title: 'Browse',
-          tabBarIcon: ({ focused }) => <TabIcon name="construct" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Browse" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="construct" label="Browse" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -124,8 +119,7 @@ export default function GeneralUserNavigator() {
         component={ProfileStack}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <FloatingTabIcon name="person" label="Profile" focused={focused} />,
         }}
       />
     </Tab.Navigator>

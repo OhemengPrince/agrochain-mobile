@@ -200,6 +200,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={[]}
         keyExtractor={() => 'x'}
         renderItem={null}
@@ -243,6 +246,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
             <View style={styles.filterBar}>
               <FlatList
                 removeClippedSubviews
+                maxToRenderPerBatch={10}
+                windowSize={5}
+                initialNumToRender={5}
                 data={CROP_FILTERS}
                 horizontal
                 keyExtractor={(item) => item.label}
@@ -276,6 +282,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
             ) : (
               <FlatList
                 removeClippedSubviews
+                maxToRenderPerBatch={10}
+                windowSize={5}
+                initialNumToRender={5}
                 data={featuredBatches}
                 horizontal
                 keyExtractor={(item) => item.id}
@@ -297,6 +306,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 <Text style={styles.sectionTitle}>Recent Searches</Text>
                 <FlatList
                   removeClippedSubviews
+                  maxToRenderPerBatch={10}
+                  windowSize={5}
+                  initialNumToRender={5}
                   data={recentSearches}
                   horizontal
                   keyExtractor={(item, index) => `${item}-${index}`}
@@ -328,7 +340,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     list: {
-      paddingBottom: 100,
+      paddingBottom: 110,
     },
     header: {
       paddingHorizontal: 20,

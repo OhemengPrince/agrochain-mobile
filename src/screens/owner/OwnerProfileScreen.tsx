@@ -16,7 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { OwnerStackParamList, Booking, Equipment, EquipmentCategory } from '../../types';
+import { OwnerStackParamList, Booking, Equipment } from '../../types';
+import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { getMyListings } from '../../api/equipmentApi';
 import { getIncomingBookings } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -29,16 +30,6 @@ import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
-
-const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
-  TRACTOR: require('../../assets/equipment/tractor.jpg'),
-  HARVESTER: require('../../assets/equipment/harvester.jpg'),
-  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
-  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
-  PLOUGH: require('../../assets/equipment/tiller.jpg'),
-  TRAILER: require('../../assets/equipment/sheller.jpg'),
-  OTHER: require('../../assets/equipment/tractor.jpg'),
-};
 
 // Illustrative placeholder data — this app has no backend model for
 // reviews received by an equipment owner, so this section is static demo content.
@@ -704,6 +695,7 @@ function createStyles(colors: ThemeColors) {
       width: 80,
       height: 80,
       borderRadius: 12,
+      backgroundColor: '#F0F7F2',
     },
     miniEquipmentName: {
       fontSize: 12,

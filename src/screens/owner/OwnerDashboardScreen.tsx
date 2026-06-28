@@ -13,7 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { OwnerStackParamList, Equipment, EquipmentCategory, Booking } from '../../types';
+import { OwnerStackParamList, Equipment, Booking } from '../../types';
+import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { getMyListings } from '../../api/equipmentApi';
 import { getIncomingBookings, confirmBooking, cancelBooking } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,16 +28,6 @@ import MarketNewsFeed from '../../components/MarketNewsFeed';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
-
-const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
-  TRACTOR: require('../../assets/equipment/tractor.jpg'),
-  HARVESTER: require('../../assets/equipment/harvester.jpg'),
-  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
-  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
-  PLOUGH: require('../../assets/equipment/tiller.jpg'),
-  TRAILER: require('../../assets/equipment/sheller.jpg'),
-  OTHER: require('../../assets/equipment/tractor.jpg'),
-};
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -450,7 +441,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     content: {
-      paddingBottom: 100,
+      paddingBottom: 110,
     },
     header: {
       paddingTop: 56,
@@ -710,6 +701,7 @@ function createStyles(colors: ThemeColors) {
     miniCardImage: {
       width: '100%',
       height: 90,
+      backgroundColor: '#F0F7F2',
     },
     miniCardBody: {
       padding: 10,

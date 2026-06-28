@@ -13,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
+import { FarmerStackParamList, Equipment } from '../../types';
 import { getEquipmentById } from '../../api/equipmentApi';
+import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { createBooking } from '../../api/bookingApi';
 import { daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -24,16 +25,6 @@ import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
-
-const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
-  TRACTOR: require('../../assets/equipment/tractor.jpg'),
-  HARVESTER: require('../../assets/equipment/harvester.jpg'),
-  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
-  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
-  PLOUGH: require('../../assets/equipment/tiller.jpg'),
-  TRAILER: require('../../assets/equipment/sheller.jpg'),
-  OTHER: require('../../assets/equipment/tractor.jpg'),
-};
 
 const FEATURES = ['Well Maintained', 'Fuel Included', 'Operator Available', 'GPS Equipped'];
 
@@ -403,10 +394,12 @@ function createStyles(colors: ThemeColors) {
       width: '100%',
       height: 280,
       position: 'relative',
+      backgroundColor: '#F0F7F2',
     },
     heroImage: {
       width: '100%',
       height: 280,
+      backgroundColor: '#F0F7F2',
     },
     floatingButton: {
       width: 40,

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image, Pressable, Animated } from 'react-native';
+import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
+import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -22,16 +23,6 @@ const CATEGORIES: { label: string; value: EquipmentCategory | undefined }[] = [
   { label: 'Tiller', value: 'PLOUGH' },
   { label: 'Sheller', value: 'TRAILER' },
 ];
-
-const EQUIPMENT_IMAGES: Record<EquipmentCategory, any> = {
-  TRACTOR: require('../../assets/equipment/tractor.jpg'),
-  HARVESTER: require('../../assets/equipment/harvester.jpg'),
-  IRRIGATION_PUMP: require('../../assets/equipment/irrigation.jpg'),
-  SPRAYER: require('../../assets/equipment/sprayer.jpg'),
-  PLOUGH: require('../../assets/equipment/tiller.jpg'),
-  TRAILER: require('../../assets/equipment/sheller.jpg'),
-  OTHER: require('../../assets/equipment/tractor.jpg'),
-};
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -206,33 +197,35 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <FlatList
-        removeClippedSubviews
-        data={CATEGORIES}
+      <ScrollView
         horizontal
-        keyExtractor={(item) => item.label}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipsList}
         style={styles.chipsRow}
-        renderItem={({ item }) => {
+      >
+        {CATEGORIES.map((item) => {
           const active = item.value === category;
           return (
             <TouchableOpacity
+              key={item.label}
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => handleCategoryPress(item.value)}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
-        }}
-      />
+        })}
+      </ScrollView>
 
       <ErrorMessage message={error} />
 
       <FlatList
         removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={5}
         data={equipment}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.resultsHeader}>
@@ -310,39 +303,34 @@ function createStyles(colors: ThemeColors) {
   },
   chipsList: {
     paddingHorizontal: 16,
-    gap: 8,
   },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 24,
+    minWidth: 80,
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E7EB',
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipActive: {
-    backgroundColor: colors.primaryGreen,
-    borderColor: colors.primaryGreen,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#1A6B2E',
+    borderColor: '#1A6B2E',
   },
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.secondaryText,
+    color: '#6B7280',
   },
   chipTextActive: {
     color: colors.white,
     fontWeight: '700',
   },
   list: {
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
   resultsHeader: {
     flexDirection: 'row',
@@ -375,12 +363,14 @@ function createStyles(colors: ThemeColors) {
   },
   imageWrap: {
     position: 'relative',
+    backgroundColor: '#F0F7F2',
   },
   image: {
     width: '100%',
     height: 200,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    backgroundColor: '#F0F7F2',
   },
   categoryBadge: {
     position: 'absolute',
