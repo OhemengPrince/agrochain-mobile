@@ -144,7 +144,7 @@ export default function FarmerProfileScreen(_props: Props) {
 
   const openPersonalInfo = () => {
     setDropdownVisible(false);
-    setPersonalInfoVisible(true);
+    setTimeout(() => setPersonalInfoVisible(true), 200);
   };
 
   const handleLogoutPressIn = () => {
