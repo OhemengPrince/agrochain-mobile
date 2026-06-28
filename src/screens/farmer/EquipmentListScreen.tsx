@@ -298,6 +298,7 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 18,
+    alignItems: 'flex-start',
   },
   chip: {
     flexDirection: 'row',
@@ -305,8 +306,7 @@ function createStyles(colors: ThemeColors) {
     justifyContent: 'center',
     minWidth: 64,
     paddingHorizontal: 18,
-    paddingVertical: 10,
-    minHeight: 38,
+    height: 40,
     borderRadius: 25,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
