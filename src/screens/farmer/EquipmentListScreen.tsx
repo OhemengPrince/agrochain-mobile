@@ -296,13 +296,15 @@ function createStyles(colors: ThemeColors) {
   },
   chipsList: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 18,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    minWidth: 64,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     minHeight: 38,
     borderRadius: 25,
@@ -319,7 +321,6 @@ function createStyles(colors: ThemeColors) {
   chipActive: {
     backgroundColor: '#1A6B2E',
     borderColor: '#1A6B2E',
-    elevation: 4,
   },
   chipText: {
     fontSize: 13,
