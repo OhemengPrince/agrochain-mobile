@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OwnerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import PremiumTabBar, { tabBarIcon } from '../components/PremiumTabBar';
+import CustomTabBar, { tabBarIcon } from './CustomTabBar';
 import OwnerDashboardScreen from '../screens/owner/OwnerDashboardScreen';
 import MyListingsScreen from '../screens/owner/MyListingsScreen';
 import CreateEquipmentScreen from '../screens/owner/CreateEquipmentScreen';
@@ -96,7 +96,7 @@ export default function OwnerNavigator() {
   const tabBarOptions = getTabBarOptions(colors);
 
   return (
-    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <PremiumTabBar {...props} />}>
+    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <CustomTabBar {...props} />}>
       <Tab.Screen
         name="OwnerDashboard"
         component={DashboardStack}

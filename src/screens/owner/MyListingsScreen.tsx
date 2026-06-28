@@ -8,14 +8,13 @@ import {
   Pressable,
   Animated,
   Alert,
-  Image,
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Equipment } from '../../types';
-import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
+import EquipmentImage from '../../components/EquipmentImage';
 import { getMyListings, updateEquipment, deleteEquipment } from '../../api/equipmentApi';
 import { formatCurrency } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -69,7 +68,7 @@ function MyEquipmentCard({
     <Animated.View style={[styles.card, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onEdit} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.imageWrap}>
-          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.image} resizeMode="cover" />
+          <EquipmentImage category={equipment.category} style={styles.image} />
           <View style={styles.priceBadge}>
             <Text style={styles.priceBadgeText}>{formatCurrency(equipment.dailyRate)}/day</Text>
           </View>

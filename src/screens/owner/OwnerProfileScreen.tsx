@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Booking, Equipment } from '../../types';
-import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
+import EquipmentImage from '../../components/EquipmentImage';
 import { getMyListings } from '../../api/equipmentApi';
 import { getIncomingBookings } from '../../api/bookingApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -311,7 +311,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                     style={styles.miniEquipmentCard}
                     onPress={() => handleEditEquipment(item.id)}
                   >
-                    <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.miniEquipmentImage} resizeMode="cover" />
+                    <EquipmentImage category={item.category} style={styles.miniEquipmentImage} />
                     <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.miniEquipmentStatusRow}>
                       <View

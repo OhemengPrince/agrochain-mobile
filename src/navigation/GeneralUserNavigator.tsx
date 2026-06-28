@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GeneralStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import PremiumTabBar, { tabBarIcon } from '../components/PremiumTabBar';
+import CustomTabBar, { tabBarIcon } from './CustomTabBar';
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
@@ -84,7 +84,7 @@ export default function GeneralUserNavigator() {
     <Tab.Navigator
       screenOptions={tabBarOptions}
       initialRouteName="GeneralHome"
-      tabBar={(props) => <PremiumTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tab.Screen
         name="GeneralHome"

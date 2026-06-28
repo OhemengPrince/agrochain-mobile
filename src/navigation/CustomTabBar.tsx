@@ -1,12 +1,10 @@
 import React, { useRef } from 'react';
 import { View, Pressable, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const ACTIVE_COLOR = '#1A6B2E';
-const INACTIVE_COLOR = '#B0BEC5';
-const ACTIVE_PILL_COLOR = '#E8F5E9';
+const INACTIVE_COLOR = '#9CA3AF';
 
 export function tabBarIcon(name: keyof typeof Ionicons.glyphMap) {
   return ({ focused, color, size }: { focused: boolean; color: string; size: number }) => (
@@ -37,10 +35,11 @@ function TabBarButton({
         onPress={onPress}
         onPressIn={() => animateTo(0.95)}
         onPressOut={() => animateTo(1)}
-        style={[styles.itemInner, focused && styles.itemInnerActive]}
+        style={styles.itemInner}
       >
-        <View style={styles.iconWrap}>{renderIcon()}</View>
-        <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]} numberOfLines={1}>
+        <View style={styles.dot}>{focused && <View style={styles.dotActive} />}</View>
+        {renderIcon()}
+        <Text style={[styles.label, { color: focused ? ACTIVE_COLOR : INACTIVE_COLOR, fontWeight: focused ? '700' : '400' }]} numberOfLines={1}>
           {label}
         </Text>
       </Pressable>
@@ -48,14 +47,9 @@ function TabBarButton({
   );
 }
 
-export default function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      <LinearGradient
-        colors={['rgba(26,107,46,0.08)', 'rgba(26,107,46,0)']}
-        style={styles.glow}
-        pointerEvents="none"
-      />
       <View style={styles.bar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -66,7 +60,6 @@ export default function PremiumTabBar({ state, descriptors, navigation }: Bottom
           const focused = state.index === index;
           const label = (options.title ?? route.name) as string;
           const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
-          const size = focused ? 24 : 22;
 
           const onPress = () => {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -75,7 +68,8 @@ export default function PremiumTabBar({ state, descriptors, navigation }: Bottom
             }
           };
 
-          const renderIcon = () => (options.tabBarIcon ? options.tabBarIcon({ focused, color, size }) : null);
+          const renderIcon = () =>
+            options.tabBarIcon ? options.tabBarIcon({ focused, color, size: 24 }) : null;
 
           return (
             <TabBarButton key={route.key} focused={focused} label={label} renderIcon={renderIcon} onPress={onPress} />
@@ -91,29 +85,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: Platform.OS === 'ios' ? 24 : 16,
-  },
-  glow: {
-    position: 'absolute',
-    left: -12,
-    right: -12,
-    top: -20,
-    bottom: -12,
-    borderRadius: 46,
+    bottom: Platform.OS === 'ios' ? 28 : 16,
   },
   bar: {
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#FFFFFF',
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 8,
-    shadowColor: '#1A6B2E',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   item: {
     flex: 1,
@@ -122,29 +110,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 30,
-    marginVertical: 6,
-    marginHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
-  itemInnerActive: {
-    backgroundColor: ACTIVE_PILL_COLOR,
+  dot: {
+    height: 5,
+    marginBottom: 3,
   },
-  iconWrap: {
-    marginTop: 6,
+  dotActive: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: ACTIVE_COLOR,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  labelActive: {
-    color: ACTIVE_COLOR,
-    fontWeight: '700',
-  },
-  labelInactive: {
-    color: INACTIVE_COLOR,
-    fontWeight: '600',
+    fontSize: 10,
+    marginTop: 3,
+    letterSpacing: 0.2,
   },
 });

@@ -1,21 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Image, Pressable, Animated } from 'react-native';
+import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment, EquipmentCategory } from '../../types';
 import { searchEquipment } from '../../api/equipmentApi';
-import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
+import EquipmentImage from '../../components/EquipmentImage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
-const CATEGORIES: { label: string; value: EquipmentCategory | undefined }[] = [
-  { label: 'All', value: undefined },
+type CategoryFilter = EquipmentCategory | 'All';
+
+const CATEGORIES: { label: string; value: CategoryFilter }[] = [
+  { label: 'All', value: 'All' },
   { label: 'Tractor', value: 'TRACTOR' },
   { label: 'Harvester', value: 'HARVESTER' },
   { label: 'Irrigation', value: 'IRRIGATION_PUMP' },
@@ -62,7 +64,7 @@ function EquipmentListCard({
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
-          <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} resizeMode="cover" />
+          <EquipmentImage category={item.category} style={styles.image} />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
           </View>
@@ -120,18 +122,18 @@ function EquipmentListCard({
 export default function EquipmentListScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [query, setQuery] = useState(route.params?.query ?? '');
-  const [category, setCategory] = useState<EquipmentCategory | undefined>(undefined);
+  const [category, setCategory] = useState<CategoryFilter>('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadEquipment = useCallback(async (searchQuery: string, cat?: EquipmentCategory) => {
+  const loadEquipment = useCallback(async (searchQuery: string) => {
     setError(null);
     try {
-      const data = await searchEquipment({ query: searchQuery || undefined, category: cat });
-      setEquipment(data);
+      const data = await searchEquipment({ query: searchQuery || undefined });
+      setAllEquipment(data);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load equipment.');
     }
@@ -140,30 +142,31 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadEquipment(route.params?.query ?? '', undefined);
+      await loadEquipment(route.params?.query ?? '');
       setLoading(false);
     })();
   }, [loadEquipment]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadEquipment(query, category);
+    await loadEquipment(query);
     setRefreshing(false);
   };
 
-  const handleCategoryPress = (cat: EquipmentCategory | undefined) => {
+  const handleCategoryPress = (cat: CategoryFilter) => {
     setCategory(cat);
-    loadEquipment(query, cat);
   };
 
   const handleClearQuery = () => {
     setQuery('');
-    loadEquipment('', category);
+    loadEquipment('');
   };
 
   if (loading) {
     return <LoadingOverlay message="Loading equipment..." />;
   }
+
+  const equipment = category === 'All' ? allEquipment : allEquipment.filter((item) => item.category === category);
 
   const region = equipment[0]?.region ?? 'Ashanti Region';
 
@@ -172,7 +175,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>Find Equipment</Text>
-          <TouchableOpacity style={styles.filterButton} onPress={() => loadEquipment(query, category)}>
+          <TouchableOpacity style={styles.filterButton} onPress={() => loadEquipment(query)}>
             <Ionicons name="options-outline" size={18} color={colors.white} />
           </TouchableOpacity>
         </View>
@@ -184,7 +187,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={() => loadEquipment(query, category)}
+            onSubmitEditing={() => loadEquipment(query)}
             placeholder="Search tractors, harvesters..."
             placeholderTextColor={colors.secondaryText}
             returnKeyType="search"

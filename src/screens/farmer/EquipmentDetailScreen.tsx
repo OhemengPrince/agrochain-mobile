@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Pressable,
   Animated,
   Alert,
@@ -15,7 +14,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment } from '../../types';
 import { getEquipmentById } from '../../api/equipmentApi';
-import { EQUIPMENT_IMAGES } from '../../constants/equipmentImages';
 import { createBooking } from '../../api/bookingApi';
 import { daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -23,6 +21,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
+import EquipmentImage from '../../components/EquipmentImage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
 
@@ -157,7 +156,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
-          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.heroImage} resizeMode="cover" />
+          <EquipmentImage category={equipment.category} style={styles.heroImage} />
 
           <View style={[styles.floatingButton, styles.backButton]}>
             <AnimatedIconButton

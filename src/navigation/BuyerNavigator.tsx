@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BuyerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import PremiumTabBar, { tabBarIcon } from '../components/PremiumTabBar';
+import CustomTabBar, { tabBarIcon } from './CustomTabBar';
 import BuyerHomeScreen from '../screens/buyer/BuyerHomeScreen';
 import CatalogueScreen from '../screens/buyer/CatalogueScreen';
 import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
@@ -79,7 +79,7 @@ export default function BuyerNavigator() {
   const tabBarOptions = getTabBarOptions(colors);
 
   return (
-    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <PremiumTabBar {...props} />}>
+    <Tab.Navigator screenOptions={tabBarOptions} tabBar={(props) => <CustomTabBar {...props} />}>
       <Tab.Screen
         name="BuyerHome"
         component={HomeStack}
