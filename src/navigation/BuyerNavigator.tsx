@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BuyerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import CustomTabBar, { tabBarIcon } from './CustomTabBar';
+import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar';
 import BuyerHomeScreen from '../screens/buyer/BuyerHomeScreen';
 import CatalogueScreen from '../screens/buyer/CatalogueScreen';
 import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
@@ -83,34 +83,38 @@ export default function BuyerNavigator() {
       <Tab.Screen
         name="BuyerHome"
         component={HomeStack}
-        options={{
+        options={({ route }) => ({
           title: 'Home',
           tabBarIcon: tabBarIcon('home'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="BuyerMarket"
         component={MarketStack}
-        options={{
+        options={({ route }) => ({
           title: 'Market',
           tabBarIcon: tabBarIcon('storefront'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="BuyerScanner"
         component={ScannerStack}
-        options={{
+        options={({ route }) => ({
           title: 'Scan QR',
           tabBarIcon: tabBarIcon('qr-code'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="BuyerCatalogue"
         component={CatalogueStack}
-        options={{
+        options={({ route }) => ({
           title: 'Catalogue',
           tabBarIcon: tabBarIcon('grid'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="BuyerNotifications"

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { FarmerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import CustomTabBar, { tabBarIcon } from './CustomTabBar';
+import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar';
 import FarmerHomeScreen from '../screens/farmer/FarmerHomeScreen';
 import EquipmentListScreen from '../screens/farmer/EquipmentListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
@@ -105,42 +105,47 @@ export default function FarmerNavigator() {
       <Tab.Screen
         name="FarmerHome"
         component={HomeStack}
-        options={{
+        options={({ route }) => ({
           title: 'Home',
           tabBarIcon: tabBarIcon('home'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="FarmerEquipment"
         component={EquipmentStack}
-        options={{
+        options={({ route }) => ({
           title: 'Equipment',
           tabBarIcon: tabBarIcon('construct'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="FarmerBookings"
         component={BookingsStack}
-        options={{
+        options={({ route }) => ({
           title: 'Bookings',
           tabBarButton: () => null,
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="FarmerMarket"
         component={MarketStack}
-        options={{
+        options={({ route }) => ({
           title: 'Market',
           tabBarIcon: tabBarIcon('storefront'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="FarmerBatches"
         component={TraceabilityStack}
-        options={{
+        options={({ route }) => ({
           title: 'Harvest',
           tabBarIcon: tabBarIcon('leaf'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="FarmerProfile"

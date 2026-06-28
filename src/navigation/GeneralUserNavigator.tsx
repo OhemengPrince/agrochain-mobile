@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GeneralStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import CustomTabBar, { tabBarIcon } from './CustomTabBar';
+import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar';
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
@@ -89,34 +89,38 @@ export default function GeneralUserNavigator() {
       <Tab.Screen
         name="GeneralHome"
         component={HomeStack}
-        options={{
+        options={({ route }) => ({
           title: 'Home',
           tabBarIcon: tabBarIcon('home'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="GeneralMarket"
         component={MarketStack}
-        options={{
+        options={({ route }) => ({
           title: 'Market',
           tabBarIcon: tabBarIcon('storefront'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="GeneralList"
         component={ListStack}
-        options={{
+        options={({ route }) => ({
           title: 'List Item',
           tabBarIcon: tabBarIcon('add-circle'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="GeneralBrowse"
         component={BrowseStack}
-        options={{
+        options={({ route }) => ({
           title: 'Browse',
           tabBarIcon: tabBarIcon('search'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="GeneralProfile"

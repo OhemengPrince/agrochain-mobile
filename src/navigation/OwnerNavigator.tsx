@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OwnerStackParamList } from '../types';
 import { stackHeaderOptions, getTabBarOptions } from './navigatorTheme';
 import { useTheme } from '../hooks/useTheme';
-import CustomTabBar, { tabBarIcon } from './CustomTabBar';
+import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar';
 import OwnerDashboardScreen from '../screens/owner/OwnerDashboardScreen';
 import MyListingsScreen from '../screens/owner/MyListingsScreen';
 import CreateEquipmentScreen from '../screens/owner/CreateEquipmentScreen';
@@ -100,34 +100,38 @@ export default function OwnerNavigator() {
       <Tab.Screen
         name="OwnerDashboard"
         component={DashboardStack}
-        options={{
+        options={({ route }) => ({
           title: 'Dashboard',
           tabBarIcon: tabBarIcon('grid'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="OwnerEquipment"
         component={ListingsStack}
-        options={{
+        options={({ route }) => ({
           title: 'Equipment',
           tabBarIcon: tabBarIcon('construct'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="OwnerMarket"
         component={MarketStack}
-        options={{
+        options={({ route }) => ({
           title: 'Market',
           tabBarIcon: tabBarIcon('storefront'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="OwnerBookings"
         component={BookingsStack}
-        options={{
+        options={({ route }) => ({
           title: 'Bookings',
           tabBarIcon: tabBarIcon('calendar'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="OwnerNotifications"

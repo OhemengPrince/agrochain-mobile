@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, Pressable, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const ACTIVE_COLOR = '#1A6B2E';
@@ -10,6 +11,17 @@ export function tabBarIcon(name: keyof typeof Ionicons.glyphMap) {
   return ({ focused, color, size }: { focused: boolean; color: string; size: number }) => (
     <Ionicons name={focused ? name : (`${name}-outline` as keyof typeof Ionicons.glyphMap)} size={size} color={color} />
   );
+}
+
+// Detail-style screens (route names ending in "Detail") fill the screen with
+// bottom-anchored content (price/action bars) that the floating tab bar would
+// otherwise cover, so the tab bar hides itself while one of them is focused.
+export function getTabBarStyleForRoute(route: RouteProp<any, any>) {
+  const focusedRouteName = getFocusedRouteNameFromRoute(route);
+  if (focusedRouteName?.endsWith('Detail')) {
+    return { display: 'none' as const };
+  }
+  return undefined;
 }
 
 function TabBarButton({
@@ -48,6 +60,12 @@ function TabBarButton({
 }
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = descriptors[focusedRoute.key].options;
+  if ((focusedOptions.tabBarStyle as { display?: string } | undefined)?.display === 'none') {
+    return null;
+  }
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.bar}>
