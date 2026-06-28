@@ -256,6 +256,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
       </LinearGradient>
 
       <FlatList
+        removeClippedSubviews
         data={CATEGORIES}
         horizontal
         keyExtractor={(item) => item.label}
@@ -278,6 +279,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

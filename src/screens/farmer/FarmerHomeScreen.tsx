@@ -130,7 +130,7 @@ function EquipmentMiniCard({
     <Animated.View style={[styles.equipmentCard, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.equipmentImageWrap}>
-          <Image source={image} style={styles.equipmentImage} />
+          <Image source={image} style={styles.equipmentImage} resizeMode="cover" />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{formatCategory(item.category)}</Text>
           </View>

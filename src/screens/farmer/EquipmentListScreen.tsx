@@ -71,7 +71,7 @@ function EquipmentListCard({
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
-          <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} />
+          <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.image} resizeMode="cover" />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
           </View>
@@ -207,6 +207,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       </View>
 
       <FlatList
+        removeClippedSubviews
         data={CATEGORIES}
         horizontal
         keyExtractor={(item) => item.label}
@@ -229,6 +230,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={equipment}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

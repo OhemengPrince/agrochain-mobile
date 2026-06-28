@@ -174,7 +174,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
           <View style={styles.avatarWrap}>
             {avatarSource ? (
-              <Image source={{ uri: avatarSource }} style={styles.avatar} />
+              <Image source={{ uri: avatarSource }} style={styles.avatar} resizeMode="cover" />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitial}>{initial}</Text>

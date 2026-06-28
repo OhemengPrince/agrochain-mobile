@@ -279,8 +279,7 @@ export interface MarketplaceListingOrder {
 export type AuthStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
-  Login: undefined;
-  CreateAccount: undefined;
+  Login: { startMode?: 'login' | 'register' } | undefined;
   OtpVerify: { email: string };
   ForgotPassword: undefined;
   ResetPassword: { email: string };

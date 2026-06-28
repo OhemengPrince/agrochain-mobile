@@ -278,6 +278,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={filteredBatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

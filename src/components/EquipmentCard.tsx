@@ -38,7 +38,7 @@ export default function EquipmentCard({ equipment, onPress }: EquipmentCardProps
       >
         <View style={styles.imageWrapper}>
           {equipment.imageUrl ? (
-            <Image source={{ uri: equipment.imageUrl }} style={styles.image} />
+            <Image source={{ uri: equipment.imageUrl }} style={styles.image} resizeMode="cover" />
           ) : (
             <View style={[styles.image, styles.imagePlaceholder]}>
               <Ionicons name="construct" size={32} color={colors.primaryGreenLight} />

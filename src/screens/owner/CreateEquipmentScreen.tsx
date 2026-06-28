@@ -143,7 +143,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         <Text style={styles.label}>Photo</Text>
         <Pressable style={styles.photoUpload} onPress={handlePickPhoto}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
           ) : (
             <View style={styles.photoPlaceholder}>
               <Ionicons name="camera" size={28} color={colors.primaryGreen} />

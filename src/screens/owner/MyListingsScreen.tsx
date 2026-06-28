@@ -78,7 +78,7 @@ function MyEquipmentCard({
     <Animated.View style={[styles.card, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onEdit} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.imageWrap}>
-          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.image} />
+          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.image} resizeMode="cover" />
           <View style={styles.priceBadge}>
             <Text style={styles.priceBadgeText}>{formatCurrency(equipment.dailyRate)}/day</Text>
           </View>
@@ -216,6 +216,7 @@ export default function MyListingsScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={listings}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

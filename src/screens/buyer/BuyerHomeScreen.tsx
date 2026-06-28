@@ -199,6 +199,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <FlatList
+        removeClippedSubviews
         data={[]}
         keyExtractor={() => 'x'}
         renderItem={null}
@@ -241,6 +242,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
 
             <View style={styles.filterBar}>
               <FlatList
+                removeClippedSubviews
                 data={CROP_FILTERS}
                 horizontal
                 keyExtractor={(item) => item.label}
@@ -273,6 +275,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               <Text style={styles.emptyText}>No produce listed yet.</Text>
             ) : (
               <FlatList
+                removeClippedSubviews
                 data={featuredBatches}
                 horizontal
                 keyExtractor={(item) => item.id}
@@ -293,6 +296,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               <View style={styles.recentSection}>
                 <Text style={styles.sectionTitle}>Recent Searches</Text>
                 <FlatList
+                  removeClippedSubviews
                   data={recentSearches}
                   horizontal
                   keyExtractor={(item, index) => `${item}-${index}`}

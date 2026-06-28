@@ -249,7 +249,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
 
           <View style={styles.avatarWrap}>
             {avatarSource ? (
-              <Image source={{ uri: avatarSource }} style={styles.avatar} />
+              <Image source={{ uri: avatarSource }} style={styles.avatar} resizeMode="cover" />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitial}>{initial}</Text>
@@ -320,7 +320,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                     style={styles.miniEquipmentCard}
                     onPress={() => handleEditEquipment(item.id)}
                   >
-                    <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.miniEquipmentImage} />
+                    <Image source={EQUIPMENT_IMAGES[item.category]} style={styles.miniEquipmentImage} resizeMode="cover" />
                     <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.miniEquipmentStatusRow}>
                       <View

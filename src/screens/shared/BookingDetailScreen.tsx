@@ -266,7 +266,11 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         <ErrorMessage message={error} />
 
         <View style={styles.card}>
-          <Image source={require('../../assets/equipment/tractor.jpg')} style={styles.equipmentImage} />
+          <Image
+            source={require('../../assets/equipment/tractor.jpg')}
+            style={styles.equipmentImage}
+            resizeMode="cover"
+          />
           <View style={styles.equipmentBody}>
             <View style={styles.equipmentNameRow}>
               <Text style={styles.equipmentName}>{booking.equipmentName}</Text>

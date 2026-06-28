@@ -245,6 +245,7 @@ export default function IncomingBookingsScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={filteredBookings}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

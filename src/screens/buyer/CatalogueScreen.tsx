@@ -200,6 +200,7 @@ export default function CatalogueScreen({ navigation }: Props) {
 
       <View style={styles.filterBar}>
         <FlatList
+          removeClippedSubviews
           data={CROP_FILTERS}
           horizontal
           keyExtractor={(item) => item.label}
@@ -239,6 +240,7 @@ export default function CatalogueScreen({ navigation }: Props) {
 
       <ErrorMessage message={error} />
       <FlatList
+        removeClippedSubviews
         data={filteredBatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

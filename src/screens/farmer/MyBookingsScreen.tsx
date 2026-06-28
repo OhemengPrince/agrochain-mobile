@@ -216,7 +216,7 @@ function PremiumBookingCard({
     <Animated.View style={[styles.card, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onViewDetails} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.topRow}>
-          <Image source={GENERIC_EQUIPMENT_IMAGE} style={styles.thumbnail} />
+          <Image source={GENERIC_EQUIPMENT_IMAGE} style={styles.thumbnail} resizeMode="cover" />
           <View style={styles.topRowMiddle}>
             <Text style={styles.equipmentName} numberOfLines={1}>{booking.equipmentName}</Text>
             <Text style={styles.ownerName} numberOfLines={1}>{booking.ownerName}</Text>
@@ -368,6 +368,7 @@ export default function MyBookingsScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
+        removeClippedSubviews
         data={filteredBookings}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}

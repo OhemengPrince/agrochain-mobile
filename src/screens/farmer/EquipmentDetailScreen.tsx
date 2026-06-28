@@ -166,7 +166,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
-          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.heroImage} />
+          <Image source={EQUIPMENT_IMAGES[equipment.category]} style={styles.heroImage} resizeMode="cover" />
 
           <View style={[styles.floatingButton, styles.backButton]}>
             <AnimatedIconButton

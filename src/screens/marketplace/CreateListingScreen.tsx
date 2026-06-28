@@ -339,7 +339,7 @@ export default function CreateListingScreen({ navigation }: Props) {
           <View style={styles.photoGrid}>
             {photos.map((uri) => (
               <View key={uri} style={styles.photoTile}>
-                <Image source={{ uri }} style={styles.photoImage} />
+                <Image source={{ uri }} style={styles.photoImage} resizeMode="cover" />
                 <Pressable style={styles.photoRemoveButton} onPress={() => handleRemovePhoto(uri)}>
                   <Ionicons name="close" size={14} color="#FFFFFF" />
                 </Pressable>
