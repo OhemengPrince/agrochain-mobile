@@ -7,9 +7,10 @@ import { getEquipmentImage } from '../constants/equipmentImages';
 interface EquipmentImageProps {
   category: EquipmentCategory;
   style?: StyleProp<ImageStyle>;
+  resizeMode?: 'cover' | 'contain';
 }
 
-export default function EquipmentImage({ category, style }: EquipmentImageProps) {
+export default function EquipmentImage({ category, style, resizeMode = 'cover' }: EquipmentImageProps) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -19,7 +20,7 @@ export default function EquipmentImage({ category, style }: EquipmentImageProps)
         <Image
           source={getEquipmentImage(category)}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          resizeMode={resizeMode}
           onLoadEnd={() => setLoading(false)}
           onError={() => {
             setLoading(false);

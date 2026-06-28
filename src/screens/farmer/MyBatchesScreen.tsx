@@ -394,7 +394,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 14,
-      paddingBottom: 100,
+      paddingBottom: 120,
     },
     card: {
       backgroundColor: colors.card,

@@ -163,13 +163,48 @@ function ListingCard({
   );
 }
 
-function Fab({ onPress, colors, styles }: { onPress: () => void; colors: ThemeColors; styles: ReturnType<typeof createStyles> }) {
+function HeaderAddButton({ onPress }: { onPress: () => void }) {
   const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
   return (
-    <Animated.View style={[styles.fabWrap, { transform: [{ scale }], opacity }]}>
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={({ pressed }) => [headerButtonStyles.button, pressed && headerButtonStyles.buttonPressed]}
+      >
+        <Ionicons name="add" size={24} color="#1A6B2E" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const headerButtonStyles = StyleSheet.create({
+  button: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonPressed: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+});
+
+function ListItemBanner({ onPress, styles }: { onPress: () => void; styles: ReturnType<typeof createStyles> }) {
+  const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
+  return (
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
       <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <LinearGradient colors={[colors.primaryGreenLight, colors.primaryGreen]} style={styles.fab}>
-          <Ionicons name="add" size={28} color={colors.white} />
+        <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.bannerCard}>
+          <Ionicons name="add-circle" size={32} color="#FFFFFF" />
+          <View style={styles.bannerTextWrap}>
+            <Text style={styles.bannerTitle}>List Your Item</Text>
+            <Text style={styles.bannerSubtitle}>Sell or rent anything agric-related</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
         </LinearGradient>
       </Pressable>
     </Animated.View>
@@ -231,7 +266,10 @@ export default function MarketplaceScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-        <Text style={styles.headerTitle}>AgroChain Marketplace</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitle}>AgroChain Marketplace</Text>
+          <HeaderAddButton onPress={() => navigation.navigate('CreateListing')} />
+        </View>
 
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
@@ -255,6 +293,10 @@ export default function MarketplaceScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </LinearGradient>
+
+      <View style={styles.bannerWrap}>
+        <ListItemBanner onPress={() => navigation.navigate('CreateListing')} styles={styles} />
+      </View>
 
       <ScrollView
         horizontal
@@ -304,8 +346,6 @@ export default function MarketplaceScreen({ navigation }: Props) {
           </View>
         }
       />
-
-      <Fab onPress={() => navigation.navigate('CreateListing')} colors={colors} styles={styles} />
     </SafeAreaView>
   );
 }
@@ -321,10 +361,42 @@ function createStyles(colors: ThemeColors) {
       paddingTop: Platform.OS === 'ios' ? 50 : 20,
       paddingBottom: 16,
     },
+    headerTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     headerTitle: {
       fontSize: 22,
       fontWeight: '700',
       color: colors.white,
+      flexShrink: 1,
+      marginRight: 12,
+    },
+    bannerWrap: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+    },
+    bannerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 16,
+      padding: 16,
+      gap: 14,
+    },
+    bannerTextWrap: {
+      flex: 1,
+    },
+    bannerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    bannerSubtitle: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      opacity: 0.8,
+      marginTop: 2,
     },
     searchRow: {
       flexDirection: 'row',
@@ -401,7 +473,7 @@ function createStyles(colors: ThemeColors) {
     },
     list: {
       paddingTop: 12,
-      paddingBottom: 100,
+      paddingBottom: 120,
     },
     card: {
       backgroundColor: colors.card,
@@ -541,23 +613,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 4,
       textAlign: 'center',
-    },
-    fabWrap: {
-      position: 'absolute',
-      bottom: 24,
-      right: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    fab: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
   });
 }

@@ -30,7 +30,6 @@ const QUICK_ACCESS: {
   gradient: [string, string];
 }[] = [
   { key: 'marketplace', label: 'Marketplace', icon: 'storefront', gradient: ['#6A1B9A', '#4A148C'] },
-  { key: 'list', label: 'List an Item', icon: 'add-circle', gradient: ['#1A6B2E', '#2E8B4A'] },
   { key: 'browse', label: 'Browse Equipment', icon: 'construct', gradient: ['#1565C0', '#0D47A1'] },
   { key: 'myListings', label: 'My Listings', icon: 'list', gradient: ['#FF8F00', '#E65100'] },
 ];
@@ -133,7 +132,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
@@ -155,6 +154,15 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             />
           </View>
         </LinearGradient>
+
+        <View style={styles.listItemBannerWrap}>
+          <Pressable onPress={goToList}>
+            <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.listItemBanner}>
+              <Ionicons name="add-circle" size={28} color="#FFFFFF" />
+              <Text style={styles.listItemBannerText}>List an Item</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
 
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
@@ -226,6 +234,28 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       color: colors.text,
     },
+    listItemBannerWrap: {
+      paddingHorizontal: 20,
+      marginTop: 16,
+    },
+    listItemBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      borderRadius: 16,
+      height: 58,
+      shadowColor: '#1A6B2E',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    listItemBannerText: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
     quickActionsSection: {
       backgroundColor: colors.card,
       paddingVertical: 16,
@@ -244,7 +274,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 14,
     },
     quickActionWrap: {
-      width: '23%',
+      width: '30%',
     },
     quickActionButton: {
       height: 85,

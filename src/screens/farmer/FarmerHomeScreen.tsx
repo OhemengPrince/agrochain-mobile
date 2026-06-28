@@ -54,6 +54,7 @@ const QUICK_ACTIONS: {
   { key: 'harvest', label: 'Log Harvest', icon: 'leaf', gradient: ['#FF8F00', '#E65100'] },
   { key: 'bookings', label: 'My Bookings', icon: 'calendar', gradient: ['#1565C0', '#0D47A1'] },
   { key: 'alerts', label: 'Alerts', icon: 'notifications', gradient: ['#6A1B9A', '#4A148C'] },
+  { key: 'list', label: 'List Item', icon: 'add-circle-outline', gradient: ['#FF8F00', '#FFB300'] },
 ];
 
 function usePressAnimation() {
@@ -238,6 +239,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
       parent?.navigate('FarmerBookings');
     } else if (key === 'alerts') {
       navigation.navigate('FarmerNotifications');
+    } else if (key === 'list') {
+      parent?.navigate('FarmerMarket', { screen: 'MarketplaceList' });
     }
   };
 
@@ -245,7 +248,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
@@ -517,11 +520,13 @@ function createStyles(colors: ThemeColors) {
     },
     quickActionsRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
       marginTop: 14,
+      gap: 12,
     },
     quickActionWrap: {
-      width: '23%',
+      width: '30%',
     },
     quickActionButton: {
       height: 85,

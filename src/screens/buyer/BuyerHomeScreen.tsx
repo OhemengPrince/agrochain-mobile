@@ -175,6 +175,11 @@ export default function BuyerHomeScreen({ navigation }: Props) {
     }
   };
 
+  const goToListItem = () => {
+    const parent = navigation.getParent() as any;
+    parent?.navigate('BuyerMarket', { screen: 'MarketplaceList' });
+  };
+
   const filteredBatches = useMemo(() => {
     let list = batches;
     if (cropFilter) {
@@ -242,6 +247,16 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 </View>
               </LinearGradient>
             </Pressable>
+
+            <View style={styles.sellBannerWrap}>
+              <View style={styles.sellBannerTextWrap}>
+                <Text style={styles.sellBannerTitle}>Got something to sell?</Text>
+                <Text style={styles.sellBannerSubtitle}>List produce, equipment or supplies in minutes.</Text>
+              </View>
+              <Pressable onPress={goToListItem} style={styles.sellBannerButton}>
+                <Text style={styles.sellBannerButtonText}>List an Item</Text>
+              </Pressable>
+            </View>
 
             <View style={styles.filterBar}>
               <FlatList
@@ -340,7 +355,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     list: {
-      paddingBottom: 100,
+      paddingBottom: 120,
     },
     header: {
       paddingHorizontal: 20,
@@ -425,6 +440,44 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '700',
       color: colors.white,
+    },
+    sellBannerWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 14,
+      marginTop: 14,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+      padding: 14,
+      gap: 12,
+    },
+    sellBannerTextWrap: {
+      flex: 1,
+    },
+    sellBannerTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    sellBannerSubtitle: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    sellBannerButton: {
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    sellBannerButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primaryGreen,
     },
     filterBar: {
       marginTop: 18,

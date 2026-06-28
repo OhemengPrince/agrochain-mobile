@@ -275,6 +275,11 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     Alert.alert('Coming soon', 'A dedicated earnings screen is coming soon.');
   }, []);
 
+  const handleListItem = useCallback(() => {
+    const parent = navigation.getParent() as any;
+    parent?.navigate('OwnerMarket', { screen: 'MarketplaceList' });
+  }, [navigation]);
+
   const handleEditEquipment = useCallback(
     (equipmentId: string) => {
       const parent = navigation.getParent() as any;
@@ -385,6 +390,13 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           onPress={handleEarningsPress}
           styles={styles}
         />
+        <QuickActionButton
+          label="List Item"
+          icon="add-circle-outline"
+          colorsRange={['#FF8F00', '#FFB300']}
+          onPress={handleListItem}
+          styles={styles}
+        />
       </View>
 
       <View style={styles.sectionHeaderRow}>
@@ -440,7 +452,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     content: {
-      paddingBottom: 100,
+      paddingBottom: 120,
     },
     header: {
       paddingTop: 56,
@@ -539,13 +551,14 @@ function createStyles(colors: ThemeColors) {
     },
     quickActionsRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
       marginTop: 20,
+      rowGap: 16,
     },
     quickActionWrap: {
-      flex: 1,
-      marginHorizontal: 4,
+      width: '30%',
     },
     quickActionPressable: {
       alignItems: 'center',

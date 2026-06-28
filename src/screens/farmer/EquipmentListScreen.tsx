@@ -64,7 +64,7 @@ function EquipmentListCard({
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
-          <EquipmentImage category={item.category} style={styles.image} />
+          <EquipmentImage category={item.category} style={styles.image} resizeMode="contain" />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
           </View>
@@ -209,13 +209,13 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         {CATEGORIES.map((item) => {
           const active = item.value === category;
           return (
-            <TouchableOpacity
+            <Pressable
               key={item.label}
-              style={[styles.chip, active && styles.chipActive]}
               onPress={() => handleCategoryPress(item.value)}
+              style={[styles.chip, active && styles.chipActive]}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -334,16 +334,14 @@ function createStyles(colors: ThemeColors) {
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#6B7280',
   },
   chipTextActive: {
-    color: colors.white,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#FFFFFF',
   },
   list: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   resultsHeader: {
     flexDirection: 'row',
@@ -376,13 +374,16 @@ function createStyles(colors: ThemeColors) {
   },
   imageWrap: {
     position: 'relative',
+    width: '100%',
+    height: 160,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
     backgroundColor: '#F0F7F2',
   },
   image: {
     width: '100%',
-    height: 200,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    height: 160,
     backgroundColor: '#F0F7F2',
   },
   categoryBadge: {
