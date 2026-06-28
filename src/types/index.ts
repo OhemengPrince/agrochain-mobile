@@ -77,6 +77,7 @@ export interface Equipment {
   region: string;
   district: string;
   imageUrl?: string;
+  image?: any;
   isAvailable: boolean;
   averageRating?: number;
   totalReviews?: number;

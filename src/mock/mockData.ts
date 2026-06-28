@@ -6,6 +6,7 @@ import {
   AppNotification,
   MarketplaceListing,
 } from '../types';
+import { getEquipmentImage } from '../constants/equipmentImages';
 
 // ===== Users =====
 // Mock login accepts any email/password. A known demo email logs in as that
@@ -160,6 +161,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
     ownerName: 'Nana Yeboah',
     name: 'Massey Ferguson 375 Tractor',
     category: 'TRACTOR',
+    image: getEquipmentImage('TRACTOR'),
     description:
       '75HP tractor in excellent condition, ideal for ploughing and land preparation. Comes with trained operator on request.',
     dailyRate: 350,
@@ -176,6 +178,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
     ownerName: 'Nana Yeboah',
     name: 'New Holland TC5070 Combine Harvester',
     category: 'HARVESTER',
+    image: getEquipmentImage('HARVESTER'),
     description:
       'High-capacity combine harvester suited for maize and rice. Fuel-efficient and well maintained.',
     dailyRate: 600,
@@ -192,6 +195,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
     ownerName: 'Kofi Adjei',
     name: 'Heavy-Duty Disc Plough',
     category: 'PLOUGH',
+    image: getEquipmentImage('PLOUGH'),
     description: '3-disc plough for breaking heavy soil quickly. Compatible with most mid-size tractors.',
     dailyRate: 120,
     region: 'Western',
@@ -207,6 +211,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
     ownerName: 'Nana Yeboah',
     name: 'Knapsack Motorized Sprayer',
     category: 'SPRAYER',
+    image: getEquipmentImage('SPRAYER'),
     description: '20-litre motorized knapsack sprayer for pesticide and fertilizer application.',
     dailyRate: 80,
     region: 'Ashanti',
@@ -222,6 +227,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
     ownerName: 'Efua Darko',
     name: 'Solar-Powered Irrigation Pump Set',
     category: 'IRRIGATION_PUMP',
+    image: getEquipmentImage('IRRIGATION_PUMP'),
     description:
       'Solar irrigation pump with 2-inch outlet, perfect for dry-season vegetable farming near water sources.',
     dailyRate: 150,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Pressable, Animated } from 'react-native';
+import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Pressable, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,21 +10,24 @@ import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
-import EquipmentImage from '../../components/EquipmentImage';
+import { getEquipmentImage } from '../../constants/equipmentImages';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
-type CategoryFilter = EquipmentCategory | 'All';
+const CATEGORIES = ['All', 'Tractor', 'Harvester', 'Irrigation', 'Sprayer', 'Tiller', 'Sheller'] as const;
+type CategoryFilter = (typeof CATEGORIES)[number];
 
-const CATEGORIES: { label: string; value: CategoryFilter }[] = [
-  { label: 'All', value: 'All' },
-  { label: 'Tractor', value: 'TRACTOR' },
-  { label: 'Harvester', value: 'HARVESTER' },
-  { label: 'Irrigation', value: 'IRRIGATION_PUMP' },
-  { label: 'Sprayer', value: 'SPRAYER' },
-  { label: 'Tiller', value: 'PLOUGH' },
-  { label: 'Sheller', value: 'TRAILER' },
-];
+// Display labels don't match the underlying EquipmentCategory enum values
+// (e.g. 'Irrigation' -> 'IRRIGATION_PUMP'), so filtering needs this lookup.
+const CATEGORY_VALUES: Record<CategoryFilter, EquipmentCategory | null> = {
+  All: null,
+  Tractor: 'TRACTOR',
+  Harvester: 'HARVESTER',
+  Irrigation: 'IRRIGATION_PUMP',
+  Sprayer: 'SPRAYER',
+  Tiller: 'PLOUGH',
+  Sheller: 'TRAILER',
+};
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -64,7 +67,11 @@ function EquipmentListCard({
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
-          <EquipmentImage category={item.category} style={styles.image} resizeMode="contain" />
+          <Image
+            source={item.image ?? getEquipmentImage(item.category)}
+            resizeMode="cover"
+            style={styles.image}
+          />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{item.category.replace(/_/g, ' ')}</Text>
           </View>
@@ -124,7 +131,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   const styles = createStyles(colors);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [query, setQuery] = useState(route.params?.query ?? '');
-  const [category, setCategory] = useState<CategoryFilter>('All');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +161,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   };
 
   const handleCategoryPress = (cat: CategoryFilter) => {
-    setCategory(cat);
+    setSelectedCategory(cat);
   };
 
   const handleClearQuery = () => {
@@ -166,7 +173,10 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     return <LoadingOverlay message="Loading equipment..." />;
   }
 
-  const equipment = category === 'All' ? allEquipment : allEquipment.filter((item) => item.category === category);
+  const equipment =
+    selectedCategory === 'All'
+      ? allEquipment
+      : allEquipment.filter((item) => item.category === CATEGORY_VALUES[selectedCategory]);
 
   const region = equipment[0]?.region ?? 'Ashanti Region';
 
@@ -206,15 +216,15 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.chipsList}
         style={styles.chipsRow}
       >
-        {CATEGORIES.map((item) => {
-          const active = item.value === category;
+        {CATEGORIES.map((cat) => {
+          const active = cat === selectedCategory;
           return (
             <Pressable
-              key={item.label}
-              onPress={() => handleCategoryPress(item.value)}
+              key={cat}
+              onPress={() => handleCategoryPress(cat)}
               style={[styles.chip, active && styles.chipActive]}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat}</Text>
             </Pressable>
           );
         })}
@@ -313,7 +323,7 @@ function createStyles(colors: ThemeColors) {
     borderRadius: 25,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: '#1A6B2E',
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -375,7 +385,7 @@ function createStyles(colors: ThemeColors) {
   imageWrap: {
     position: 'relative',
     width: '100%',
-    height: 160,
+    height: 180,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: 'hidden',
@@ -383,7 +393,9 @@ function createStyles(colors: ThemeColors) {
   },
   image: {
     width: '100%',
-    height: 160,
+    height: 180,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     backgroundColor: '#F0F7F2',
   },
   categoryBadge: {
