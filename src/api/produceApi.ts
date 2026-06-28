@@ -5,9 +5,13 @@ import {
   AddProcessingStagePayload,
   BatchStatus,
   CatalogueParams,
+  MarketplaceListing,
+  MarketplaceCategory,
+  MarketplaceListingStatus,
+  CreateMarketplaceListingPayload,
 } from '../types';
 import { USE_MOCK_DATA } from '../config';
-import { MOCK_BATCHES } from '../mock/mockData';
+import { MOCK_BATCHES, MOCK_MARKETPLACE_LISTINGS } from '../mock/mockData';
 import { mockDelay, generateMockId } from '../mock/mockHelpers';
 import { getUser } from '../utils/storage';
 
@@ -119,4 +123,99 @@ export async function scanQrCode(qrCodeValue: string): Promise<ProduceBatch> {
     params: { qrCodeValue },
   });
   return data;
+}
+
+// ===== Marketplace =====
+
+export interface MarketplaceListingsParams {
+  category?: MarketplaceCategory;
+  query?: string;
+}
+
+export async function getMarketplaceListings(
+  params: MarketplaceListingsParams = {}
+): Promise<MarketplaceListing[]> {
+  if (USE_MOCK_DATA) {
+    const query = params.query?.toLowerCase();
+    const filtered = MOCK_MARKETPLACE_LISTINGS.filter((listing) => {
+      if (params.category && listing.category !== params.category) return false;
+      if (query && !listing.name.toLowerCase().includes(query)) return false;
+      return true;
+    });
+    return mockDelay(filtered);
+  }
+  const { data } = await apiClient.get<MarketplaceListing[]>('/marketplace/listings', { params });
+  return data;
+}
+
+export async function getMarketplaceListingById(listingId: string): Promise<MarketplaceListing> {
+  if (USE_MOCK_DATA) {
+    const found = MOCK_MARKETPLACE_LISTINGS.find((l) => l.id === listingId);
+    if (!found) throw new Error('Listing not found');
+    found.viewsCount += 1;
+    return mockDelay(found);
+  }
+  const { data } = await apiClient.get<MarketplaceListing>(`/marketplace/listings/${listingId}`);
+  return data;
+}
+
+export async function getMyMarketplaceListings(): Promise<MarketplaceListing[]> {
+  if (USE_MOCK_DATA) {
+    const user = await getUser();
+    const mine = MOCK_MARKETPLACE_LISTINGS.filter((l) => l.sellerId === user?.id);
+    return mockDelay(mine);
+  }
+  const { data } = await apiClient.get<MarketplaceListing[]>('/marketplace/listings/mine');
+  return data;
+}
+
+export async function createMarketplaceListing(
+  payload: CreateMarketplaceListingPayload
+): Promise<MarketplaceListing> {
+  if (USE_MOCK_DATA) {
+    const user = await getUser();
+    const listing: MarketplaceListing = {
+      id: generateMockId('ml'),
+      sellerId: user?.id ?? 'unknown',
+      sellerName: user?.fullName ?? 'You',
+      status: 'ACTIVE',
+      viewsCount: 0,
+      inquiriesCount: 0,
+      ordersCount: 0,
+      photoUrls: [],
+      createdAt: new Date().toISOString(),
+      ...payload,
+    };
+    MOCK_MARKETPLACE_LISTINGS.unshift(listing);
+    return mockDelay(listing);
+  }
+  const { data } = await apiClient.post<MarketplaceListing>('/marketplace/listings', payload);
+  return data;
+}
+
+export async function updateMarketplaceListingStatus(
+  listingId: string,
+  status: MarketplaceListingStatus
+): Promise<MarketplaceListing> {
+  if (USE_MOCK_DATA) {
+    const index = MOCK_MARKETPLACE_LISTINGS.findIndex((l) => l.id === listingId);
+    if (index === -1) throw new Error('Listing not found');
+    MOCK_MARKETPLACE_LISTINGS[index] = { ...MOCK_MARKETPLACE_LISTINGS[index], status };
+    return mockDelay(MOCK_MARKETPLACE_LISTINGS[index]);
+  }
+  const { data } = await apiClient.patch<MarketplaceListing>(
+    `/marketplace/listings/${listingId}/status`,
+    { status }
+  );
+  return data;
+}
+
+export async function deleteMarketplaceListing(listingId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    const index = MOCK_MARKETPLACE_LISTINGS.findIndex((l) => l.id === listingId);
+    if (index !== -1) MOCK_MARKETPLACE_LISTINGS.splice(index, 1);
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.delete(`/marketplace/listings/${listingId}`);
 }

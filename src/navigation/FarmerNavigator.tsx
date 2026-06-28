@@ -16,6 +16,10 @@ import MyBatchesScreen from '../screens/farmer/MyBatchesScreen';
 import BatchDetailScreen from '../screens/farmer/BatchDetailScreen';
 import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
+import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
+import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
+import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -44,6 +48,25 @@ function BookingsStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerBookingsList" component={MyBookingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+}
+
+function MarketStack() {
+  return (
+    <Stack.Navigator screenOptions={stackHeaderOptions}>
+      <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="MarketplaceListingDetail"
+        component={ListingDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="MyMarketplaceListings"
+        component={MarketplaceMyListingsScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
@@ -99,8 +122,16 @@ export default function FarmerNavigator() {
         component={BookingsStack}
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ focused }) => <TabIcon name="calendar" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Bookings" focused={focused} />,
+          tabBarButton: () => null,
+        }}
+      />
+      <Tab.Screen
+        name="FarmerMarket"
+        component={MarketStack}
+        options={{
+          title: 'Market',
+          tabBarIcon: ({ focused }) => <TabIcon name="storefront" focused={focused} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Market" focused={focused} />,
         }}
       />
       <Tab.Screen

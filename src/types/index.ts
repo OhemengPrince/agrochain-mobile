@@ -1,6 +1,6 @@
 // ===== User & Auth =====
 
-export type UserRole = 'FARMER' | 'EQUIPMENT_OWNER' | 'BUYER';
+export type UserRole = 'FARMER' | 'EQUIPMENT_OWNER' | 'BUYER' | 'GENERAL' | 'ADMIN';
 
 export interface User {
   id: string;
@@ -221,16 +221,76 @@ export interface AppNotification {
   createdAt: string;
 }
 
+// ===== Marketplace =====
+
+export type MarketplaceCategory = 'PRODUCE' | 'EQUIPMENT' | 'SEEDS' | 'TOOLS' | 'OTHER';
+
+export type MarketplacePriceType = 'FIXED' | 'PER_DAY' | 'NEGOTIABLE';
+
+export type MarketplaceListingStatus = 'ACTIVE' | 'SOLD' | 'RENTED' | 'PENDING';
+
+export type MarketplaceContactPreference = 'CALL' | 'WHATSAPP' | 'IN_APP';
+
+export interface MarketplaceListing {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  category: MarketplaceCategory;
+  name: string;
+  description: string;
+  priceType: MarketplacePriceType;
+  price: number;
+  quantity?: string;
+  photoUrls: string[];
+  region: string;
+  district: string;
+  contactPreference: MarketplaceContactPreference;
+  status: MarketplaceListingStatus;
+  viewsCount: number;
+  inquiriesCount: number;
+  ordersCount: number;
+  createdAt: string;
+}
+
+export interface CreateMarketplaceListingPayload {
+  category: MarketplaceCategory;
+  name: string;
+  description: string;
+  priceType: MarketplacePriceType;
+  price: number;
+  quantity?: string;
+  photoUrls?: string[];
+  region: string;
+  district: string;
+  contactPreference: MarketplaceContactPreference;
+}
+
+export interface MarketplaceListingOrder {
+  id: string;
+  listingId: string;
+  buyerId: string;
+  buyerName: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  createdAt: string;
+}
+
 // ===== Navigation =====
 
 export type AuthStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
   Login: undefined;
-  Register: undefined;
+  CreateAccount: undefined;
   OtpVerify: { email: string };
   ForgotPassword: undefined;
   ResetPassword: { email: string };
+};
+
+export type MarketplaceStackParamList = {
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string };
+  CreateListing: undefined;
+  MyMarketplaceListings: undefined;
 };
 
 export type FarmerStackParamList = {
@@ -249,6 +309,11 @@ export type FarmerStackParamList = {
   FarmerProfile: undefined;
   FarmerProfileMain: undefined;
   FarmerNotifications: undefined;
+  FarmerMarket: undefined;
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string };
+  CreateListing: undefined;
+  MyMarketplaceListings: undefined;
 };
 
 export type OwnerStackParamList = {
@@ -265,6 +330,11 @@ export type OwnerStackParamList = {
   OwnerProfileMain: undefined;
   OwnerNotifications: undefined;
   OwnerSettings: undefined;
+  OwnerMarket: undefined;
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string };
+  CreateListing: undefined;
+  MyMarketplaceListings: undefined;
 };
 
 export type BuyerStackParamList = {
@@ -279,4 +349,25 @@ export type BuyerStackParamList = {
   BuyerProfileMain: undefined;
   BuyerNotifications: undefined;
   BuyerSettings: undefined;
+  BuyerMarket: undefined;
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string };
+  CreateListing: undefined;
+  MyMarketplaceListings: undefined;
+};
+
+export type GeneralStackParamList = {
+  GeneralHome: undefined;
+  GeneralHomeMain: undefined;
+  GeneralMarket: undefined;
+  GeneralList: undefined;
+  GeneralBrowse: undefined;
+  GeneralEquipmentList: { query?: string } | undefined;
+  EquipmentDetail: { equipmentId: string };
+  GeneralProfile: undefined;
+  GeneralProfileMain: undefined;
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string };
+  CreateListing: undefined;
+  MyMarketplaceListings: undefined;
 };

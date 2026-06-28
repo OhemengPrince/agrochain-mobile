@@ -20,6 +20,7 @@ function inferRoleFromEmail(email: string): User['role'] {
   const lower = email.toLowerCase();
   if (lower.includes('owner')) return 'EQUIPMENT_OWNER';
   if (lower.includes('buyer')) return 'BUYER';
+  if (lower.includes('general')) return 'GENERAL';
   return 'FARMER';
 }
 
@@ -68,7 +69,8 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   if (USE_MOCK_DATA) {
     // No backend yet: accept any password and log in as any email. If the
     // email matches a known mock account use it, otherwise infer the role
-    // from the email text and fall back to that role's demo account.
+    // from the email text ('owner'/'buyer'/'general', else farmer) and fall
+    // back to that role's demo account.
     const existing = findUserByEmail(payload.email);
     const role = existing?.role ?? inferRoleFromEmail(payload.email);
     const user =
@@ -87,7 +89,13 @@ export async function loginAsRole(role: User['role']): Promise<AuthResponse> {
     return mockDelay({ token: generateMockId('token'), user });
   }
   const demoEmail =
-    role === 'EQUIPMENT_OWNER' ? 'owner@agrochain.com' : role === 'BUYER' ? 'buyer@agrochain.com' : 'farmer@agrochain.com';
+    role === 'EQUIPMENT_OWNER'
+      ? 'owner@agrochain.com'
+      : role === 'BUYER'
+      ? 'buyer@agrochain.com'
+      : role === 'GENERAL'
+      ? 'general@agrochain.com'
+      : 'farmer@agrochain.com';
   const { data } = await apiClient.post<AuthResponse>('/auth/login', { email: demoEmail, password: 'demo1234' });
   return data;
 }

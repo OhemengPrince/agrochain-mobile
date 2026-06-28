@@ -5,6 +5,7 @@ import AuthNavigator from './AuthNavigator';
 import FarmerNavigator from './FarmerNavigator';
 import OwnerNavigator from './OwnerNavigator';
 import BuyerNavigator from './BuyerNavigator';
+import GeneralUserNavigator from './GeneralUserNavigator';
 
 export default function RootNavigator() {
   const { user, isLoading } = useAuth();
@@ -24,6 +25,8 @@ export default function RootNavigator() {
       return <OwnerNavigator />;
     case 'BUYER':
       return <BuyerNavigator />;
+    case 'GENERAL':
+      return <GeneralUserNavigator />;
     default:
       return <AuthNavigator />;
   }

@@ -127,7 +127,7 @@ export default function OnboardingScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Register')}>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('CreateAccount')}>
             <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>Get Started</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />

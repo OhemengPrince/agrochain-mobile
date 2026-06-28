@@ -28,12 +28,14 @@ const DEMO_ACCOUNTS: { label: string; email: string }[] = [
   { label: 'Farmer', email: 'farmer@agrochain.com' },
   { label: 'Owner', email: 'owner@agrochain.com' },
   { label: 'Buyer', email: 'buyer@agrochain.com' },
+  { label: 'General', email: 'general@agrochain.com' },
 ];
 
 const ROLE_CARDS: { role: User['role']; emoji: string; label: string; color: string }[] = [
   { role: 'FARMER', emoji: '🧑‍🌾', label: 'Login as Farmer', color: '#1A6B2E' },
   { role: 'EQUIPMENT_OWNER', emoji: '🚜', label: 'Login as Equipment Owner', color: '#1565C0' },
   { role: 'BUYER', emoji: '🛒', label: 'Login as Buyer', color: '#FF8F00' },
+  { role: 'GENERAL', emoji: '🧑', label: 'Login as General User', color: '#6A1B9A' },
 ];
 
 function usePressAnimation() {
@@ -231,7 +233,7 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
           <TouchableOpacity
             style={styles.toggleTab}
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigation.navigate('CreateAccount')}
             activeOpacity={0.8}
           >
             <Text style={styles.toggleTabTextInactive}>Create Account</Text>
@@ -288,9 +290,9 @@ export default function LoginScreen({ navigation }: Props) {
         <SignInButton loading={loading} onPress={handleLogin} styles={styles} />
 
         <View style={styles.bottomLinkRow}>
-          <Text style={styles.bottomLinkGray}>No account yet?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.bottomLinkGreen}> Create one</Text>
+          <Text style={styles.bottomLinkGray}>New to AgroChain?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CreateAccount')}>
+            <Text style={styles.bottomLinkGreen}> Create Account</Text>
           </TouchableOpacity>
         </View>
 

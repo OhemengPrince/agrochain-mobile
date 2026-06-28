@@ -39,6 +39,10 @@ export function formatRole(role: UserRole): string {
       return 'Equipment Owner';
     case 'BUYER':
       return 'Buyer';
+    case 'GENERAL':
+      return 'General User';
+    case 'ADMIN':
+      return 'Admin';
     default:
       return role;
   }

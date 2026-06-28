@@ -20,7 +20,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PLACEHOLDER_COLOR = '#9CA3AF';
@@ -29,6 +29,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string; icon: keyof typeof Ionicon
   { value: 'FARMER', label: 'Farmer', icon: 'leaf-outline' },
   { value: 'EQUIPMENT_OWNER', label: 'Equipment Owner', icon: 'construct-outline' },
   { value: 'BUYER', label: 'Buyer', icon: 'cart-outline' },
+  { value: 'GENERAL', label: 'General User', icon: 'people-outline' },
 ];
 
 function usePressAnimation() {
@@ -81,7 +82,7 @@ function RoleCard({
         onPressIn={() => animateOpacityTo(0.95, 100)}
         onPressOut={() => animateOpacityTo(1, 150)}
       >
-        <Ionicons name={option.icon} size={28} color={selected ? colors.white : colors.secondaryText} />
+        <Ionicons name={option.icon} size={26} color={selected ? colors.white : colors.secondaryText} />
         <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>{option.label}</Text>
         {selected && <View style={styles.roleGoldBar} />}
       </Pressable>
@@ -89,7 +90,7 @@ function RoleCard({
   );
 }
 
-function RegisterButton({
+function CreateAccountButton({
   loading,
   onPress,
   styles,
@@ -116,7 +117,7 @@ function RegisterButton({
   );
 }
 
-export default function RegisterScreen({ navigation }: Props) {
+export default function CreateAccountScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [fullName, setFullName] = useState('');
@@ -145,7 +146,7 @@ export default function RegisterScreen({ navigation }: Props) {
     });
   }, [role, roleScaleAnims]);
 
-  const handleRegister = async () => {
+  const handleCreateAccount = async () => {
     setError(null);
     if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
       setError('Please fill in all required fields.');
@@ -190,8 +191,8 @@ export default function RegisterScreen({ navigation }: Props) {
             <Text style={styles.brandEmoji}>🌾</Text>
             <Text style={styles.brandText}>AgroChain</Text>
           </View>
-          <Text style={styles.heroTitle}>Create Your Account</Text>
-          <Text style={styles.heroSubtitle}>Join 10,000+ farmers across Ghana</Text>
+          <Text style={styles.heroTitle}>Create Account</Text>
+          <Text style={styles.heroSubtitle}>Join the AgroChain community</Text>
         </View>
       </LinearGradient>
 
@@ -370,12 +371,12 @@ export default function RegisterScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <RegisterButton loading={loading} onPress={handleRegister} styles={styles} colors={colors} />
+        <CreateAccountButton loading={loading} onPress={handleCreateAccount} styles={styles} colors={colors} />
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.loginLink}>Sign In</Text>
+            <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -545,12 +546,14 @@ function createStyles(colors: ThemeColors) {
     },
     roleRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
       marginBottom: 8,
     },
     roleCardWrap: {
-      width: '30%',
-      height: 90,
+      width: '48%',
+      height: 84,
+      marginBottom: 12,
     },
     roleCard: {
       flex: 1,

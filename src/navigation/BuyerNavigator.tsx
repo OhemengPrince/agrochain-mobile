@@ -12,6 +12,10 @@ import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
 import QrScannerScreen from '../screens/buyer/QrScannerScreen';
 import BuyerProfileScreen from '../screens/buyer/BuyerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
+import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
+import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
+import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 
 const Tab = createBottomTabNavigator<BuyerStackParamList>();
 const Stack = createNativeStackNavigator<BuyerStackParamList>();
@@ -44,6 +48,25 @@ function ScannerStack() {
   );
 }
 
+function MarketStack() {
+  return (
+    <Stack.Navigator screenOptions={stackHeaderOptions}>
+      <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="MarketplaceListingDetail"
+        component={ListingDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="MyMarketplaceListings"
+        component={MarketplaceMyListingsScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
@@ -68,12 +91,12 @@ export default function BuyerNavigator() {
         }}
       />
       <Tab.Screen
-        name="BuyerCatalogue"
-        component={CatalogueStack}
+        name="BuyerMarket"
+        component={MarketStack}
         options={{
-          title: 'Catalogue',
-          tabBarIcon: ({ focused }) => <TabIcon name="grid" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Catalogue" focused={focused} />,
+          title: 'Market',
+          tabBarIcon: ({ focused }) => <TabIcon name="storefront" focused={focused} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Market" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -86,12 +109,21 @@ export default function BuyerNavigator() {
         }}
       />
       <Tab.Screen
+        name="BuyerCatalogue"
+        component={CatalogueStack}
+        options={{
+          title: 'Catalogue',
+          tabBarIcon: ({ focused }) => <TabIcon name="grid" focused={focused} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Catalogue" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="BuyerNotifications"
         component={NotificationsScreen}
         options={{
           title: 'Alerts',
-          tabBarIcon: ({ focused }) => <TabIcon name="notifications" focused={focused} />,
-          tabBarLabel: ({ focused }) => <TabLabel label="Alerts" focused={focused} />,
+          headerShown: false,
+          tabBarButton: () => null,
         }}
       />
       <Tab.Screen

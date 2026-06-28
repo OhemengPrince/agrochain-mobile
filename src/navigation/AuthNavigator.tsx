@@ -4,7 +4,7 @@ import { AuthStackParamList } from '../types';
 import { stackHeaderOptions } from './navigatorTheme';
 import SplashScreen from '../screens/auth/SplashScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
-import RegisterScreen from '../screens/auth/RegisterScreen';
+import CreateAccountScreen from '../screens/auth/CreateAccountScreen';
 import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
@@ -18,11 +18,7 @@ export default function AuthNavigator() {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="Register"
-        component={RegisterScreen}
-        options={{ ...stackHeaderOptions, title: 'Register' }}
-      />
+      <Stack.Screen name="CreateAccount" component={CreateAccountScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="OtpVerify"
         component={OtpVerifyScreen}
