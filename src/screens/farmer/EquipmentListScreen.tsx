@@ -196,11 +196,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          gap: 10,
-        }}
+        contentContainerStyle={styles.chipsList}
       >
         {CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat;
@@ -208,27 +204,9 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
             <Pressable
               key={cat}
               onPress={() => setActiveCategory(cat)}
-              style={{
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 25,
-                backgroundColor: isActive ? '#1A6B2E' : '#FFFFFF',
-                borderWidth: 1.5,
-                borderColor: isActive ? '#1A6B2E' : '#E5E7EB',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.08,
-                shadowRadius: 4,
-                elevation: isActive ? 4 : 1,
-              }}
+              style={[styles.chip, isActive && styles.chipActive]}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: isActive ? '#FFFFFF' : '#6B7280',
-                }}
-              >
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]} numberOfLines={1}>
                 {cat}
               </Text>
             </Pressable>
@@ -315,6 +293,41 @@ function createStyles(colors: ThemeColors) {
     flex: 1,
     fontSize: 15,
     color: colors.text,
+  },
+  chipsList: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minHeight: 38,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  chipActive: {
+    backgroundColor: '#1A6B2E',
+    borderColor: '#1A6B2E',
+    elevation: 4,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
   },
   list: {
     paddingBottom: 120,
