@@ -5,6 +5,7 @@ import { USE_MOCK_DATA } from '../config';
 const TOKEN_KEY = '@agrochain/token';
 const USER_KEY = '@agrochain/user';
 const THEME_KEY = '@agrochain/theme';
+const ONBOARDING_KEY = '@agrochain/hasSeenOnboarding';
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -71,6 +72,21 @@ export async function getTheme(): Promise<string | null> {
     return memoryStore[THEME_KEY] ?? null;
   }
   return AsyncStorage.getItem(THEME_KEY);
+}
+
+export async function getHasSeenOnboarding(): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    return memoryStore[ONBOARDING_KEY] === 'true';
+  }
+  return (await AsyncStorage.getItem(ONBOARDING_KEY)) === 'true';
+}
+
+export async function setHasSeenOnboarding(): Promise<void> {
+  if (USE_MOCK_DATA) {
+    memoryStore[ONBOARDING_KEY] = 'true';
+    return;
+  }
+  await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
 }
 
 export async function clearAll(): Promise<void> {
