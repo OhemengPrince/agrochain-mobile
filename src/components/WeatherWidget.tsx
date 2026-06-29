@@ -1,10 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, Easing, ScrollView, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  ScrollView,
+  Dimensions,
+  ImageBackground,
+  ImageSourcePropType,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 
 type ConditionGroup = 'clear' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'snow' | 'storm';
+
+const WEATHER_BACKGROUNDS: Record<ConditionGroup, ImageSourcePropType> = {
+  clear: require('../assets/weather/sunny.jpg'),
+  cloudy: require('../assets/weather/cloudy.jpg'),
+  fog: require('../assets/weather/cloudy.jpg'),
+  drizzle: require('../assets/weather/rainy.jpg'),
+  rain: require('../assets/weather/rainy.jpg'),
+  snow: require('../assets/weather/cloudy.jpg'),
+  storm: require('../assets/weather/rainy.jpg'),
+};
 
 interface DailyForecast {
   day: string;
@@ -21,7 +42,6 @@ interface WeatherData {
   condition: string;
   description: string;
   group: ConditionGroup;
-  gradient: [string, string];
   locationLabel: string;
   daily: DailyForecast[];
 }
@@ -31,16 +51,16 @@ type Status = 'loading' | 'ready' | 'unavailable';
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const CARD_WIDTH = Dimensions.get('window').width - 32;
 
-// Maps WMO weather codes (returned by Open-Meteo) to a condition group, label, and gradient.
-function describeWeatherCode(code: number): { condition: string; group: ConditionGroup; gradient: [string, string] } {
-  if (code === 0) return { condition: 'Clear Sky', group: 'clear', gradient: ['#1E88E5', '#64B5F6'] };
-  if ([1, 2, 3].includes(code)) return { condition: 'Partly Cloudy', group: 'cloudy', gradient: ['#54708A', '#8DA3BC'] };
-  if ([45, 48].includes(code)) return { condition: 'Foggy', group: 'fog', gradient: ['#78909C', '#B0BEC5'] };
-  if ([51, 53, 55, 56, 57].includes(code)) return { condition: 'Light Drizzle', group: 'drizzle', gradient: ['#37474F', '#607D8B'] };
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { condition: 'Heavy Rain', group: 'rain', gradient: ['#1B2A38', '#37474F'] };
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return { condition: 'Snowy', group: 'snow', gradient: ['#6E8398', '#CFD8DC'] };
-  if ([95, 96, 99].includes(code)) return { condition: 'Storm with Heavy Rain', group: 'storm', gradient: ['#0D1117', '#283848'] };
-  return { condition: 'Cloudy', group: 'cloudy', gradient: ['#607D8B', '#90A4AE'] };
+// Maps WMO weather codes (returned by Open-Meteo) to a condition group and label.
+function describeWeatherCode(code: number): { condition: string; group: ConditionGroup } {
+  if (code === 0) return { condition: 'Clear Sky', group: 'clear' };
+  if ([1, 2, 3].includes(code)) return { condition: 'Partly Cloudy', group: 'cloudy' };
+  if ([45, 48].includes(code)) return { condition: 'Foggy', group: 'fog' };
+  if ([51, 53, 55, 56, 57].includes(code)) return { condition: 'Light Drizzle', group: 'drizzle' };
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { condition: 'Heavy Rain', group: 'rain' };
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { condition: 'Snowy', group: 'snow' };
+  if ([95, 96, 99].includes(code)) return { condition: 'Storm with Heavy Rain', group: 'storm' };
+  return { condition: 'Cloudy', group: 'cloudy' };
 }
 
 function iconForGroup(group: ConditionGroup): keyof typeof Ionicons.glyphMap {
@@ -257,7 +277,7 @@ export default function WeatherWidget() {
 
         const current = weatherJson.current;
         const daily = weatherJson.daily;
-        const { condition, group, gradient } = describeWeatherCode(current.weather_code);
+        const { condition, group } = describeWeatherCode(current.weather_code);
 
         const dailyForecast: DailyForecast[] = daily.time.slice(0, 6).map((dateStr: string, index: number) => {
           const date = new Date(dateStr);
@@ -282,7 +302,6 @@ export default function WeatherWidget() {
           condition,
           group,
           description: describeText(group, Math.round(current.wind_speed_10m), Math.round(current.relative_humidity_2m)),
-          gradient,
           locationLabel,
           daily: dailyForecast,
         });
@@ -311,62 +330,63 @@ export default function WeatherWidget() {
 
   return (
     <View style={styles.card}>
-      <LinearGradient colors={weather.gradient} style={StyleSheet.absoluteFillObject} />
-      <WeatherEffects group={weather.group} />
-      <LinearGradient
-        colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.5)']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <ImageBackground source={WEATHER_BACKGROUNDS[weather.group]} resizeMode="cover" style={styles.bgImage}>
+        <WeatherEffects group={weather.group} />
+        <LinearGradient
+          colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.6)']}
+          style={StyleSheet.absoluteFillObject}
+        />
 
-      <View style={styles.content}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Weather Forecast</Text>
-        </View>
-
-        <View style={styles.headlineRow}>
-          <View style={styles.headlineLeft}>
-            <Text style={styles.headline}>{weather.condition}</Text>
-            <Text style={styles.description} numberOfLines={3}>
-              {weather.description}
-            </Text>
+        <View style={styles.content}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Weather Forecast</Text>
           </View>
 
-          <View style={styles.tempPanel}>
-            <View style={styles.locationPill}>
-              <Ionicons name="location" size={11} color="#FFFFFF" />
-              <Text style={styles.locationPillText} numberOfLines={1}>
-                {weather.locationLabel}
+          <View style={styles.headlineRow}>
+            <View style={styles.headlineLeft}>
+              <Text style={styles.headline}>{weather.condition}</Text>
+              <Text style={styles.description} numberOfLines={3}>
+                {weather.description}
               </Text>
             </View>
-            <Text style={styles.bigTemp}>{weather.temp}°</Text>
-            <View style={styles.metaRow}>
-              <View style={styles.metaItem}>
-                <Ionicons name="speedometer-outline" size={12} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.metaText}>{weather.windSpeed}km/h</Text>
+
+            <View style={styles.tempPanel}>
+              <View style={styles.locationPill}>
+                <Ionicons name="location" size={11} color="#FFFFFF" />
+                <Text style={styles.locationPillText} numberOfLines={1}>
+                  {weather.locationLabel}
+                </Text>
               </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="water-outline" size={12} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.metaText}>{weather.humidity}%</Text>
+              <Text style={styles.bigTemp}>{weather.temp}°</Text>
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="speedometer-outline" size={12} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.metaText}>{weather.windSpeed}km/h</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Ionicons name="water-outline" size={12} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.metaText}>{weather.humidity}%</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.forecastContent}
-        >
-          {weather.daily.map((day) => (
-            <View key={day.day} style={[styles.forecastPill, day.isToday && styles.forecastPillActive]}>
-              <Text style={styles.forecastDay}>{day.day}</Text>
-              <Ionicons name={day.icon} size={18} color="#FFFFFF" style={styles.forecastIcon} />
-              <Text style={styles.forecastTemp}>{day.high}°</Text>
-              <Text style={styles.forecastTempLow}>{day.low}°</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.forecastContent}
+          >
+            {weather.daily.map((day) => (
+              <View key={day.day} style={[styles.forecastPill, day.isToday && styles.forecastPillActive]}>
+                <Text style={styles.forecastDay}>{day.day}</Text>
+                <Ionicons name={day.icon} size={18} color="#FFFFFF" style={styles.forecastIcon} />
+                <Text style={styles.forecastTemp}>{day.high}°</Text>
+                <Text style={styles.forecastTempLow}>{day.low}°</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </ImageBackground>
     </View>
   );
 }
@@ -391,6 +411,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 14,
     elevation: 6,
+  },
+  bgImage: {
+    width: '100%',
   },
   content: {
     padding: 18,
