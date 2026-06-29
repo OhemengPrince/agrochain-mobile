@@ -39,38 +39,6 @@ const RECENT_PURCHASES = [
 
 const BIO_TEXT = 'Verified agri-buyer sourcing quality produce from Ghanaian farmers for export markets 🌍';
 
-function PressableScale({
-  children,
-  style,
-  onPress,
-}: {
-  children: React.ReactNode;
-  style?: object;
-  onPress?: () => void;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  const animateTo = (toScale: number, toOpacity: number, duration: number) => {
-    Animated.parallel([
-      Animated.spring(scale, { toValue: toScale, useNativeDriver: true, tension: 300, friction: 10 }),
-      Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }),
-    ]).start();
-  };
-
-  return (
-    <Animated.View style={[style, { transform: [{ scale }], opacity }]}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => animateTo(0.97, 0.95, 100)}
-        onPressOut={() => animateTo(1, 1, 150)}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 interface Supplier {
   farmerName: string;
   cropName: string;
@@ -87,6 +55,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   const logoutScale = useRef(new Animated.Value(1)).current;
 
@@ -209,30 +178,18 @@ export default function BuyerProfileScreen({ navigation }: Props) {
             <Text style={styles.locationText}>{locationLabel}</Text>
           </View>
 
-          <View style={styles.bioRow}>
-            <Text style={styles.bioText}>{BIO_TEXT}</Text>
-            <TouchableOpacity onPress={() => showComingSoon('Edit bio')} hitSlop={8}>
-              <Ionicons name="pencil-outline" size={12} color="rgba(255,255,255,0.85)" />
-            </TouchableOpacity>
-          </View>
+          <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
+            <Text style={styles.bioToggleLabel}>Bio</Text>
+            <Ionicons
+              name={bioExpanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color="#FFFFFF"
+            />
+          </Pressable>
+          {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
 
           <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
         </LinearGradient>
-
-        <View style={styles.statsRow}>
-          <PressableScale style={styles.statCard}>
-            <Text style={styles.statValue}>24</Text>
-            <Text style={styles.statLabel}>Purchases</Text>
-          </PressableScale>
-          <PressableScale style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValueAmber]}>4.9 ⭐</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </PressableScale>
-          <PressableScale style={styles.statCard}>
-            <Text style={styles.statValue}>{suppliers.length || 8}</Text>
-            <Text style={styles.statLabel}>Suppliers</Text>
-          </PressableScale>
-        </View>
 
         <View style={styles.premiumCardWrap}>
           <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
@@ -451,9 +408,9 @@ function createStyles(colors: ThemeColors) {
       position: 'relative',
     },
     avatar: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
+      width: 130,
+      height: 130,
+      borderRadius: 65,
       borderWidth: 3,
       borderColor: '#FFFFFF',
     },
@@ -463,7 +420,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     avatarInitial: {
-      fontSize: 36,
+      fontSize: 44,
       fontWeight: '800',
       color: '#FFFFFF',
     },
@@ -508,56 +465,33 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       color: 'rgba(255,255,255,0.85)',
     },
-    bioRow: {
+    bioToggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
       gap: 6,
-      marginTop: 10,
-      maxWidth: 280,
+      marginTop: 12,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    bioToggleLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
     bioText: {
       fontSize: 13,
       fontStyle: 'italic',
       color: 'rgba(255,255,255,0.85)',
       textAlign: 'center',
-      flexShrink: 1,
+      maxWidth: 280,
+      marginTop: 10,
     },
     memberSinceText: {
       fontSize: 12,
       color: 'rgba(255,255,255,0.8)',
       marginTop: 8,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      marginTop: -20,
-      marginHorizontal: 16,
-      gap: 12,
-    },
-    statCard: {
-      flex: 1,
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    statValue: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: colors.primaryGreen,
-    },
-    statValueAmber: {
-      color: colors.accentAmber,
-    },
-    statLabel: {
-      fontSize: 12,
-      color: colors.secondaryText,
-      marginTop: 2,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
