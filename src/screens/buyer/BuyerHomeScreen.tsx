@@ -13,6 +13,7 @@ import { formatCurrency, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import WeatherWidget from '../../components/WeatherWidget';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerHomeMain'>;
 
@@ -231,6 +232,8 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 />
               </View>
             </LinearGradient>
+
+            <WeatherWidget />
 
             <Pressable onPress={goToScanner} style={styles.scanBannerWrap}>
               <LinearGradient colors={[colors.accentAmber, '#E65100']} style={styles.scanBanner}>

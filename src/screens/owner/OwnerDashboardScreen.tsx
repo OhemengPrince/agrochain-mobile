@@ -24,6 +24,7 @@ import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import WeatherWidget from '../../components/WeatherWidget';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
@@ -398,6 +399,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           styles={styles}
         />
       </View>
+
+      <WeatherWidget />
 
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Pending Requests</Text>

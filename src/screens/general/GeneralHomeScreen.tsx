@@ -20,6 +20,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import WeatherWidget from '../../components/WeatherWidget';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralHomeMain'>;
 
@@ -180,6 +181,8 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             ))}
           </View>
         </View>
+
+        <WeatherWidget />
 
         <MarketNewsFeed />
       </ScrollView>

@@ -30,6 +30,7 @@ import { formatCategory, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import StarRating from '../../components/StarRating';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import WeatherWidget from '../../components/WeatherWidget';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerHomeMain'>;
 
@@ -218,8 +219,6 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const firstName = user?.fullName?.split(' ')[0] ?? 'Farmer';
   const locationLabel = user?.district && user?.region ? `${user.district}, ${user.region}` : 'Ghana';
 
-  const activeRentals = bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'PENDING').length;
-  const readyToSell = batches.filter((b) => b.status === 'READY_FOR_SALE').length;
   const recentActivity = [...notifications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
@@ -276,54 +275,6 @@ export default function FarmerHomeScreen({ navigation }: Props) {
           </View>
         </LinearGradient>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.statsRow}
-          contentContainerStyle={styles.statsRowContent}
-        >
-          <View style={styles.statCard}>
-            <View style={styles.statTopRow}>
-              <View style={styles.statIconCircle}>
-                <Ionicons name="construct" size={20} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.statValue}>{activeRentals}</Text>
-            </View>
-            <Text style={styles.statLabel}>Active Rentals</Text>
-            <View style={[styles.statAccentBar, { backgroundColor: colors.primaryGreen }]} />
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statTopRow}>
-              <View style={styles.statIconCircle}>
-                <Ionicons name="leaf" size={20} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.statValue}>{batches.length}</Text>
-            </View>
-            <Text style={styles.statLabel}>My Batches</Text>
-            <View style={[styles.statAccentBar, { backgroundColor: colors.primaryGreen }]} />
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statTopRow}>
-              <View style={styles.statIconCircle}>
-                <Ionicons name="star" size={20} color={colors.accentAmber} />
-              </View>
-              <Text style={[styles.statValue, styles.statValueAmber]}>4.8</Text>
-            </View>
-            <Text style={styles.statLabel}>My Rating</Text>
-            <View style={[styles.statAccentBar, { backgroundColor: colors.accentAmber }]} />
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statTopRow}>
-              <View style={styles.statIconCircle}>
-                <Ionicons name="cube" size={20} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.statValue}>{readyToSell}</Text>
-            </View>
-            <Text style={styles.statLabel}>Ready to Sell</Text>
-            <View style={[styles.statAccentBar, { backgroundColor: colors.primaryGreen }]} />
-          </View>
-        </ScrollView>
-
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsRow}>
@@ -340,6 +291,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             ))}
           </View>
         </View>
+
+        <WeatherWidget />
 
         <View style={styles.section}>
           <ImageBackground source={TRACTOR_IMAGE} style={styles.banner} imageStyle={styles.bannerImage}>
@@ -459,64 +412,13 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       color: colors.text,
     },
-    statsRow: {
-      marginTop: -20,
-    },
-    statsRowContent: {
-      paddingHorizontal: 16,
-      gap: 12,
-    },
-    statCard: {
-      width: 130,
-      height: 90,
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 14,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    statTopRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    statIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.lightGreen,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    statValue: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: colors.primaryGreen,
-    },
-    statValueAmber: {
-      color: colors.accentAmber,
-    },
-    statLabel: {
-      fontSize: 11,
-      color: colors.secondaryText,
-      marginTop: 8,
-    },
-    statAccentBar: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 3,
-    },
     quickActionsSection: {
       backgroundColor: colors.card,
       paddingVertical: 16,
       paddingHorizontal: 20,
-      marginTop: 16,
+      marginTop: -20,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
     },
     quickActionsRow: {
       flexDirection: 'row',

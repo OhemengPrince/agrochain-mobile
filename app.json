@@ -23,7 +23,13 @@
     },
     "plugins": [
       "expo-barcode-scanner",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AgroChain uses your location to show local weather and nearby equipment."
+        }
+      ]
     ]
   }
 }
