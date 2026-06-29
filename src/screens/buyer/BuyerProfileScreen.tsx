@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BuyerStackParamList, ProduceBatch } from '../../types';
@@ -26,8 +27,12 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
+import ProfileTabs from '../../components/ProfileTabs';
+import ProfileStatCard from '../../components/ProfileStatCard';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
+
+const TABS = ['About', 'Activity', 'Reviews'];
 
 // Illustrative placeholder data — this app has no backend model for produce
 // purchases/orders made by a buyer, so this section is static demo content.
@@ -56,6 +61,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
 
   const logoutScale = useRef(new Animated.Value(1)).current;
 
@@ -147,7 +153,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
+        <LinearGradient colors={['#0B3D1E', '#1A6B2E', '#2E8B4A', '#6FCF7E']} style={styles.hero}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
@@ -168,135 +174,180 @@ export default function BuyerProfileScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{user.fullName}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>AGRI-BUYER</Text>
-          </View>
+          <BlurView intensity={45} tint="light" style={styles.glassCard}>
+            <Text style={styles.name}>{user.fullName}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>AGRI-BUYER</Text>
+            </View>
 
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}>{locationLabel}</Text>
-          </View>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.locationText}>{locationLabel}</Text>
+            </View>
 
-          <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
-            <Text style={styles.bioToggleLabel}>Bio</Text>
-            <Ionicons
-              name={bioExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="#FFFFFF"
-            />
-          </Pressable>
-          {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
-
-          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+          </BlurView>
         </LinearGradient>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="cart-outline" size={18} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.premiumHeaderText}>Recent Purchases</Text>
-              <TouchableOpacity onPress={() => showComingSoon('All purchases')} style={styles.seeAllWrap}>
-                <View style={styles.seeAllRow}>
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {RECENT_PURCHASES.map((purchase, index) => (
-              <View key={purchase.id}>
-                <View style={styles.purchaseRow}>
-                  <Text style={styles.purchaseEmoji}>{purchase.emoji}</Text>
-                  <View style={styles.purchaseBody}>
-                    <Text style={styles.purchaseCrop}>
-                      {purchase.crop} <Text style={styles.purchaseQuantity}>· {purchase.quantity}</Text>
-                    </Text>
-                    <Text style={styles.purchaseMeta}>
-                      {purchase.farmer} · {formatDate(purchase.date)}
-                    </Text>
-                  </View>
-                  <Text style={styles.purchaseAmount}>{purchase.amount}</Text>
-                </View>
-                {index < RECENT_PURCHASES.length - 1 && <View style={styles.purchaseDivider} />}
-              </View>
-            ))}
-          </LinearGradient>
+        <View style={styles.statsOverlapRow}>
+          <ProfileStatCard icon="cart" iconColor="#1A6B2E" value="24" label="Purchases" />
+          <ProfileStatCard icon="star" iconColor="#FF8F00" value="4.9" label="Rating" />
+          <ProfileStatCard icon="people" iconColor="#1A6B2E" value={`${suppliers.length || 8}`} label="Suppliers" />
         </View>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.premiumHeaderText}>My Suppliers</Text>
-            </View>
+        <View style={styles.tabsWrap}>
+          <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+        </View>
 
-            {suppliers.length === 0 ? (
-              <Text style={styles.emptyText}>No suppliers yet.</Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suppliersScroll}>
-                {suppliers.slice(0, 8).map((supplier) => (
-                  <View key={supplier.farmerName} style={styles.supplierCard}>
-                    <View style={styles.supplierAvatar}>
-                      <Text style={styles.supplierAvatarText}>{supplier.farmerName.charAt(0).toUpperCase()}</Text>
+        {activeTab === 'About' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.bioToggleLabel}>Bio</Text>
+                <Ionicons
+                  name={bioExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.primaryGreen}
+                />
+              </Pressable>
+              {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {activeTab === 'Activity' && (
+          <>
+            <View style={styles.premiumCardWrap}>
+              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+                <View style={styles.premiumHeaderRow}>
+                  <View style={styles.premiumIconCircle}>
+                    <Ionicons name="cart-outline" size={18} color={colors.primaryGreen} />
+                  </View>
+                  <Text style={styles.premiumHeaderText}>Recent Purchases</Text>
+                  <TouchableOpacity onPress={() => showComingSoon('All purchases')} style={styles.seeAllWrap}>
+                    <View style={styles.seeAllRow}>
+                      <Text style={styles.seeAllText}>See All</Text>
+                      <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
                     </View>
-                    <View style={styles.supplierNameRow}>
-                      <Text style={styles.supplierName} numberOfLines={1}>{supplier.farmerName}</Text>
-                      <Ionicons name="checkmark-circle" size={12} color={colors.primaryGreen} />
+                  </TouchableOpacity>
+                </View>
+
+                {RECENT_PURCHASES.map((purchase, index) => (
+                  <View key={purchase.id}>
+                    <View style={styles.purchaseRow}>
+                      <Text style={styles.purchaseEmoji}>{purchase.emoji}</Text>
+                      <View style={styles.purchaseBody}>
+                        <Text style={styles.purchaseCrop}>
+                          {purchase.crop} <Text style={styles.purchaseQuantity}>· {purchase.quantity}</Text>
+                        </Text>
+                        <Text style={styles.purchaseMeta}>
+                          {purchase.farmer} · {formatDate(purchase.date)}
+                        </Text>
+                      </View>
+                      <Text style={styles.purchaseAmount}>{purchase.amount}</Text>
                     </View>
-                    <Text style={styles.supplierCrop} numberOfLines={1}>{supplier.cropName}</Text>
-                    <View style={styles.supplierRatingRow}>
-                      <Ionicons name="star" size={11} color={colors.accentAmber} />
-                      <Text style={styles.supplierRating}>4.8</Text>
-                    </View>
+                    {index < RECENT_PURCHASES.length - 1 && <View style={styles.purchaseDivider} />}
                   </View>
                 ))}
-              </ScrollView>
-            )}
-          </LinearGradient>
-        </View>
-
-        <View style={[styles.premiumCardWrap, styles.subscriptionCardWrap]}>
-          <LinearGradient colors={['rgba(255,143,0,0.04)', 'rgba(255,143,0,0.09)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
-              </View>
-              <Text style={styles.subscriptionHeaderText}>Subscription Status</Text>
-            </View>
-
-            <View style={styles.planRow}>
-              <Text style={styles.planName}>Pro Buyer</Text>
-              <Ionicons name="checkmark-circle" size={20} color={colors.primaryGreen} />
-            </View>
-
-            <View style={styles.benefitsList}>
-              {[
-                'Unlimited catalogue access',
-                'PDF compliance reports',
-                'Priority farmer contact',
-                'Market price alerts',
-              ].map((benefit) => (
-                <View key={benefit} style={styles.benefitRow}>
-                  <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
-                  <Text style={styles.benefitText}>{benefit}</Text>
-                </View>
-              ))}
-            </View>
-
-            <Text style={styles.expiryText}>Valid until Dec 2026</Text>
-
-            <TouchableOpacity onPress={() => showComingSoon('Upgrade plan')}>
-              <LinearGradient colors={[colors.accentAmber, '#E65100']} style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
               </LinearGradient>
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
+            </View>
+
+            <View style={styles.premiumCardWrap}>
+              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+                <View style={styles.premiumHeaderRow}>
+                  <View style={styles.premiumIconCircle}>
+                    <Ionicons name="checkmark-circle-outline" size={18} color={colors.primaryGreen} />
+                  </View>
+                  <Text style={styles.premiumHeaderText}>My Suppliers</Text>
+                </View>
+
+                {suppliers.length === 0 ? (
+                  <Text style={styles.emptyText}>No suppliers yet.</Text>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suppliersScroll}>
+                    {suppliers.slice(0, 8).map((supplier) => (
+                      <View key={supplier.farmerName} style={styles.supplierCard}>
+                        <View style={styles.supplierAvatar}>
+                          <Text style={styles.supplierAvatarText}>{supplier.farmerName.charAt(0).toUpperCase()}</Text>
+                        </View>
+                        <View style={styles.supplierNameRow}>
+                          <Text style={styles.supplierName} numberOfLines={1}>{supplier.farmerName}</Text>
+                          <Ionicons name="checkmark-circle" size={12} color={colors.primaryGreen} />
+                        </View>
+                        <Text style={styles.supplierCrop} numberOfLines={1}>{supplier.cropName}</Text>
+                        <View style={styles.supplierRatingRow}>
+                          <Ionicons name="star" size={11} color={colors.accentAmber} />
+                          <Text style={styles.supplierRating}>4.8</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </LinearGradient>
+            </View>
+
+            <View style={[styles.premiumCardWrap, styles.subscriptionCardWrap]}>
+              <LinearGradient colors={['rgba(255,143,0,0.04)', 'rgba(255,143,0,0.09)']} style={styles.premiumCardGradient}>
+                <View style={styles.premiumHeaderRow}>
+                  <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                    <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
+                  </View>
+                  <Text style={styles.subscriptionHeaderText}>Subscription Status</Text>
+                </View>
+
+                <View style={styles.planRow}>
+                  <Text style={styles.planName}>Pro Buyer</Text>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.primaryGreen} />
+                </View>
+
+                <View style={styles.benefitsList}>
+                  {[
+                    'Unlimited catalogue access',
+                    'PDF compliance reports',
+                    'Priority farmer contact',
+                    'Market price alerts',
+                  ].map((benefit) => (
+                    <View key={benefit} style={styles.benefitRow}>
+                      <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
+                      <Text style={styles.benefitText}>{benefit}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={styles.expiryText}>Valid until Dec 2026</Text>
+
+                <TouchableOpacity onPress={() => showComingSoon('Upgrade plan')}>
+                  <LinearGradient colors={[colors.accentAmber, '#E65100']} style={styles.upgradeButton}>
+                    <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          </>
+        )}
+
+        {activeTab === 'Reviews' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                  <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
+                </View>
+                <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
+              </View>
+              <Text style={styles.emptyText}>No reviews yet.</Text>
+            </LinearGradient>
+          </View>
+        )}
 
         <View style={styles.logoutGlowWrap}>
           <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
@@ -380,11 +431,10 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
+    hero: {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 28,
-      minHeight: 280,
+      paddingBottom: 36,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -437,18 +487,29 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    glassCard: {
+      marginTop: 16,
+      width: '100%',
+      borderRadius: 24,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
     name: {
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: '800',
       color: '#FFFFFF',
-      marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: '#FF8F00',
+      backgroundColor: 'rgba(255,255,255,0.25)',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
-      marginTop: 6,
+      marginTop: 8,
     },
     roleBadgeText: {
       fontSize: 12,
@@ -463,14 +524,29 @@ function createStyles(colors: ThemeColors) {
     },
     locationText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.85)',
+      color: 'rgba(255,255,255,0.9)',
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 6,
+    },
+    statsOverlapRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: -24,
+      marginHorizontal: 16,
+    },
+    tabsWrap: {
+      marginHorizontal: 16,
+      marginTop: 20,
     },
     bioToggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 12,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.lightGreen,
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 6,
@@ -478,24 +554,35 @@ function createStyles(colors: ThemeColors) {
     bioToggleLabel: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.primaryGreen,
     },
     bioText: {
       fontSize: 13,
-      fontStyle: 'italic',
-      color: 'rgba(255,255,255,0.85)',
-      textAlign: 'center',
-      maxWidth: 280,
+      color: colors.secondaryText,
+      lineHeight: 20,
       marginTop: 10,
     },
-    memberSinceText: {
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      marginTop: 10,
+    },
+    infoLabel: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 8,
+      color: colors.secondaryText,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
-      marginTop: 20,
+      marginTop: 16,
       borderRadius: 20,
       borderWidth: 1.5,
       borderColor: 'rgba(26,107,46,0.15)',

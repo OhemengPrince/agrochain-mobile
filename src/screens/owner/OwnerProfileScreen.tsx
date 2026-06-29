@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Booking, Equipment } from '../../types';
@@ -27,9 +28,13 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
+import ProfileTabs from '../../components/ProfileTabs';
+import ProfileStatCard from '../../components/ProfileStatCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
+
+const TABS = ['About', 'Activity', 'Reviews'];
 
 // Illustrative placeholder data — this app has no backend model for
 // reviews received by an equipment owner, so this section is static demo content.
@@ -116,6 +121,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
 
   const logoutScale = useRef(new Animated.Value(1)).current;
 
@@ -231,7 +237,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
+        <LinearGradient colors={['#0B3D1E', '#1A6B2E', '#2E8B4A', '#6FCF7E']} style={styles.hero}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
@@ -252,169 +258,202 @@ export default function OwnerProfileScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{user.fullName}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>EQUIPMENT OWNER</Text>
-          </View>
+          <BlurView intensity={45} tint="light" style={styles.glassCard}>
+            <Text style={styles.name}>{user.fullName}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>EQUIPMENT OWNER</Text>
+            </View>
 
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}>{locationLabel}</Text>
-          </View>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.locationText}>{locationLabel}</Text>
+            </View>
 
-          <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
-            <Text style={styles.bioToggleLabel}>Bio</Text>
-            <Ionicons
-              name={bioExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="#FFFFFF"
-            />
-          </Pressable>
-          {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
-
-          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+          </BlurView>
         </LinearGradient>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="construct-outline" size={18} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.premiumHeaderText}>My Equipment</Text>
-              <TouchableOpacity onPress={handleManageEquipment} style={styles.seeAllWrap}>
-                <View style={styles.seeAllRow}>
-                  <Text style={styles.seeAllText}>Manage</Text>
-                  <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {listings.length === 0 ? (
-              <Text style={styles.emptyText}>You haven't listed any equipment yet.</Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentScroll}>
-                {listings.map((item) => (
-                  <PressableScale
-                    key={item.id}
-                    style={styles.miniEquipmentCard}
-                    onPress={() => handleEditEquipment(item.id)}
-                  >
-                    <EquipmentImage category={item.category} style={styles.miniEquipmentImage} resizeMode="contain" />
-                    <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.miniEquipmentStatusRow}>
-                      <View
-                        style={[
-                          styles.miniEquipmentDot,
-                          { backgroundColor: item.isAvailable ? '#16A34A' : '#DC2626' },
-                        ]}
-                      />
-                      <Text style={styles.miniEquipmentRate}>{formatCurrency(item.dailyRate)}/day</Text>
-                    </View>
-                  </PressableScale>
-                ))}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity style={styles.addEquipmentButton} onPress={handleAddEquipment}>
-              <Ionicons name="add-circle-outline" size={18} color={colors.primaryGreen} />
-              <Text style={styles.addEquipmentButtonText}>Add Equipment</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+        <View style={styles.statsOverlapRow}>
+          <ProfileStatCard icon="construct" iconColor="#1A6B2E" value={`${bookings.length}`} label="Rentals" />
+          <ProfileStatCard icon="star" iconColor="#FF8F00" value="4.7" label="Rating" />
+          <ProfileStatCard icon="cash" iconColor="#1A6B2E" value={formatCurrency(totalEarnings)} label="Earnings" />
         </View>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="cash-outline" size={18} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.premiumHeaderText}>Earnings Summary</Text>
-            </View>
-            <View style={styles.earningsGrid}>
-              <View style={styles.earningsBox}>
-                <Text style={styles.earningsValueGreen}>{formatCurrency(thisMonthEarnings)}</Text>
-                <Text style={styles.earningsLabel}>This Month</Text>
-              </View>
-              <View style={styles.earningsBox}>
-                <Text style={styles.earningsValueGreen}>{formatCurrency(totalEarnings)}</Text>
-                <Text style={styles.earningsLabel}>Total Earned</Text>
-              </View>
-              <View style={styles.earningsBox}>
-                <Text style={styles.earningsValueGray}>{completedBookings.length} rentals</Text>
-                <Text style={styles.earningsLabel}>Completed</Text>
-              </View>
-              <View style={styles.earningsBox}>
-                <Text style={styles.earningsValueAmber}>{pendingBookings.length + activeBookings.length} rentals</Text>
-                <Text style={styles.earningsLabel}>Pending</Text>
-              </View>
-            </View>
-          </LinearGradient>
+        <View style={styles.tabsWrap}>
+          <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
         </View>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
-              </View>
-              <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
-              <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
+        {activeTab === 'About' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.bioToggleLabel}>Bio</Text>
+                <Ionicons
+                  name={bioExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.primaryGreen}
+                />
+              </Pressable>
+              {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
 
-            <View style={styles.ratingOverviewBlock}>
-              <Text style={styles.ratingBigNumber}>4.7</Text>
-              <View style={styles.ratingStarsRow}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
-                ))}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
               </View>
-              <Text style={styles.ratingCountText}>21 reviews</Text>
-            </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
 
-            <View style={styles.ratingBarsWrap}>
-              {RATING_BREAKDOWN.map((row) => (
-                <View key={row.stars} style={styles.ratingBarRow}>
-                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                  <View style={styles.ratingBarTrack}>
-                    <LinearGradient
-                      colors={['#FF8F00', '#FFB300']}
-                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                    />
+        {activeTab === 'Activity' && (
+          <>
+            <View style={styles.premiumCardWrap}>
+              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+                <View style={styles.premiumHeaderRow}>
+                  <View style={styles.premiumIconCircle}>
+                    <Ionicons name="construct-outline" size={18} color={colors.primaryGreen} />
                   </View>
-                  <Text style={styles.ratingBarCount}>{row.count}</Text>
-                </View>
-              ))}
-            </View>
-
-            {SAMPLE_REVIEWS.map((review) => (
-              <PressableScale key={review.id} style={styles.reviewCardOuter}>
-                <View style={styles.reviewCard}>
-                  <View style={styles.reviewHeaderRow}>
-                    <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+                  <Text style={styles.premiumHeaderText}>My Equipment</Text>
+                  <TouchableOpacity onPress={handleManageEquipment} style={styles.seeAllWrap}>
+                    <View style={styles.seeAllRow}>
+                      <Text style={styles.seeAllText}>Manage</Text>
+                      <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
                     </View>
-                    <Text style={styles.reviewerName}>{review.reviewer}</Text>
-                    <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
-                  </View>
-                  <View style={styles.reviewStarsRow}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Ionicons
-                        key={i}
-                        name="star"
-                        size={12}
-                        color={i < review.rating ? colors.accentAmber : colors.border}
-                      />
+                  </TouchableOpacity>
+                </View>
+
+                {listings.length === 0 ? (
+                  <Text style={styles.emptyText}>You haven't listed any equipment yet.</Text>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentScroll}>
+                    {listings.map((item) => (
+                      <PressableScale
+                        key={item.id}
+                        style={styles.miniEquipmentCard}
+                        onPress={() => handleEditEquipment(item.id)}
+                      >
+                        <EquipmentImage category={item.category} style={styles.miniEquipmentImage} resizeMode="contain" />
+                        <Text style={styles.miniEquipmentName} numberOfLines={1}>{item.name}</Text>
+                        <View style={styles.miniEquipmentStatusRow}>
+                          <View
+                            style={[
+                              styles.miniEquipmentDot,
+                              { backgroundColor: item.isAvailable ? '#16A34A' : '#DC2626' },
+                            ]}
+                          />
+                          <Text style={styles.miniEquipmentRate}>{formatCurrency(item.dailyRate)}/day</Text>
+                        </View>
+                      </PressableScale>
                     ))}
+                  </ScrollView>
+                )}
+
+                <TouchableOpacity style={styles.addEquipmentButton} onPress={handleAddEquipment}>
+                  <Ionicons name="add-circle-outline" size={18} color={colors.primaryGreen} />
+                  <Text style={styles.addEquipmentButtonText}>Add Equipment</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.premiumCardWrap}>
+              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+                <View style={styles.premiumHeaderRow}>
+                  <View style={styles.premiumIconCircle}>
+                    <Ionicons name="cash-outline" size={18} color={colors.primaryGreen} />
                   </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                  <Text style={styles.premiumHeaderText}>Earnings Summary</Text>
                 </View>
-              </PressableScale>
-            ))}
-          </LinearGradient>
-        </View>
+                <View style={styles.earningsGrid}>
+                  <View style={styles.earningsBox}>
+                    <Text style={styles.earningsValueGreen}>{formatCurrency(thisMonthEarnings)}</Text>
+                    <Text style={styles.earningsLabel}>This Month</Text>
+                  </View>
+                  <View style={styles.earningsBox}>
+                    <Text style={styles.earningsValueGreen}>{formatCurrency(totalEarnings)}</Text>
+                    <Text style={styles.earningsLabel}>Total Earned</Text>
+                  </View>
+                  <View style={styles.earningsBox}>
+                    <Text style={styles.earningsValueGray}>{completedBookings.length} rentals</Text>
+                    <Text style={styles.earningsLabel}>Completed</Text>
+                  </View>
+                  <View style={styles.earningsBox}>
+                    <Text style={styles.earningsValueAmber}>{pendingBookings.length + activeBookings.length} rentals</Text>
+                    <Text style={styles.earningsLabel}>Pending</Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+          </>
+        )}
+
+        {activeTab === 'Reviews' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                  <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
+                </View>
+                <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
+                <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.ratingOverviewBlock}>
+                <Text style={styles.ratingBigNumber}>4.7</Text>
+                <View style={styles.ratingStarsRow}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
+                  ))}
+                </View>
+                <Text style={styles.ratingCountText}>21 reviews</Text>
+              </View>
+
+              <View style={styles.ratingBarsWrap}>
+                {RATING_BREAKDOWN.map((row) => (
+                  <View key={row.stars} style={styles.ratingBarRow}>
+                    <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                    <View style={styles.ratingBarTrack}>
+                      <LinearGradient
+                        colors={['#FF8F00', '#FFB300']}
+                        style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.ratingBarCount}>{row.count}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {SAMPLE_REVIEWS.map((review) => (
+                <PressableScale key={review.id} style={styles.reviewCardOuter}>
+                  <View style={styles.reviewCard}>
+                    <View style={styles.reviewHeaderRow}>
+                      <View style={styles.reviewAvatar}>
+                        <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+                      </View>
+                      <Text style={styles.reviewerName}>{review.reviewer}</Text>
+                      <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
+                    </View>
+                    <View style={styles.reviewStarsRow}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Ionicons
+                          key={i}
+                          name="star"
+                          size={12}
+                          color={i < review.rating ? colors.accentAmber : colors.border}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                  </View>
+                </PressableScale>
+              ))}
+            </LinearGradient>
+          </View>
+        )}
 
         <View style={styles.logoutGlowWrap}>
           <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
@@ -498,11 +537,10 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
+    hero: {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 28,
-      minHeight: 280,
+      paddingBottom: 36,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -555,18 +593,29 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    glassCard: {
+      marginTop: 16,
+      width: '100%',
+      borderRadius: 24,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
     name: {
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: '800',
       color: '#FFFFFF',
-      marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: '#1565C0',
+      backgroundColor: 'rgba(255,255,255,0.25)',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
-      marginTop: 6,
+      marginTop: 8,
     },
     roleBadgeText: {
       fontSize: 12,
@@ -581,14 +630,29 @@ function createStyles(colors: ThemeColors) {
     },
     locationText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.85)',
+      color: 'rgba(255,255,255,0.9)',
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 6,
+    },
+    statsOverlapRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: -24,
+      marginHorizontal: 16,
+    },
+    tabsWrap: {
+      marginHorizontal: 16,
+      marginTop: 20,
     },
     bioToggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 12,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.lightGreen,
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 6,
@@ -596,24 +660,35 @@ function createStyles(colors: ThemeColors) {
     bioToggleLabel: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.primaryGreen,
     },
     bioText: {
       fontSize: 13,
-      fontStyle: 'italic',
-      color: 'rgba(255,255,255,0.85)',
-      textAlign: 'center',
-      maxWidth: 280,
+      color: colors.secondaryText,
+      lineHeight: 20,
       marginTop: 10,
     },
-    memberSinceText: {
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      marginTop: 10,
+    },
+    infoLabel: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 8,
+      color: colors.secondaryText,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
-      marginTop: 20,
+      marginTop: 16,
       borderRadius: 20,
       borderWidth: 1.5,
       borderColor: 'rgba(26,107,46,0.15)',

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,8 +28,12 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
+import ProfileTabs from '../../components/ProfileTabs';
+import ProfileStatCard from '../../components/ProfileStatCard';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
+
+const TABS = ['About', 'Activity', 'Reviews'];
 
 // Illustrative placeholder data — this app has no backend model for
 // reviews received by a farmer, so this section is static demo content.
@@ -105,6 +110,7 @@ export default function FarmerProfileScreen(_props: Props) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
 
   const logoutScale = useRef(new Animated.Value(1)).current;
 
@@ -193,7 +199,7 @@ export default function FarmerProfileScreen(_props: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
+        <LinearGradient colors={['#0B3D1E', '#1A6B2E', '#2E8B4A', '#6FCF7E']} style={styles.hero}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
@@ -214,129 +220,160 @@ export default function FarmerProfileScreen(_props: Props) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{user.fullName}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>FARMER</Text>
-          </View>
+          <BlurView intensity={45} tint="light" style={styles.glassCard}>
+            <Text style={styles.name}>{user.fullName}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>FARMER</Text>
+            </View>
 
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}>{locationLabel}</Text>
-          </View>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.locationText}>{locationLabel}</Text>
+            </View>
 
-          <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
-            <Text style={styles.bioToggleLabel}>Bio</Text>
-            <Ionicons
-              name={bioExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="#FFFFFF"
-            />
-          </Pressable>
-          {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
-
-          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+          </BlurView>
         </LinearGradient>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="leaf" size={18} color={colors.primaryGreen} />
-              </View>
-              <Text style={styles.premiumHeaderText}>Farming Activity</Text>
-            </View>
-            <View style={styles.activityGrid}>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
-                  <Text style={styles.activityLabel}>Equipment Rented</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
-                  <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
-                  <Text style={styles.activityLabel}>Total Spent</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
-                  <Text style={styles.activityLabel}>Produce Logged</Text>
-                </LinearGradient>
-              </PressableScale>
-              <PressableScale style={styles.activityBoxOuter}>
-                <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
-                  <Text style={styles.activityValueGreen}>{formatCurrency(totalSold)}</Text>
-                  <Text style={styles.activityLabel}>Total Earned</Text>
-                </LinearGradient>
-              </PressableScale>
-            </View>
-          </LinearGradient>
+        <View style={styles.statsOverlapRow}>
+          <ProfileStatCard icon="construct" iconColor="#1A6B2E" value={`${bookings.length}`} label="Rentals" />
+          <ProfileStatCard icon="star" iconColor="#FF8F00" value="4.8" label="Rating" />
+          <ProfileStatCard icon="leaf" iconColor="#1A6B2E" value={`${batches.length}`} label="Batches" />
         </View>
 
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                <Ionicons name="star" size={18} color={colors.accentAmber} />
-              </View>
-              <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
-              <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.tabsWrap}>
+          <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+        </View>
 
-            <View style={styles.ratingOverviewBlock}>
-              <Text style={styles.ratingBigNumber}>4.8</Text>
-              <View style={styles.ratingStarsRow}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
+        {activeTab === 'About' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.bioToggleLabel}>Bio</Text>
+                <Ionicons
+                  name={bioExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.primaryGreen}
+                />
+              </Pressable>
+              {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {activeTab === 'Activity' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={styles.premiumIconCircle}>
+                  <Ionicons name="leaf" size={18} color={colors.primaryGreen} />
+                </View>
+                <Text style={styles.premiumHeaderText}>Farming Activity</Text>
+              </View>
+              <View style={styles.activityGrid}>
+                <PressableScale style={styles.activityBoxOuter}>
+                  <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                    <Text style={styles.activityValueGreen}>{bookings.length} times</Text>
+                    <Text style={styles.activityLabel}>Equipment Rented</Text>
+                  </LinearGradient>
+                </PressableScale>
+                <PressableScale style={styles.activityBoxOuter}>
+                  <LinearGradient colors={['#FFF8E1', '#FFF3CD']} style={styles.activityBox}>
+                    <Text style={styles.activityValueAmber}>{formatCurrency(totalSpent)}</Text>
+                    <Text style={styles.activityLabel}>Total Spent</Text>
+                  </LinearGradient>
+                </PressableScale>
+                <PressableScale style={styles.activityBoxOuter}>
+                  <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                    <Text style={styles.activityValueGreen}>{batches.length} batches</Text>
+                    <Text style={styles.activityLabel}>Produce Logged</Text>
+                  </LinearGradient>
+                </PressableScale>
+                <PressableScale style={styles.activityBoxOuter}>
+                  <LinearGradient colors={['#F0F7F2', '#E8F5E9']} style={styles.activityBox}>
+                    <Text style={styles.activityValueGreen}>{formatCurrency(totalSold)}</Text>
+                    <Text style={styles.activityLabel}>Total Earned</Text>
+                  </LinearGradient>
+                </PressableScale>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {activeTab === 'Reviews' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
+                  <Ionicons name="star" size={18} color={colors.accentAmber} />
+                </View>
+                <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
+                <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.ratingOverviewBlock}>
+                <Text style={styles.ratingBigNumber}>4.8</Text>
+                <View style={styles.ratingStarsRow}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
+                  ))}
+                </View>
+                <Text style={styles.ratingCountText}>17 reviews</Text>
+              </View>
+
+              <View style={styles.ratingBarsWrap}>
+                {RATING_BREAKDOWN.map((row) => (
+                  <View key={row.stars} style={styles.ratingBarRow}>
+                    <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                    <View style={styles.ratingBarTrack}>
+                      <LinearGradient
+                        colors={['#FF8F00', '#FFB300']}
+                        style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.ratingBarCount}>{row.count}</Text>
+                  </View>
                 ))}
               </View>
-              <Text style={styles.ratingCountText}>17 reviews</Text>
-            </View>
 
-            <View style={styles.ratingBarsWrap}>
-              {RATING_BREAKDOWN.map((row) => (
-                <View key={row.stars} style={styles.ratingBarRow}>
-                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                  <View style={styles.ratingBarTrack}>
-                    <LinearGradient
-                      colors={['#FF8F00', '#FFB300']}
-                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                    />
-                  </View>
-                  <Text style={styles.ratingBarCount}>{row.count}</Text>
-                </View>
-              ))}
-            </View>
-
-            {SAMPLE_REVIEWS.map((review) => (
-              <PressableScale key={review.id} style={styles.reviewCardOuter}>
-                <View style={styles.reviewCard}>
-                  <View style={styles.reviewHeaderRow}>
-                    <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+              {SAMPLE_REVIEWS.map((review) => (
+                <PressableScale key={review.id} style={styles.reviewCardOuter}>
+                  <View style={styles.reviewCard}>
+                    <View style={styles.reviewHeaderRow}>
+                      <View style={styles.reviewAvatar}>
+                        <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
+                      </View>
+                      <Text style={styles.reviewerName}>{review.reviewer}</Text>
+                      <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
                     </View>
-                    <Text style={styles.reviewerName}>{review.reviewer}</Text>
-                    <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
+                    <View style={styles.reviewStarsRow}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Ionicons
+                          key={i}
+                          name="star"
+                          size={12}
+                          color={i < review.rating ? colors.accentAmber : colors.border}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
                   </View>
-                  <View style={styles.reviewStarsRow}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Ionicons
-                        key={i}
-                        name="star"
-                        size={12}
-                        color={i < review.rating ? colors.accentAmber : colors.border}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                </View>
-              </PressableScale>
-            ))}
-          </LinearGradient>
-        </View>
+                </PressableScale>
+              ))}
+            </LinearGradient>
+          </View>
+        )}
 
         <View style={styles.logoutGlowWrap}>
           <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
@@ -420,11 +457,10 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
+    hero: {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 28,
-      minHeight: 280,
+      paddingBottom: 36,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -477,18 +513,29 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    glassCard: {
+      marginTop: 16,
+      width: '100%',
+      borderRadius: 24,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
     name: {
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: '800',
       color: '#FFFFFF',
-      marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: colors.primaryGreen,
+      backgroundColor: 'rgba(255,255,255,0.25)',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
-      marginTop: 6,
+      marginTop: 8,
     },
     roleBadgeText: {
       fontSize: 12,
@@ -503,14 +550,29 @@ function createStyles(colors: ThemeColors) {
     },
     locationText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.85)',
+      color: 'rgba(255,255,255,0.9)',
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 6,
+    },
+    statsOverlapRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: -24,
+      marginHorizontal: 16,
+    },
+    tabsWrap: {
+      marginHorizontal: 16,
+      marginTop: 20,
     },
     bioToggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 12,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.lightGreen,
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 6,
@@ -518,24 +580,35 @@ function createStyles(colors: ThemeColors) {
     bioToggleLabel: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.primaryGreen,
     },
     bioText: {
       fontSize: 13,
-      fontStyle: 'italic',
-      color: 'rgba(255,255,255,0.85)',
-      textAlign: 'center',
-      maxWidth: 280,
+      color: colors.secondaryText,
+      lineHeight: 20,
       marginTop: 10,
     },
-    memberSinceText: {
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      marginTop: 10,
+    },
+    infoLabel: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 8,
+      color: colors.secondaryText,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
-      marginTop: 20,
+      marginTop: 16,
       borderRadius: 20,
       borderWidth: 1.5,
       borderColor: 'rgba(26,107,46,0.15)',

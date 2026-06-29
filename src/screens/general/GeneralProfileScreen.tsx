@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GeneralStackParamList, MarketplaceListing } from '../../types';
@@ -26,8 +27,12 @@ import { formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import PersonalInfoSheet from '../../components/PersonalInfoSheet';
+import ProfileTabs from '../../components/ProfileTabs';
+import ProfileStatCard from '../../components/ProfileStatCard';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
+
+const TABS = ['About', 'Activity', 'Reviews'];
 
 const BIO_TEXT = 'General AgroChain user buying and selling agricultural items';
 
@@ -43,6 +48,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
 
   const logoutScale = useRef(new Animated.Value(1)).current;
 
@@ -133,7 +139,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.header}>
+        <LinearGradient colors={['#0B3D1E', '#1A6B2E', '#2E8B4A', '#6FCF7E']} style={styles.hero}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
@@ -154,65 +160,108 @@ export default function GeneralProfileScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{user.fullName}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>GENERAL USER</Text>
-          </View>
-
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}>{locationLabel}</Text>
-          </View>
-
-          <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
-            <Text style={styles.bioToggleLabel}>Bio</Text>
-            <Ionicons
-              name={bioExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="#FFFFFF"
-            />
-          </Pressable>
-          {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
-
-          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
-        </LinearGradient>
-
-        <View style={styles.premiumCardWrap}>
-          <LinearGradient colors={['rgba(106,27,154,0.03)', 'rgba(106,27,154,0.08)']} style={styles.premiumCardGradient}>
-            <View style={styles.premiumHeaderRow}>
-              <View style={styles.premiumIconCircle}>
-                <Ionicons name="pricetags-outline" size={18} color="#6A1B9A" />
-              </View>
-              <Text style={styles.premiumHeaderText}>My Listings</Text>
-              <TouchableOpacity onPress={goToMyListings} style={styles.seeAllWrap}>
-                <View style={styles.seeAllRow}>
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
-                </View>
-              </TouchableOpacity>
+          <BlurView intensity={45} tint="light" style={styles.glassCard}>
+            <Text style={styles.name}>{user.fullName}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>GENERAL USER</Text>
             </View>
 
-            {listings.length === 0 ? (
-              <Text style={styles.emptyText}>No listings yet.</Text>
-            ) : (
-              listings.slice(0, 3).map((listing, index) => (
-                <View key={listing.id}>
-                  <View style={styles.listingRow}>
-                    <View style={styles.listingIconCircle}>
-                      <Ionicons name="cube-outline" size={18} color="#6A1B9A" />
-                    </View>
-                    <View style={styles.listingBody}>
-                      <Text style={styles.listingName} numberOfLines={1}>{listing.name}</Text>
-                      <Text style={styles.listingMeta}>{listing.status} · {formatDate(listing.createdAt)}</Text>
-                    </View>
-                    <Text style={styles.listingPrice}>GHS {listing.price}</Text>
-                  </View>
-                  {index < Math.min(listings.length, 3) - 1 && <View style={styles.listingDivider} />}
-                </View>
-              ))
-            )}
-          </LinearGradient>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.locationText}>{locationLabel}</Text>
+            </View>
+
+            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
+          </BlurView>
+        </LinearGradient>
+
+        <View style={styles.statsOverlapRow}>
+          <ProfileStatCard icon="pricetags" iconColor="#1A6B2E" value={`${listings.length}`} label="Listings" />
+          <ProfileStatCard icon="checkmark-circle" iconColor="#FF8F00" value={`${activeListings}`} label="Active" />
+          <ProfileStatCard icon="chatbubbles" iconColor="#1A6B2E" value={`${totalInquiries}`} label="Inquiries" />
         </View>
+
+        <View style={styles.tabsWrap}>
+          <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+        </View>
+
+        {activeTab === 'About' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.bioToggleLabel}>Bio</Text>
+                <Ionicons
+                  name={bioExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.primaryGreen}
+                />
+              </Pressable>
+              {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {activeTab === 'Activity' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={styles.premiumIconCircle}>
+                  <Ionicons name="pricetags-outline" size={18} color={colors.primaryGreen} />
+                </View>
+                <Text style={styles.premiumHeaderText}>My Listings</Text>
+                <TouchableOpacity onPress={goToMyListings} style={styles.seeAllWrap}>
+                  <View style={styles.seeAllRow}>
+                    <Text style={styles.seeAllText}>See All</Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {listings.length === 0 ? (
+                <Text style={styles.emptyText}>No listings yet.</Text>
+              ) : (
+                listings.slice(0, 3).map((listing, index) => (
+                  <View key={listing.id}>
+                    <View style={styles.listingRow}>
+                      <View style={styles.listingIconCircle}>
+                        <Ionicons name="cube-outline" size={18} color={colors.primaryGreen} />
+                      </View>
+                      <View style={styles.listingBody}>
+                        <Text style={styles.listingName} numberOfLines={1}>{listing.name}</Text>
+                        <Text style={styles.listingMeta}>{listing.status} · {formatDate(listing.createdAt)}</Text>
+                      </View>
+                      <Text style={styles.listingPrice}>GHS {listing.price}</Text>
+                    </View>
+                    {index < Math.min(listings.length, 3) - 1 && <View style={styles.listingDivider} />}
+                  </View>
+                ))
+              )}
+            </LinearGradient>
+          </View>
+        )}
+
+        {activeTab === 'Reviews' && (
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={styles.premiumIconCircle}>
+                  <Ionicons name="star-outline" size={18} color={colors.primaryGreen} />
+                </View>
+                <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
+              </View>
+              <Text style={styles.emptyText}>No reviews yet.</Text>
+            </LinearGradient>
+          </View>
+        )}
 
         <View style={styles.logoutGlowWrap}>
           <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
@@ -279,11 +328,10 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
+    hero: {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 28,
-      minHeight: 280,
+      paddingBottom: 36,
       alignItems: 'center',
     },
     headerTopRow: {
@@ -314,7 +362,7 @@ function createStyles(colors: ThemeColors) {
       borderColor: '#FFFFFF',
     },
     avatarPlaceholder: {
-      backgroundColor: '#6A1B9A',
+      backgroundColor: '#1A6B2E',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -330,24 +378,35 @@ function createStyles(colors: ThemeColors) {
       width: 28,
       height: 28,
       borderRadius: 14,
-      backgroundColor: '#6A1B9A',
+      backgroundColor: colors.primaryGreen,
       borderWidth: 2,
       borderColor: '#FFFFFF',
       alignItems: 'center',
       justifyContent: 'center',
     },
+    glassCard: {
+      marginTop: 16,
+      width: '100%',
+      borderRadius: 24,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
     name: {
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: '800',
       color: '#FFFFFF',
-      marginTop: 10,
     },
     roleBadge: {
-      backgroundColor: '#4A148C',
+      backgroundColor: 'rgba(255,255,255,0.25)',
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 3,
-      marginTop: 6,
+      marginTop: 8,
     },
     roleBadgeText: {
       fontSize: 12,
@@ -362,14 +421,29 @@ function createStyles(colors: ThemeColors) {
     },
     locationText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.85)',
+      color: 'rgba(255,255,255,0.9)',
+    },
+    memberSinceText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 6,
+    },
+    statsOverlapRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: -24,
+      marginHorizontal: 16,
+    },
+    tabsWrap: {
+      marginHorizontal: 16,
+      marginTop: 20,
     },
     bioToggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 12,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.lightGreen,
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 6,
@@ -377,30 +451,41 @@ function createStyles(colors: ThemeColors) {
     bioToggleLabel: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.primaryGreen,
     },
     bioText: {
       fontSize: 13,
-      fontStyle: 'italic',
-      color: 'rgba(255,255,255,0.85)',
-      textAlign: 'center',
-      maxWidth: 280,
+      color: colors.secondaryText,
+      lineHeight: 20,
       marginTop: 10,
     },
-    memberSinceText: {
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      marginTop: 10,
+    },
+    infoLabel: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 8,
+      color: colors.secondaryText,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
-      marginTop: 20,
+      marginTop: 16,
       borderRadius: 20,
       borderWidth: 1.5,
-      borderColor: 'rgba(106,27,154,0.15)',
+      borderColor: 'rgba(26,107,46,0.15)',
       backgroundColor: colors.card,
       overflow: 'hidden',
-      shadowColor: '#6A1B9A',
+      shadowColor: '#1A6B2E',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 10,
@@ -419,14 +504,14 @@ function createStyles(colors: ThemeColors) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: 'rgba(106,27,154,0.12)',
+      backgroundColor: colors.lightGreen,
       alignItems: 'center',
       justifyContent: 'center',
     },
     premiumHeaderText: {
       fontSize: 16,
       fontWeight: '700',
-      color: '#6A1B9A',
+      color: colors.primaryGreen,
       flex: 1,
     },
     seeAllWrap: {
@@ -456,7 +541,7 @@ function createStyles(colors: ThemeColors) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: 'rgba(106,27,154,0.12)',
+      backgroundColor: colors.lightGreen,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -476,7 +561,7 @@ function createStyles(colors: ThemeColors) {
     listingPrice: {
       fontSize: 14,
       fontWeight: '800',
-      color: '#6A1B9A',
+      color: colors.primaryGreen,
     },
     listingDivider: {
       height: 1,
