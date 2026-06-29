@@ -297,7 +297,7 @@ function createStyles(colors: ThemeColors) {
   chipsList: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 18,
+    paddingBottom: 26,
     alignItems: 'flex-start',
   },
   chip: {

@@ -305,7 +305,7 @@ function createStyles(colors: ThemeColors) {
     },
     filterBar: {
       paddingTop: 10,
-      paddingBottom: 8,
+      paddingBottom: 14,
     },
     filterList: {
       paddingHorizontal: 14,

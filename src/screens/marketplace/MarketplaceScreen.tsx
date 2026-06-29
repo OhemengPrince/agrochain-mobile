@@ -435,7 +435,7 @@ function createStyles(colors: ThemeColors) {
     chipsList: {
       paddingHorizontal: 16,
       paddingTop: 10,
-      paddingBottom: 18,
+      paddingBottom: 26,
       alignItems: 'flex-start',
     },
     chip: {
@@ -469,7 +469,7 @@ function createStyles(colors: ThemeColors) {
       color: '#FFFFFF',
     },
     list: {
-      paddingTop: 12,
+      paddingTop: 16,
       paddingBottom: 120,
     },
     card: {
