@@ -362,7 +362,11 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <View style={styles.quickActionsRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickActionsRow}
+      >
         <QuickActionButton
           label="Add Equipment"
           icon="add-circle"
@@ -398,7 +402,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           onPress={handleListItem}
           styles={styles}
         />
-      </View>
+      </ScrollView>
 
       <WeatherWidget />
 
@@ -554,14 +558,12 @@ function createStyles(colors: ThemeColors) {
     },
     quickActionsRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      gap: 16,
       paddingHorizontal: 16,
       marginTop: 20,
-      rowGap: 16,
     },
     quickActionWrap: {
-      width: '30%',
+      width: 80,
     },
     quickActionPressable: {
       alignItems: 'center',

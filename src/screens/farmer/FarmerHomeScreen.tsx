@@ -277,7 +277,11 @@ export default function FarmerHomeScreen({ navigation }: Props) {
 
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickActionsRow}
+          >
             {QUICK_ACTIONS.map((action) => (
               <QuickActionButton
                 key={action.key}
@@ -289,7 +293,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
                 colors={colors}
               />
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         <WeatherWidget />
@@ -422,13 +426,12 @@ function createStyles(colors: ThemeColors) {
     },
     quickActionsRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
       marginTop: 14,
       gap: 12,
+      paddingRight: 4,
     },
     quickActionWrap: {
-      width: '30%',
+      width: 88,
     },
     quickActionButton: {
       height: 85,

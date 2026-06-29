@@ -167,7 +167,11 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
-          <View style={styles.quickActionsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickActionsRow}
+          >
             {QUICK_ACCESS.map((action) => (
               <QuickAccessButton
                 key={action.key}
@@ -179,7 +183,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
                 colors={colors}
               />
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         <WeatherWidget />
@@ -273,11 +277,12 @@ function createStyles(colors: ThemeColors) {
     },
     quickActionsRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      gap: 12,
       marginTop: 14,
+      paddingRight: 4,
     },
     quickActionWrap: {
-      width: '30%',
+      width: 88,
     },
     quickActionButton: {
       height: 85,
