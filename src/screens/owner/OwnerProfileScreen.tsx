@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
   Pressable,
   Animated,
   Platform,
@@ -64,6 +63,7 @@ const SAMPLE_REVIEWS = [
 ];
 
 const BIO_TEXT = 'Equipment owner with 5 tractors and harvesters serving farmers across Ashanti Region 🚜';
+const SPECIALTY = 'Tractors & Harvesters';
 
 function PressableScale({
   children,
@@ -123,8 +123,6 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
 
-  const logoutScale = useRef(new Animated.Value(1)).current;
-
   const loadData = useCallback(async () => {
     const [listingsData, bookingsData] = await Promise.all([getMyListings(), getIncomingBookings()]);
     setListings(listingsData);
@@ -163,14 +161,6 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const openPersonalInfo = () => {
     setDropdownVisible(false);
     setPersonalInfoVisible(true);
-  };
-
-  const handleLogoutPressIn = () => {
-    Animated.spring(logoutScale, { toValue: 0.97, useNativeDriver: true, speed: 30 }).start();
-  };
-
-  const handleLogoutPressOut = () => {
-    Animated.spring(logoutScale, { toValue: 1, useNativeDriver: true, speed: 30 }).start();
   };
 
   const handleLogout = () => {
@@ -237,7 +227,14 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#0B3D1E', '#1A6B2E', '#2E8B4A', '#6FCF7E']} style={styles.hero}>
+        <LinearGradient colors={['#062B14', '#0F4C24', '#1A6B2E', '#2E8B4A', '#7ED957']} style={styles.hero}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.7 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
@@ -280,29 +277,50 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.tabsWrap}>
+          <View style={styles.tabsHandle} />
           <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
         </View>
 
         {activeTab === 'About' && (
           <View style={styles.premiumCardWrap}>
             <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-              <Pressable style={styles.bioToggleRow} onPress={() => setBioExpanded((prev) => !prev)}>
-                <Text style={styles.bioToggleLabel}>Bio</Text>
-                <Ionicons
-                  name={bioExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color={colors.primaryGreen}
-                />
+              <Text style={styles.aboutHeading}>About {user.fullName}</Text>
+              <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
+                {BIO_TEXT}
+              </Text>
+              <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
               </Pressable>
-              {bioExpanded && <Text style={styles.bioText}>{BIO_TEXT}</Text>}
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{user.email}</Text>
+              <View style={styles.contactRow}>
+                <View style={styles.contactAvatar}>
+                  <Text style={styles.contactAvatarText}>{initial}</Text>
+                </View>
+                <View style={styles.contactMiddle}>
+                  <Text style={styles.contactName}>{user.fullName}</Text>
+                  <Text style={styles.contactRole}>Equipment Owner</Text>
+                </View>
+                <View style={styles.contactActions}>
+                  <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Messaging')}>
+                    <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
+                  </Pressable>
+                  <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Calling')}>
+                    <Ionicons name="call-outline" size={16} color={colors.primaryGreen} />
+                  </Pressable>
+                </View>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+
+              <View style={styles.specsRow}>
+                <View style={styles.specBox}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.primaryGreen} />
+                  <Text style={styles.specValue}>{memberSince}</Text>
+                  <Text style={styles.specLabel}>Member Since</Text>
+                </View>
+                <View style={styles.specBox}>
+                  <Ionicons name="construct-outline" size={16} color={colors.primaryGreen} />
+                  <Text style={styles.specValue}>{SPECIALTY}</Text>
+                  <Text style={styles.specLabel}>Specialty</Text>
+                </View>
               </View>
             </LinearGradient>
           </View>
@@ -455,31 +473,6 @@ export default function OwnerProfileScreen({ navigation }: Props) {
           </View>
         )}
 
-        <View style={styles.logoutGlowWrap}>
-          <Animated.View style={{ transform: [{ scale: logoutScale }] }}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={handleLogout}
-              onPressIn={handleLogoutPressIn}
-              onPressOut={handleLogoutPressOut}
-              disabled={loggingOut}
-            >
-              <LinearGradient colors={['#DC2626', '#991B1B']} style={styles.logoutButton}>
-                {loggingOut ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <View style={styles.logoutIconCircle}>
-                      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.logoutButtonText}>Log Out</Text>
-                    <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={styles.logoutArrow} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
       </ScrollView>
 
       <ProfileDropdownMenu
@@ -491,6 +484,8 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         onChangePassword={() => showComingSoon('Change Password')}
         onRateApp={() => showComingSoon('Rate the App')}
         onContactSupport={() => showComingSoon('Contact Support')}
+        onLogout={handleLogout}
+        loggingOut={loggingOut}
         extraItems={[
           { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
           { icon: 'bar-chart-outline', label: 'Earnings Report', onPress: () => showComingSoon('Earnings Report') },
@@ -646,45 +641,101 @@ function createStyles(colors: ThemeColors) {
     tabsWrap: {
       marginHorizontal: 16,
       marginTop: 20,
-    },
-    bioToggleRow: {
-      flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      alignSelf: 'flex-start',
-      backgroundColor: colors.lightGreen,
-      borderRadius: 20,
-      paddingHorizontal: 14,
-      paddingVertical: 6,
     },
-    bioToggleLabel: {
-      fontSize: 13,
+    tabsHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.accentAmber,
+      marginBottom: 10,
+    },
+    aboutHeading: {
+      fontSize: 15,
       fontWeight: '700',
-      color: colors.primaryGreen,
+      color: colors.text,
+      marginBottom: 6,
     },
-    bioText: {
+    aboutParagraph: {
       fontSize: 13,
       color: colors.secondaryText,
       lineHeight: 20,
-      marginTop: 10,
     },
-    infoRow: {
+    readMoreText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.accentAmber,
+      marginTop: 4,
+    },
+    contactRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 10,
-      borderTopWidth: 1,
-      borderTopColor: colors.divider,
-      marginTop: 10,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 14,
+      padding: 12,
+      marginTop: 16,
+      gap: 10,
     },
-    infoLabel: {
+    contactAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    contactAvatarText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    contactMiddle: {
+      flex: 1,
+    },
+    contactName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    contactRole: {
       fontSize: 12,
       color: colors.secondaryText,
+      marginTop: 1,
     },
-    infoValue: {
+    contactActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    contactActionCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.lightGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    specsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 14,
+    },
+    specBox: {
+      flex: 1,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 14,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    specValue: {
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.text,
+      marginTop: 6,
+    },
+    specLabel: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginTop: 2,
     },
     premiumCardWrap: {
       marginHorizontal: 16,
@@ -933,44 +984,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 6,
       lineHeight: 18,
-    },
-    logoutGlowWrap: {
-      marginHorizontal: 16,
-      marginTop: 24,
-      paddingBottom: 40,
-      shadowColor: '#DC2626',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    logoutButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: 58,
-      borderRadius: 20,
-      paddingHorizontal: 16,
-    },
-    logoutIconCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'absolute',
-      left: 12,
-    },
-    logoutButtonText: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: '#FFFFFF',
-      letterSpacing: 0.5,
-    },
-    logoutArrow: {
-      position: 'absolute',
-      right: 16,
     },
     infoModalOverlay: {
       flex: 1,

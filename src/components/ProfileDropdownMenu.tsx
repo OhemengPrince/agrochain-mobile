@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Switch } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal, Switch, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
@@ -19,6 +19,8 @@ interface ProfileDropdownMenuProps {
   onChangePassword: () => void;
   onRateApp: () => void;
   onContactSupport: () => void;
+  onLogout: () => void;
+  loggingOut?: boolean;
   extraItems?: DropdownExtraItem[];
 }
 
@@ -28,6 +30,7 @@ function Row({
   onPress,
   right,
   isLast,
+  destructive,
   styles,
   colors,
 }: {
@@ -36,16 +39,17 @@ function Row({
   onPress?: () => void;
   right?: React.ReactNode;
   isLast?: boolean;
+  destructive?: boolean;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
 }) {
   return (
     <>
       <Pressable style={styles.row} onPress={onPress} disabled={!onPress}>
-        <View style={styles.rowIconCircle}>
-          <Ionicons name={icon} size={20} color="#6B7280" />
+        <View style={[styles.rowIconCircle, destructive && styles.rowIconCircleDestructive]}>
+          <Ionicons name={icon} size={20} color={destructive ? colors.errorRed : '#6B7280'} />
         </View>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, destructive && styles.rowLabelDestructive]}>{label}</Text>
         <View style={styles.rowRight}>{right ?? <Ionicons name="chevron-forward" size={18} color="#6B7280" />}</View>
       </Pressable>
       {!isLast && <View style={styles.divider} />}
@@ -62,6 +66,8 @@ export default function ProfileDropdownMenu({
   onChangePassword,
   onRateApp,
   onContactSupport,
+  onLogout,
+  loggingOut = false,
   extraItems = [],
 }: ProfileDropdownMenuProps) {
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
@@ -107,7 +113,17 @@ export default function ProfileDropdownMenu({
           ))}
 
           <Row icon="star-outline" label="Rate the App" onPress={onRateApp} styles={styles} colors={colors} />
-          <Row icon="headset-outline" label="Contact Support" onPress={onContactSupport} styles={styles} colors={colors} isLast />
+          <Row icon="headset-outline" label="Contact Support" onPress={onContactSupport} styles={styles} colors={colors} />
+          <Row
+            icon="log-out-outline"
+            label="Log Out"
+            onPress={onLogout}
+            destructive
+            isLast
+            styles={styles}
+            colors={colors}
+            right={loggingOut ? <ActivityIndicator size="small" color={colors.errorRed} /> : <View />}
+          />
         </View>
       </Pressable>
     </Modal>
@@ -160,12 +176,18 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    rowIconCircleDestructive: {
+      backgroundColor: `${colors.errorRed}1A`,
+    },
     rowLabel: {
       flex: 1,
       fontSize: 14,
       fontWeight: '700',
       color: '#1C1C1C',
       marginLeft: 12,
+    },
+    rowLabelDestructive: {
+      color: colors.errorRed,
     },
     rowRight: {
       marginLeft: 8,
