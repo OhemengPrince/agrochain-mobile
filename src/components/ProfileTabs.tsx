@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProfileTabsProps {
   tabs: string[];
@@ -8,13 +9,26 @@ interface ProfileTabsProps {
 }
 
 export default function ProfileTabs({ tabs, activeTab, onChange }: ProfileTabsProps) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { backgroundColor: colors.inputBackground }]}>
       {tabs.map((tab) => {
         const active = tab === activeTab;
         return (
-          <Pressable key={tab} style={[styles.tab, active && styles.tabActive]} onPress={() => onChange(tab)}>
-            <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
+          <Pressable
+            key={tab}
+            style={[styles.tab, active && [styles.tabActive, { backgroundColor: colors.card }]]}
+            onPress={() => onChange(tab)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.secondaryText },
+                active && { color: colors.text, fontWeight: '700' },
+              ]}
+              numberOfLines={1}
+            >
               {tab}
             </Text>
           </Pressable>
@@ -27,7 +41,6 @@ export default function ProfileTabs({ tabs, activeTab, onChange }: ProfileTabsPr
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
     borderRadius: 16,
     padding: 4,
   },
@@ -39,7 +52,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -49,10 +61,5 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
-  },
-  tabTextActive: {
-    color: '#1C1C1C',
-    fontWeight: '700',
   },
 });

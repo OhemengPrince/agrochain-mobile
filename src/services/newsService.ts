@@ -3,6 +3,18 @@ import { GUARDIAN_API_KEY } from '@env';
 const BASE = 'https://content.guardianapis.com/search';
 const FIELDS = 'trailText,thumbnail';
 
+// Keywords that must appear in the article HEADLINE for it to qualify as agriculture news.
+// This is the strictest filter — body mentions are not enough.
+const AGRIC_HEADLINE_KEYWORDS = [
+  'agric', 'farm', 'farmer', 'crop', 'harvest', 'food',
+  'cocoa', 'maize', 'cassava', 'rice', 'yam', 'groundnut',
+  'sorghum', 'plantain', 'tomato', 'pepper', 'onion', 'shea',
+  'rubber', 'livestock', 'poultry', 'cattle', 'irrigation',
+  'fertiliser', 'fertilizer', 'soil', 'plantation', 'seeds',
+  'COCOBOD', 'smallholder', 'rural', 'MoFA', 'GAEC',
+  'fishing', 'aquaculture', 'agroforest',
+];
+
 interface GuardianArticle {
   id: string;
   webTitle: string;
@@ -35,6 +47,11 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+function isAgricHeadline(title: string): boolean {
+  const t = title.toLowerCase();
+  return AGRIC_HEADLINE_KEYWORDS.some((kw) => t.includes(kw.toLowerCase()));
+}
+
 function toNewsItem(a: GuardianArticle): NewsItem {
   return {
     id: a.id,
@@ -49,7 +66,7 @@ function toNewsItem(a: GuardianArticle): NewsItem {
 
 async function guardianFetch(q: string, pageSize: number): Promise<GuardianArticle[]> {
   const params = new URLSearchParams({
-    tag: 'world/ghana',      // hard-lock to Ghana-tagged articles only
+    tag: 'world/ghana',   // hard-lock: only articles editorially tagged as Ghana
     q,
     'show-fields': FIELDS,
     'page-size': String(pageSize),
@@ -62,28 +79,32 @@ async function guardianFetch(q: string, pageSize: number): Promise<GuardianArtic
   return data.response.results;
 }
 
-// Two parallel queries so no single crop dominates the feed
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
   const [diverse, cocoaExtra] = await Promise.all([
-    // Query 1: broad Ghana agric — deliberately excludes cocoa so other crops surface
+    // Query 1: broad Ghana agric — no cocoa bias
     guardianFetch(
       'farming OR maize OR cassava OR rice OR yam OR groundnut OR sorghum OR plantain OR ' +
       'tomato OR pepper OR onion OR livestock OR poultry OR shea OR rubber OR irrigation OR ' +
-      'agriculture OR "food security" OR fertiliser OR agribusiness OR harvest OR crops',
-      16,
+      'agriculture OR "food security" OR fertiliser OR agribusiness OR harvest OR crops OR ' +
+      'smallholder OR seeds OR fishing OR aquaculture',
+      20,
     ),
-    // Query 2: a small allowance for cocoa so it doesn't vanish entirely
+    // Query 2: cocoa capped at 4 results
     guardianFetch('cocoa OR COCOBOD', 4),
   ]);
 
-  // Merge: diverse results first, then up to 4 cocoa articles, deduplicate
   const seen = new Set<string>();
   const merged: NewsItem[] = [];
+
   for (const a of [...diverse, ...cocoaExtra]) {
-    if (!seen.has(a.id)) {
-      seen.add(a.id);
+    if (seen.has(a.id)) continue;
+    seen.add(a.id);
+    // Strict gate: the HEADLINE must contain an agriculture keyword.
+    // This cuts politics/sports/crime articles that merely mention a farm word in passing.
+    if (isAgricHeadline(a.webTitle)) {
       merged.push(toNewsItem(a));
     }
   }
+
   return merged;
 }

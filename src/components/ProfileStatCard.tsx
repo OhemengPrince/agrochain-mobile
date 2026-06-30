@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProfileStatCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -10,15 +11,17 @@ interface ProfileStatCardProps {
 }
 
 export default function ProfileStatCard({ icon, iconColor, value, label }: ProfileStatCardProps) {
+  const { colors } = useTheme();
+
   return (
-    <View style={[styles.card, { borderColor: `${iconColor}40` }]}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: `${iconColor}40` }]}>
       <View style={[styles.iconCircle, { backgroundColor: `${iconColor}1A` }]}>
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <Text style={[styles.value, { color: iconColor }]} numberOfLines={1}>
         {value}
       </Text>
-      <Text style={styles.label} numberOfLines={1}>
+      <Text style={[styles.label, { color: colors.secondaryText }]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -28,7 +31,6 @@ export default function ProfileStatCard({ icon, iconColor, value, label }: Profi
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1.5,
     paddingVertical: 14,
@@ -54,7 +56,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: '#6B7280',
     marginTop: 2,
   },
 });

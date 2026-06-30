@@ -140,7 +140,7 @@ function createStyles(colors: ThemeColors) {
       top: 55,
       right: 16,
       width: 240,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.card,
       borderRadius: 20,
       paddingBottom: 4,
       shadowColor: '#000',
@@ -149,6 +149,8 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 16,
       elevation: 12,
       overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     headerRow: {
       flexDirection: 'row',
@@ -172,7 +174,7 @@ function createStyles(colors: ThemeColors) {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: '#F3F4F6',
+      backgroundColor: colors.inputBackground,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -183,7 +185,7 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       fontSize: 14,
       fontWeight: '700',
-      color: '#1C1C1C',
+      color: colors.text,
       marginLeft: 12,
     },
     rowLabelDestructive: {
@@ -194,7 +196,7 @@ function createStyles(colors: ThemeColors) {
     },
     divider: {
       height: 1,
-      backgroundColor: '#F5F5F5',
+      backgroundColor: colors.divider,
       marginHorizontal: 16,
     },
   });
