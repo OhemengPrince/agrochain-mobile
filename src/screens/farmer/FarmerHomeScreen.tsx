@@ -253,9 +253,14 @@ export default function FarmerHomeScreen({ navigation }: Props) {
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-            <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
-              <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
+                <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
+                <Ionicons name="person" size={20} color={colors.primaryGreen} />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
@@ -333,7 +338,10 @@ export default function FarmerHomeScreen({ navigation }: Props) {
           </ScrollView>
         </View>
 
-        <MarketNewsFeed />
+        <MarketNewsFeed
+          maxItems={3}
+          onSeeAll={() => (navigation.getParent() as any)?.navigate('FarmerNews')}
+        />
 
         <View style={[styles.section, styles.lastSection]}>
           <Text style={styles.sectionTitle}>My Recent Activity</Text>
@@ -381,6 +389,10 @@ function createStyles(colors: ThemeColors) {
       fontSize: 22,
       fontWeight: '800',
       color: colors.white,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
     },
     bellButton: {
       width: 38,

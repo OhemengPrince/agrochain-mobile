@@ -15,6 +15,7 @@ import MyBatchesScreen from '../screens/farmer/MyBatchesScreen';
 import BatchDetailScreen from '../screens/farmer/BatchDetailScreen';
 import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import NewsScreen from '../screens/shared/NewsScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -55,17 +56,9 @@ function MarketStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MarketplaceListingDetail"
-        component={ListingDetailScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MyMarketplaceListings"
-        component={MarketplaceMyListingsScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -83,11 +76,7 @@ function TraceabilityStack() {
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen
-        name="FarmerProfileMain"
-        component={FarmerProfileScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="FarmerProfileMain" component={FarmerProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -148,12 +137,18 @@ export default function FarmerNavigator() {
         })}
       />
       <Tab.Screen
+        name="FarmerNews"
+        component={NewsScreen}
+        options={{
+          title: 'News',
+          tabBarIcon: tabBarIcon('newspaper'),
+        }}
+      />
+      {/* Profile is hidden from tab bar — accessed via header button on home screen */}
+      <Tab.Screen
         name="FarmerProfile"
         component={ProfileStack}
-        options={{
-          title: 'Profile',
-          tabBarIcon: tabBarIcon('person'),
-        }}
+        options={{ tabBarButton: () => null }}
       />
     </Tab.Navigator>
   );

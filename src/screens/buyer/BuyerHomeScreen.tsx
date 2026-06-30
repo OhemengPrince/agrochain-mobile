@@ -216,7 +216,17 @@ export default function BuyerHomeScreen({ navigation }: Props) {
         ListHeaderComponent={
           <View>
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-              <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
+              <View style={styles.headerTopRow}>
+                <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
+                    <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
+                    <Ionicons name="person" size={20} color={colors.primaryGreen} />
+                  </TouchableOpacity>
+                </View>
+              </View>
               <Text style={styles.headerSubtitle}>Verified Ghanaian Farmers</Text>
 
               <View style={styles.searchBar}>
@@ -342,7 +352,10 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               </View>
             )}
 
-            <MarketNewsFeed />
+            <MarketNewsFeed
+              maxItems={3}
+              onSeeAll={() => (navigation.getParent() as any)?.navigate('BuyerNews')}
+            />
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -366,6 +379,23 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 24,
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
+    },
+    headerTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    headerIconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.white,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerTitle: {
       fontSize: 22,

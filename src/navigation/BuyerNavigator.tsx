@@ -11,6 +11,7 @@ import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
 import QrScannerScreen from '../screens/buyer/QrScannerScreen';
 import BuyerProfileScreen from '../screens/buyer/BuyerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import NewsScreen from '../screens/shared/NewsScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -51,17 +52,9 @@ function MarketStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MarketplaceListingDetail"
-        component={ListingDetailScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MyMarketplaceListings"
-        component={MarketplaceMyListingsScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -117,21 +110,23 @@ export default function BuyerNavigator() {
         })}
       />
       <Tab.Screen
-        name="BuyerNotifications"
-        component={NotificationsScreen}
+        name="BuyerNews"
+        component={NewsScreen}
         options={{
-          title: 'Alerts',
-          headerShown: false,
-          tabBarButton: () => null,
+          title: 'News',
+          tabBarIcon: tabBarIcon('newspaper'),
         }}
       />
       <Tab.Screen
+        name="BuyerNotifications"
+        component={NotificationsScreen}
+        options={{ title: 'Alerts', headerShown: false, tabBarButton: () => null }}
+      />
+      {/* Profile hidden from tab bar — accessed via header button */}
+      <Tab.Screen
         name="BuyerProfile"
         component={ProfileStack}
-        options={{
-          title: 'Profile',
-          tabBarIcon: tabBarIcon('person'),
-        }}
+        options={{ tabBarButton: () => null }}
       />
     </Tab.Navigator>
   );

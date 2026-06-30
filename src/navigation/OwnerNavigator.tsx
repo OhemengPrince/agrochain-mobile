@@ -13,6 +13,7 @@ import IncomingBookingsScreen from '../screens/owner/IncomingBookingsScreen';
 import BookingDetailScreen from '../screens/shared/BookingDetailScreen';
 import OwnerProfileScreen from '../screens/owner/OwnerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import NewsScreen from '../screens/shared/NewsScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -24,11 +25,7 @@ const Stack = createNativeStackNavigator<OwnerStackParamList>();
 function DashboardStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen
-        name="OwnerDashboardMain"
-        component={OwnerDashboardScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="OwnerDashboardMain" component={OwnerDashboardScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -37,16 +34,8 @@ function ListingsStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerEquipmentList" component={MyListingsScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="CreateEquipment"
-        component={CreateEquipmentScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="EditEquipment"
-        component={EditEquipmentScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="CreateEquipment" component={CreateEquipmentScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EditEquipment" component={EditEquipmentScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -54,11 +43,7 @@ function ListingsStack() {
 function BookingsStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen
-        name="OwnerBookingsList"
-        component={IncomingBookingsScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="OwnerBookingsList" component={IncomingBookingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
@@ -68,17 +53,9 @@ function MarketStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MarketplaceListingDetail"
-        component={ListingDetailScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MyMarketplaceListings"
-        component={MarketplaceMyListingsScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -134,21 +111,23 @@ export default function OwnerNavigator() {
         })}
       />
       <Tab.Screen
-        name="OwnerNotifications"
-        component={NotificationsScreen}
+        name="OwnerNews"
+        component={NewsScreen}
         options={{
-          title: 'Alerts',
-          headerShown: false,
-          tabBarButton: () => null,
+          title: 'News',
+          tabBarIcon: tabBarIcon('newspaper'),
         }}
       />
       <Tab.Screen
+        name="OwnerNotifications"
+        component={NotificationsScreen}
+        options={{ title: 'Alerts', headerShown: false, tabBarButton: () => null }}
+      />
+      {/* Profile hidden from tab bar — accessed via header button */}
+      <Tab.Screen
         name="OwnerProfile"
         component={ProfileStack}
-        options={{
-          title: 'Profile',
-          tabBarIcon: tabBarIcon('person'),
-        }}
+        options={{ tabBarButton: () => null }}
       />
     </Tab.Navigator>
   );

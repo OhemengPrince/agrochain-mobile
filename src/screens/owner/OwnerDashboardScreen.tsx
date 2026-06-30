@@ -326,9 +326,14 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Text style={styles.headerGreeting}>Good {greeting}, {firstName} 👋</Text>
             <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
           </View>
-          <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
-            <Ionicons name="notifications" size={22} color="#FFFFFF" />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
+              <Ionicons name="notifications" size={22} color="#FFFFFF" />
+            </Pressable>
+            <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
+              <Ionicons name="person" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
       </LinearGradient>
 
@@ -446,7 +451,10 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
         </ScrollView>
       )}
 
-      <MarketNewsFeed />
+      <MarketNewsFeed
+        maxItems={3}
+        onSeeAll={() => (navigation.getParent() as any)?.navigate('OwnerNews')}
+      />
     </ScrollView>
     </SafeAreaView>
   );
@@ -487,6 +495,10 @@ function createStyles(colors: ThemeColors) {
       color: '#FFFFFF',
       opacity: 0.8,
       marginTop: 4,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
     },
     bellButton: {
       width: 40,

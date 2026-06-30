@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/useTheme';
 import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar';
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
+import NewsScreen from '../screens/shared/NewsScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -29,16 +30,8 @@ function MarketStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MarketplaceListingDetail"
-        component={ListingDetailScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="MyMarketplaceListings"
-        component={MarketplaceMyListingsScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -54,16 +47,8 @@ function ListStack() {
 function BrowseStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
-      <Stack.Screen
-        name="GeneralEquipmentList"
-        component={EquipmentListScreen as any}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="EquipmentDetail"
-        component={EquipmentDetailScreen as any}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="GeneralEquipmentList" component={EquipmentListScreen as any} options={{ headerShown: false }} />
+      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen as any} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -123,12 +108,18 @@ export default function GeneralUserNavigator() {
         })}
       />
       <Tab.Screen
+        name="GeneralNews"
+        component={NewsScreen}
+        options={{
+          title: 'News',
+          tabBarIcon: tabBarIcon('newspaper'),
+        }}
+      />
+      {/* Profile hidden from tab bar — accessed via header button */}
+      <Tab.Screen
         name="GeneralProfile"
         component={ProfileStack}
-        options={{
-          title: 'Profile',
-          tabBarIcon: tabBarIcon('person'),
-        }}
+        options={{ tabBarButton: () => null }}
       />
     </Tab.Navigator>
   );

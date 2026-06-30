@@ -315,6 +315,7 @@ export type FarmerStackParamList = {
   MarketplaceListingDetail: { listingId: string };
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
+  FarmerNews: undefined;
 };
 
 export type OwnerStackParamList = {
@@ -336,6 +337,7 @@ export type OwnerStackParamList = {
   MarketplaceListingDetail: { listingId: string };
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
+  OwnerNews: undefined;
 };
 
 export type BuyerStackParamList = {
@@ -355,6 +357,7 @@ export type BuyerStackParamList = {
   MarketplaceListingDetail: { listingId: string };
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
+  BuyerNews: undefined;
 };
 
 export type GeneralStackParamList = {
@@ -371,4 +374,5 @@ export type GeneralStackParamList = {
   MarketplaceListingDetail: { listingId: string };
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
+  GeneralNews: undefined;
 };

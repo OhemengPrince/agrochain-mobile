@@ -137,6 +137,11 @@ export default function GeneralHomeScreen({ navigation }: Props) {
         <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
+                <Ionicons name="person" size={20} color="#8E24AA" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
@@ -188,7 +193,10 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
         <WeatherWidget />
 
-        <MarketNewsFeed />
+        <MarketNewsFeed
+          maxItems={3}
+          onSeeAll={() => (navigation.getParent() as any)?.navigate('GeneralNews')}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -214,6 +222,18 @@ function createStyles(colors: ThemeColors) {
       fontSize: 22,
       fontWeight: '800',
       color: colors.white,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    headerIconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.white,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     locationRow: {
       flexDirection: 'row',
