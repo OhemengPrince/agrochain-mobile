@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Linking, ActivityIndicator, Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { fetchGhanaAgricultureNews, NewsItem } from '../services/newsService';
@@ -46,6 +50,9 @@ const FALLBACK_NEWS: NewsItem[] = [
   },
 ];
 
+// Placeholder icons used when an article has no thumbnail
+const PLACEHOLDER_ICONS = ['🌾', '🍫', '🌽', '🍅', '🥬', '🚜', '🌱', '🍠'];
+
 export default function MarketNewsFeed() {
   const { colors } = useTheme();
   const styles = createStyles(colors);
@@ -83,6 +90,7 @@ export default function MarketNewsFeed() {
 
   return (
     <View>
+      {/* ── Market Prices ── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Market Prices</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.priceRow}>
@@ -112,39 +120,71 @@ export default function MarketNewsFeed() {
         </ScrollView>
       </View>
 
+      {/* ── Agriculture News ── */}
       <View style={[styles.section, styles.newsSection]}>
         <View style={styles.newsTitleRow}>
           <Text style={styles.sectionTitle}>Agriculture News</Text>
-          {error && (
+          {error ? (
             <Text style={styles.offlineTag}>Offline</Text>
-          )}
+          ) : !loading ? (
+            <Text style={styles.liveTag}>Live</Text>
+          ) : null}
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={colors.primaryGreen} />
-            <Text style={styles.loadingText}>Loading latest news...</Text>
+            <Text style={styles.loadingText}>Fetching latest agric news…</Text>
           </View>
         ) : (
-          news.map((item) => (
+          news.map((item, index) => (
             <TouchableOpacity
               key={item.id}
               style={styles.newsCard}
               onPress={() => openArticle(item.url)}
-              activeOpacity={item.url ? 0.7 : 1}
+              activeOpacity={item.url ? 0.75 : 1}
             >
-              <Text style={styles.newsHeadline} numberOfLines={3}>{item.headline}</Text>
-              {item.summary ? (
-                <Text style={styles.newsSummary} numberOfLines={2}>{item.summary}</Text>
-              ) : null}
-              <View style={styles.newsMetaRow}>
-                <Ionicons name="newspaper-outline" size={12} color={colors.primaryGreen} />
-                <Text style={styles.newsSource}>{item.source}</Text>
-                <Text style={styles.newsDot}>•</Text>
-                <Text style={styles.newsTime}>{item.time}</Text>
-                {item.url ? (
-                  <Ionicons name="open-outline" size={12} color={colors.secondaryText} style={styles.linkIcon} />
+              {/* Thumbnail or gradient placeholder */}
+              {item.imageUrl ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.newsImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <LinearGradient
+                  colors={['#14532d', '#16a34a', '#4ade80']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.newsImagePlaceholder}
+                >
+                  <Text style={styles.placeholderEmoji}>
+                    {PLACEHOLDER_ICONS[index % PLACEHOLDER_ICONS.length]}
+                  </Text>
+                  <Text style={styles.placeholderLabel}>Agriculture News</Text>
+                </LinearGradient>
+              )}
+
+              {/* Text content */}
+              <View style={styles.newsBody}>
+                <Text style={styles.newsHeadline} numberOfLines={3}>{item.headline}</Text>
+                {item.summary ? (
+                  <Text style={styles.newsSummary} numberOfLines={2}>{item.summary}</Text>
                 ) : null}
+                <View style={styles.newsMetaRow}>
+                  <Ionicons name="newspaper-outline" size={12} color={colors.primaryGreen} />
+                  <Text style={styles.newsSource}>{item.source}</Text>
+                  <Text style={styles.newsDot}>•</Text>
+                  <Text style={styles.newsTime}>{item.time}</Text>
+                  {item.url ? (
+                    <Ionicons
+                      name="open-outline"
+                      size={12}
+                      color={colors.secondaryText}
+                      style={styles.linkIcon}
+                    />
+                  ) : null}
+                </View>
               </View>
             </TouchableOpacity>
           ))
@@ -176,9 +216,18 @@ function createStyles(colors: ThemeColors) {
     },
     offlineTag: {
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: '700',
       color: '#DC2626',
       backgroundColor: '#FEE2E2',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    liveTag: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#16A34A',
+      backgroundColor: '#DCFCE7',
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 8,
@@ -233,7 +282,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      paddingVertical: 24,
+      paddingVertical: 28,
       justifyContent: 'center',
     },
     loadingText: {
@@ -243,31 +292,54 @@ function createStyles(colors: ThemeColors) {
     newsCard: {
       backgroundColor: colors.card,
       borderRadius: 16,
-      padding: 14,
-      marginBottom: 10,
+      marginBottom: 14,
+      overflow: 'hidden',
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.09,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    newsImage: {
+      width: '100%',
+      height: 180,
+    },
+    newsImagePlaceholder: {
+      width: '100%',
+      height: 140,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    placeholderEmoji: {
+      fontSize: 40,
+    },
+    placeholderLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: 'rgba(255,255,255,0.85)',
+      letterSpacing: 0.5,
+    },
+    newsBody: {
+      padding: 14,
     },
     newsHeadline: {
       fontSize: 14,
       fontWeight: '700',
       color: colors.text,
-      lineHeight: 19,
+      lineHeight: 20,
     },
     newsSummary: {
       fontSize: 12,
       color: colors.secondaryText,
       lineHeight: 17,
-      marginTop: 5,
+      marginTop: 6,
     },
     newsMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      marginTop: 8,
+      marginTop: 10,
     },
     newsSource: {
       fontSize: 12,

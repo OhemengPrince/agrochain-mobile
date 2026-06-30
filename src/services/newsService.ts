@@ -1,12 +1,20 @@
 import { GUARDIAN_API_KEY } from '@env';
+
 const GUARDIAN_BASE_URL = 'https://content.guardianapis.com/search';
 
-export interface GuardianArticle {
+const AGRIC_KEYWORDS = [
+  'agriculture', 'farming', 'farmer', 'cocoa', 'maize', 'cassava',
+  'crops', 'harvest', 'food security', 'fertiliser', 'fertilizer',
+  'agribusiness', 'irrigation', 'livestock', 'poultry', 'soil',
+  'plantation', 'rice', 'groundnut', 'tomato', 'yam', 'sorghum',
+  'MoFA', 'COCOBOD', 'GAEC', 'agric',
+];
+
+interface GuardianArticle {
   id: string;
   webTitle: string;
   webPublicationDate: string;
   webUrl: string;
-  sectionName: string;
   fields?: {
     trailText?: string;
     thumbnail?: string;
@@ -23,15 +31,18 @@ interface GuardianResponse {
 function timeAgo(dateStr: string): string {
   const published = new Date(dateStr);
   const now = new Date();
-  const diffMs = now.getTime() - published.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
+  const diffMins = Math.floor((now.getTime() - published.getTime()) / 60000);
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHrs = Math.floor(diffMins / 60);
   if (diffHrs < 24) return `${diffHrs}hr${diffHrs !== 1 ? 's' : ''} ago`;
   const diffDays = Math.floor(diffHrs / 24);
   if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
   return published.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function isAgricultureArticle(title: string, summary: string): boolean {
+  const text = `${title} ${summary}`.toLowerCase();
+  return AGRIC_KEYWORDS.some((kw) => text.includes(kw.toLowerCase()));
 }
 
 export interface NewsItem {
@@ -41,14 +52,16 @@ export interface NewsItem {
   time: string;
   url: string;
   summary?: string;
+  imageUrl?: string;
 }
 
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const query = encodeURIComponent('Ghana agriculture OR farming OR cocoa OR maize OR crops OR food security');
+  // Strict boolean query: article must mention Ghana AND at least one agric keyword
+  const agricTerms = 'agriculture OR farming OR cocoa OR maize OR cassava OR crops OR harvest OR "food security" OR fertiliser OR agribusiness OR livestock OR irrigation OR COCOBOD';
   const params = new URLSearchParams({
-    q: 'Ghana agriculture OR Ghana farming OR Ghana cocoa OR Ghana crops',
+    q: `ghana AND (${agricTerms})`,
     'show-fields': 'trailText,thumbnail',
-    'page-size': '10',
+    'page-size': '20',
     'order-by': 'newest',
     'api-key': GUARDIAN_API_KEY,
   });
@@ -58,12 +71,16 @@ export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
 
   const data: GuardianResponse = await res.json();
 
-  return data.response.results.map((article) => ({
-    id: article.id,
-    headline: article.webTitle,
-    source: 'The Guardian',
-    time: timeAgo(article.webPublicationDate),
-    url: article.webUrl,
-    summary: article.fields?.trailText,
-  }));
+  return data.response.results
+    .filter((a) => isAgricultureArticle(a.webTitle, a.fields?.trailText ?? ''))
+    .slice(0, 10)
+    .map((article) => ({
+      id: article.id,
+      headline: article.webTitle,
+      source: 'The Guardian',
+      time: timeAgo(article.webPublicationDate),
+      url: article.webUrl,
+      summary: article.fields?.trailText,
+      imageUrl: article.fields?.thumbnail,
+    }));
 }
