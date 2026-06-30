@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
+import { fetchGhanaAgricultureNews, NewsItem } from '../services/newsService';
 
 interface MarketPrice {
   emoji: string;
@@ -10,12 +11,6 @@ interface MarketPrice {
   price: string;
   unit: string;
   changePercent: number;
-}
-
-interface NewsItem {
-  headline: string;
-  source: string;
-  time: string;
 }
 
 const MARKET_PRICES: MarketPrice[] = [
@@ -27,27 +22,64 @@ const MARKET_PRICES: MarketPrice[] = [
   { emoji: '🥜', crop: 'Groundnut', price: 'GHS 280', unit: '/bag', changePercent: 8 },
 ];
 
-const NEWS_ITEMS: NewsItem[] = [
+const FALLBACK_NEWS: NewsItem[] = [
   {
+    id: '1',
     headline: 'Ghana cocoa exports hit record high in Q1 2026',
     source: 'GhanaWeb',
     time: '2hrs ago',
+    url: '',
   },
   {
+    id: '2',
     headline: 'Government subsidizes fertiliser for smallholder farmers',
     source: 'Ghana News Agency',
     time: '5hrs ago',
+    url: '',
   },
   {
+    id: '3',
     headline: 'New agricultural equipment scheme launched for Northern Region',
     source: 'Graphic Online',
     time: '1 day ago',
+    url: '',
   },
 ];
 
 export default function MarketNewsFeed() {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+
+    fetchGhanaAgricultureNews()
+      .then((items) => {
+        if (!cancelled) {
+          setNews(items.length > 0 ? items : FALLBACK_NEWS);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNews(FALLBACK_NEWS);
+          setError(true);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const openArticle = (url: string) => {
+    if (url) Linking.openURL(url);
+  };
 
   return (
     <View>
@@ -81,17 +113,42 @@ export default function MarketNewsFeed() {
       </View>
 
       <View style={[styles.section, styles.newsSection]}>
-        <Text style={styles.sectionTitle}>Agriculture News</Text>
-        {NEWS_ITEMS.map((item) => (
-          <View key={item.headline} style={styles.newsCard}>
-            <Text style={styles.newsHeadline}>{item.headline}</Text>
-            <View style={styles.newsMetaRow}>
-              <Text style={styles.newsSource}>{item.source}</Text>
-              <Text style={styles.newsDot}>•</Text>
-              <Text style={styles.newsTime}>{item.time}</Text>
-            </View>
+        <View style={styles.newsTitleRow}>
+          <Text style={styles.sectionTitle}>Agriculture News</Text>
+          {error && (
+            <Text style={styles.offlineTag}>Offline</Text>
+          )}
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primaryGreen} />
+            <Text style={styles.loadingText}>Loading latest news...</Text>
           </View>
-        ))}
+        ) : (
+          news.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.newsCard}
+              onPress={() => openArticle(item.url)}
+              activeOpacity={item.url ? 0.7 : 1}
+            >
+              <Text style={styles.newsHeadline} numberOfLines={3}>{item.headline}</Text>
+              {item.summary ? (
+                <Text style={styles.newsSummary} numberOfLines={2}>{item.summary}</Text>
+              ) : null}
+              <View style={styles.newsMetaRow}>
+                <Ionicons name="newspaper-outline" size={12} color={colors.primaryGreen} />
+                <Text style={styles.newsSource}>{item.source}</Text>
+                <Text style={styles.newsDot}>•</Text>
+                <Text style={styles.newsTime}>{item.time}</Text>
+                {item.url ? (
+                  <Ionicons name="open-outline" size={12} color={colors.secondaryText} style={styles.linkIcon} />
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </View>
     </View>
   );
@@ -106,11 +163,25 @@ function createStyles(colors: ThemeColors) {
     newsSection: {
       marginBottom: 4,
     },
+    newsTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
     sectionTitle: {
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
-      marginBottom: 12,
+    },
+    offlineTag: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#DC2626',
+      backgroundColor: '#FEE2E2',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
     },
     priceRow: {
       gap: 12,
@@ -158,6 +229,17 @@ function createStyles(colors: ThemeColors) {
       fontSize: 11,
       fontWeight: '700',
     },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 24,
+      justifyContent: 'center',
+    },
+    loadingText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
     newsCard: {
       backgroundColor: colors.card,
       borderRadius: 16,
@@ -175,10 +257,16 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       lineHeight: 19,
     },
+    newsSummary: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      lineHeight: 17,
+      marginTop: 5,
+    },
     newsMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 5,
       marginTop: 8,
     },
     newsSource: {
@@ -193,6 +281,9 @@ function createStyles(colors: ThemeColors) {
     newsTime: {
       fontSize: 12,
       color: colors.secondaryText,
+    },
+    linkIcon: {
+      marginLeft: 2,
     },
   });
 }
