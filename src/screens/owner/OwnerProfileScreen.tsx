@@ -301,7 +301,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                   <Text style={styles.contactRole}>Equipment Owner</Text>
                 </View>
                 <View style={styles.contactActions}>
-                  <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Messaging')}>
+                  <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Equipment Owner' })}>
                     <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
                   </Pressable>
                   <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Calling')}>
