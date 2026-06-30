@@ -56,10 +56,16 @@ export interface NewsItem {
 }
 
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
-  // Strict boolean query: article must mention Ghana AND at least one agric keyword
-  const agricTerms = 'agriculture OR farming OR cocoa OR maize OR cassava OR crops OR harvest OR "food security" OR fertiliser OR agribusiness OR livestock OR irrigation OR COCOBOD';
+  // tag=world/ghana restricts to articles editorially tagged as Ghana by The Guardian.
+  // q filters those Ghana articles down to agriculture topics only.
+  const agricTerms =
+    'agriculture OR farming OR cocoa OR maize OR cassava OR crops OR harvest OR ' +
+    '"food security" OR fertiliser OR fertilizer OR agribusiness OR livestock OR ' +
+    'irrigation OR COCOBOD OR plantation OR groundnut OR yam OR sorghum OR poultry';
+
   const params = new URLSearchParams({
-    q: `ghana AND (${agricTerms})`,
+    tag: 'world/ghana',
+    q: agricTerms,
     'show-fields': 'trailText,thumbnail',
     'page-size': '20',
     'order-by': 'newest',
@@ -71,6 +77,8 @@ export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
 
   const data: GuardianResponse = await res.json();
 
+  // Client-side pass: keep only articles where the headline or summary
+  // contains at least one agriculture keyword (catches edge cases the tag misses).
   return data.response.results
     .filter((a) => isAgricultureArticle(a.webTitle, a.fields?.trailText ?? ''))
     .slice(0, 10)
