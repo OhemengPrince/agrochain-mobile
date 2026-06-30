@@ -410,7 +410,7 @@ function createStyles(colors: ThemeColors) {
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.white,
+      backgroundColor: colors.inputBackground,
       borderRadius: 12,
       height: 48,
       paddingHorizontal: 14,

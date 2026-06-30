@@ -354,7 +354,7 @@ function createStyles(colors: ThemeColors) {
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.inputBackground,
       borderRadius: 14,
       height: 48,
       paddingHorizontal: 14,
@@ -366,7 +366,7 @@ function createStyles(colors: ThemeColors) {
     searchInput: {
       flex: 1,
       fontSize: 15,
-      color: '#1C1C1C',
+      color: colors.text,
     },
     tabsRow: {
       flexDirection: 'row',

@@ -253,7 +253,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 20,
       backgroundColor: 'rgba(255,255,255,0.2)',
     },
-    chipActive: { backgroundColor: colors.white },
+    chipActive: { backgroundColor: colors.card },
     chipIcon: { fontSize: 13 },
     chipText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
     chipTextActive: { color: colors.primaryGreen },
