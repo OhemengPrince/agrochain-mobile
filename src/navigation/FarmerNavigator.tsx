@@ -80,6 +80,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerProfileMain" component={FarmerProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -151,7 +152,10 @@ export default function FarmerNavigator() {
       <Tab.Screen
         name="FarmerProfile"
         component={ProfileStack}
-        options={{ tabBarButton: () => null }}
+        options={({ route }) => ({
+          tabBarButton: () => null,
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
     </Tab.Navigator>
   );

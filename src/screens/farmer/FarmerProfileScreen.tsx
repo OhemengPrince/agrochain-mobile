@@ -96,7 +96,7 @@ function PressableScale({
   );
 }
 
-export default function FarmerProfileScreen(_props: Props) {
+export default function FarmerProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -263,7 +263,10 @@ export default function FarmerProfileScreen(_props: Props) {
                   <Text style={styles.contactRole}>Farmer</Text>
                 </View>
                 <View style={styles.contactActions}>
-                  <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Messaging')}>
+                  <Pressable
+                    style={styles.contactActionCircle}
+                    onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Farmer' })}
+                  >
                     <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
                   </Pressable>
                   <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Calling')}>

@@ -59,6 +59,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="GeneralProfileMain" component={GeneralProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -121,7 +122,10 @@ export default function GeneralUserNavigator() {
       <Tab.Screen
         name="GeneralProfile"
         component={ProfileStack}
-        options={{ tabBarButton: () => null }}
+        options={({ route }) => ({
+          tabBarButton: () => null,
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
     </Tab.Navigator>
   );

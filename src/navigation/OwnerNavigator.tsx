@@ -67,6 +67,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerProfileMain" component={OwnerProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -130,7 +131,10 @@ export default function OwnerNavigator() {
       <Tab.Screen
         name="OwnerProfile"
         component={ProfileStack}
-        options={{ tabBarButton: () => null }}
+        options={({ route }) => ({
+          tabBarButton: () => null,
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
     </Tab.Navigator>
   );

@@ -65,6 +65,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="BuyerProfileMain" component={BuyerProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -128,7 +129,10 @@ export default function BuyerNavigator() {
       <Tab.Screen
         name="BuyerProfile"
         component={ProfileStack}
-        options={{ tabBarButton: () => null }}
+        options={({ route }) => ({
+          tabBarButton: () => null,
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
     </Tab.Navigator>
   );
