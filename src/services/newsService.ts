@@ -1,5 +1,4 @@
-// Replace GUARDIAN_API_KEY with your free key from https://open-platform.theguardian.com/access/
-const GUARDIAN_API_KEY = 'test';
+import { GUARDIAN_API_KEY } from '@env';
 const GUARDIAN_BASE_URL = 'https://content.guardianapis.com/search';
 
 export interface GuardianArticle {
