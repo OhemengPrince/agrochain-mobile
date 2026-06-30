@@ -18,13 +18,13 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const { width, height } = Dimensions.get('window');
-const SPLASH_DURATION_MS = 3400;
+const SPLASH_DURATION_MS = 4000;
 
-// Orbit geometry
-const RING_RADIUS   = 95;                         // radius of the static circle track
-const LOGO_SIZE     = 80;                         // diameter of the orbiting A disc
-const RING_DIAM     = RING_RADIUS * 2;            // 190
-const CONTAINER     = RING_DIAM + LOGO_SIZE + 24; // 294 — enough room for A at full orbit
+// Layout constants
+const LOGO_SIZE  = 148;   // static A disc — large & centred
+const RING_DIAM  = 216;   // spinning ring diameter  (wider than logo)
+const RING_R     = RING_DIAM / 2;
+const CONTAINER  = RING_DIAM + 28; // 244 — room for shadow/glow bleed
 
 interface BgIcon {
   name: IoniconName;
@@ -46,29 +46,30 @@ const BG_ICONS: BgIcon[] = [
 ];
 
 export default function SplashScreen({ navigation }: Props) {
-  const orbitAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim  = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.35)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const textSlide = useRef(new Animated.Value(36)).current;
   const textFade  = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Entry: spring scale + fade in
+    // Logo entry: spring pop + fade
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        tension: 48,
+        tension: 46,
         friction: 7,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 680,
+        duration: 700,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Text slides up after logo appears
+    // Text slides up shortly after logo appears
     const textTimer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(textSlide, {
@@ -83,19 +84,36 @@ export default function SplashScreen({ navigation }: Props) {
           useNativeDriver: true,
         }),
       ]).start();
-    }, 460);
+    }, 480);
 
-    // Continuous A orbit — clockwise, linear
+    // Continuous clockwise ring spin
     Animated.loop(
-      Animated.timing(orbitAnim, {
+      Animated.timing(spinAnim, {
         toValue: 1,
-        duration: 2200,
+        duration: 1800,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     ).start();
 
-    // Navigate after splash
+    // Subtle A pulse so it feels alive
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.06,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
     let cancelled = false;
     const navTimer = setTimeout(async () => {
       const hasSeenOnboarding = await getHasSeenOnboarding();
@@ -110,19 +128,14 @@ export default function SplashScreen({ navigation }: Props) {
     };
   }, [navigation]);
 
-  // Clockwise orbit for the arm
-  const spinCW  = orbitAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg',   '360deg'] });
-  // Counter-clockwise on the A disc itself so the letter stays upright
-  const spinCCW = orbitAnim.interpolate({ inputRange: [0, 1], outputRange: ['360deg', '0deg']   });
+  const spinCW = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
-  // Pivot offsets: place A centre at (RING_RADIUS, 0) relative to arm centre
-  const pivotLeft = RING_RADIUS - LOGO_SIZE / 2; // 95 - 40 = 55
-  const pivotTop  = -(LOGO_SIZE / 2);            // -40
-
-  // Static ring offset inside CONTAINER
-  const ringOffset = (CONTAINER - RING_DIAM) / 2; // (294 - 190) / 2 = 52
-  // Arm anchor is at container centre
-  const armAnchor  = CONTAINER / 2;               // 147
+  // Centring helpers
+  const ringOffset = (CONTAINER - RING_DIAM) / 2;  // 14
+  const logoOffset = (CONTAINER - LOGO_SIZE) / 2;  // 48
 
   return (
     <View style={styles.root}>
@@ -135,9 +148,9 @@ export default function SplashScreen({ navigation }: Props) {
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
       />
-      {/* Shimmer glass layer */}
+      {/* Glass shimmer overlay */}
       <LinearGradient
-        colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.00)', 'rgba(255,255,255,0.70)']}
+        colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.00)', 'rgba(255,255,255,0.72)']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.85 }}
@@ -165,75 +178,72 @@ export default function SplashScreen({ navigation }: Props) {
       {/* Centre content */}
       <View style={styles.center}>
 
-        {/* Soft ambient glow behind the ring */}
-        <Animated.View
-          style={[styles.ambientGlow, { opacity: fadeAnim }]}
-        />
+        {/* Ambient glow blob */}
+        <Animated.View style={[styles.ambientGlow, { opacity: fadeAnim }]} />
 
-        {/* Orbit area: static ring + moving A */}
+        {/* Logo + spinning ring */}
         <Animated.View
-          style={[
-            {
-              width: CONTAINER,
-              height: CONTAINER,
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
+          style={{
+            width: CONTAINER,
+            height: CONTAINER,
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          }}
         >
-          {/* ── Static circular track ── */}
+          {/* ── Thin background halo (always visible, static) ── */}
           <View
             style={[
-              styles.staticRing,
+              styles.haloRing,
               {
-                width:  RING_DIAM,
-                height: RING_DIAM,
-                borderRadius: RING_RADIUS,
-                top:  ringOffset,
-                left: ringOffset,
+                width: RING_DIAM + 14,
+                height: RING_DIAM + 14,
+                borderRadius: (RING_DIAM + 14) / 2,
+                top:  ringOffset - 7,
+                left: ringOffset - 7,
               },
             ]}
           />
 
-          {/* ── Zero-size arm pivot, anchored at container centre ── */}
+          {/* ── Spinning ring — thick, 3/4 coloured, 1/4 gap ── */}
+          <Animated.View
+            style={[
+              styles.spinRing,
+              {
+                width: RING_DIAM,
+                height: RING_DIAM,
+                borderRadius: RING_R,
+                top:  ringOffset,
+                left: ringOffset,
+                transform: [{ rotate: spinCW }],
+              },
+            ]}
+          />
+
+          {/* ── Static A logo — perfectly centred ── */}
           <Animated.View
             style={{
               position: 'absolute',
-              width: 0,
-              height: 0,
-              top:  armAnchor,
-              left: armAnchor,
-              transform: [{ rotate: spinCW }],
+              top:  logoOffset,
+              left: logoOffset,
+              transform: [{ scale: pulseAnim }],
             }}
           >
-            {/* A disc positioned at orbit radius, counter-rotated to stay upright */}
-            <Animated.View
-              style={{
-                position: 'absolute',
-                width:  LOGO_SIZE,
-                height: LOGO_SIZE,
-                left: pivotLeft,
-                top:  pivotTop,
-                transform: [{ rotate: spinCCW }],
-              }}
+            <LinearGradient
+              colors={['#3AA55C', '#1A6B2E', '#062B14']}
+              style={styles.logoCircle}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
             >
+              {/* Crystalline shine on disc */}
               <LinearGradient
-                colors={['#3AA55C', '#1A6B2E', '#062B14']}
-                style={styles.logoCircle}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
-              >
-                {/* Crystalline shine */}
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0.00)']}
-                  style={StyleSheet.absoluteFill}
-                  start={{ x: 0.1, y: 0 }}
-                  end={{ x: 0.9, y: 0.55 }}
-                  pointerEvents="none"
-                />
-                <Text style={styles.logoLetter}>A</Text>
-              </LinearGradient>
-            </Animated.View>
+                colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0.00)']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 0.55 }}
+                pointerEvents="none"
+              />
+              <Text style={styles.logoLetter}>A</Text>
+            </LinearGradient>
           </Animated.View>
         </Animated.View>
 
@@ -265,29 +275,37 @@ const styles = StyleSheet.create({
   },
   ambientGlow: {
     position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
+    width: 340,
+    height: 340,
+    borderRadius: 170,
     backgroundColor: 'rgba(26,107,46,0.05)',
     shadowColor: '#1A6B2E',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.20,
-    shadowRadius: 80,
+    shadowOpacity: 0.22,
+    shadowRadius: 90,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  staticRing: {
+  haloRing: {
     position: 'absolute',
-    borderWidth: 2.5,
-    borderColor: 'rgba(26,107,46,0.30)',
-    // subtle inner glow via shadow
+    borderWidth: 1,
+    borderColor: 'rgba(26,107,46,0.14)',
+  },
+  spinRing: {
+    position: 'absolute',
+    borderWidth: 6,
+    borderTopColor:    '#1A6B2E',
+    borderRightColor:  '#1A6B2E',
+    borderBottomColor: '#1A6B2E',
+    borderLeftColor:   'transparent',
     shadowColor: '#1A6B2E',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   logoCircle: {
     width: LOGO_SIZE,
@@ -297,19 +315,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     shadowColor: '#062B14',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.40,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.42,
+    shadowRadius: 16,
     elevation: 14,
   },
   logoLetter: {
-    fontSize: 34,
+    fontSize: 62,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
     textShadowColor: 'rgba(0,0,0,0.28)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 5,
   },
   textWrap: {
     marginTop: 36,
