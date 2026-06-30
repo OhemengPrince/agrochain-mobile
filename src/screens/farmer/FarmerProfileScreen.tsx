@@ -256,25 +256,25 @@ export default function FarmerProfileScreen({ navigation }: Props) {
               </Pressable>
 
               <View style={styles.contactRow}>
-                <View>
-                  <View style={styles.contactAvatar}>
-                    <Text style={styles.contactAvatarText}>{initial}</Text>
-                  </View>
-                  <View style={{ position: 'absolute', bottom: -4, right: -4 }}>
-                    <ActiveIndicator size={11} />
-                  </View>
+                <View style={styles.contactAvatar}>
+                  <Text style={styles.contactAvatarText}>{initial}</Text>
                 </View>
                 <View style={styles.contactMiddle}>
                   <Text style={styles.contactName}>{user.fullName}</Text>
-                  <Text style={styles.contactRole}>Farmer · Active</Text>
+                  <Text style={styles.contactRole}>Farmer</Text>
                 </View>
                 <View style={styles.contactActions}>
-                  <Pressable
-                    style={styles.contactActionCircle}
-                    onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Farmer' })}
-                  >
-                    <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
-                  </Pressable>
+                  <View>
+                    <Pressable
+                      style={styles.contactActionCircle}
+                      onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Farmer' })}
+                    >
+                      <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
+                    </Pressable>
+                    <View style={{ position: 'absolute', top: -4, right: -4 }}>
+                      <ActiveIndicator size={8} />
+                    </View>
+                  </View>
                   <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Calling')}>
                     <Ionicons name="call-outline" size={16} color={colors.primaryGreen} />
                   </Pressable>
