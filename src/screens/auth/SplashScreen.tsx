@@ -20,19 +20,23 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 const { width, height } = Dimensions.get('window');
 const SPLASH_DURATION_MS = 4000;
 
-// ─── Geometry ───────────────────────────────────────────────────────────────
-//  The A disc is large (fills the ring like the reference "H").
-//  ORBIT_R is small so the disc appears centred but still traces a circle.
+// ─── Geometry ────────────────────────────────────────────────────────────────
 //
-//  Safety check:
-//    A outer edge at max = ORBIT_R + LOGO_SIZE/2 = 28 + 84 = 112
-//    Ring inner edge     = RING_R  - BORDER_W   = 124 - 6  = 118   ← 6 px clearance ✓
-const RING_DIAM  = 248;
-const RING_R     = RING_DIAM / 2;   // 124
+//  Goal: equal gap between disc edge and ring inner wall on all sides.
+//
+//  RING inner radius  = RING_R − BORDER_W  = 122 − 6  = 116
+//  LOGO radius        = LOGO_SIZE / 2       = 196 / 2  = 98
+//  Gap when centred   = 116 − 98           = 18 px  (equal on all sides ✓)
+//
+//  Orbit radius = 14 px  →  A outer at max = 14 + 98 = 112  <  116  (4 px clearance ✓)
+//  The disc barely drifts from centre so it always looks "right in the middle".
+//
+const RING_DIAM  = 244;
+const RING_R     = RING_DIAM / 2;    // 122
 const BORDER_W   = 6;
-const LOGO_SIZE  = 168;             // large — closely matches the reference image
-const ORBIT_R    = 28;              // small orbit so it looks centred while moving
-const CONTAINER  = RING_DIAM + 24; // 272
+const LOGO_SIZE  = 196;              // large — ~80 % of ring diameter, like "H" in reference
+const ORBIT_R    = 14;               // tiny orbit: disc barely shifts from centre
+const CONTAINER  = RING_DIAM + 28;  // 272
 
 // ─── Background icons ────────────────────────────────────────────────────────
 interface BgIcon { name: IoniconName; top: number; left: number; size: number; rotation: number }
@@ -65,7 +69,7 @@ export default function SplashScreen({ navigation }: Props) {
       }),
     ]).start();
 
-    // Text slides up after logo is visible
+    // Text slides up after logo settles
     const textTimer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(textSlide, {
@@ -78,10 +82,10 @@ export default function SplashScreen({ navigation }: Props) {
       ]).start();
     }, 480);
 
-    // Continuous clockwise orbit of the A disc
+    // Continuous slow clockwise orbit
     Animated.loop(
       Animated.timing(orbitAnim, {
-        toValue: 1, duration: 2400,
+        toValue: 1, duration: 2600,
         easing: Easing.linear, useNativeDriver: true,
       })
     ).start();
@@ -100,15 +104,14 @@ export default function SplashScreen({ navigation }: Props) {
     };
   }, [navigation]);
 
-  // Arm spins clockwise; disc counter-rotates so "A" stays upright
   const armSpin  = orbitAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg',   '360deg'] });
   const discSpin = orbitAnim.interpolate({ inputRange: [0, 1], outputRange: ['360deg', '0deg']   });
 
-  // Layout offsets
-  const ringOffset = (CONTAINER - RING_DIAM) / 2;   // 12
+  // Layout
+  const ringOffset = (CONTAINER - RING_DIAM) / 2;   // 14
   const armAnchor  = CONTAINER / 2;                 // 136
-  const pivotLeft  = ORBIT_R - LOGO_SIZE / 2;       // 28 - 84 = -56
-  const pivotTop   = -(LOGO_SIZE / 2);              // -84
+  const pivotLeft  = ORBIT_R - LOGO_SIZE / 2;       // 14 − 98 = −84
+  const pivotTop   = -(LOGO_SIZE / 2);              // −98
 
   return (
     <View style={styles.root}>
@@ -148,10 +151,9 @@ export default function SplashScreen({ navigation }: Props) {
       ))}
 
       <View style={styles.center}>
-        {/* Soft ambient glow */}
         <Animated.View style={[styles.ambientGlow, { opacity: fadeAnim }]} />
 
-        {/* Logo zone — entry animation wrapper */}
+        {/* Entry scale wrapper */}
         <Animated.View
           style={{
             width: CONTAINER,
@@ -186,7 +188,7 @@ export default function SplashScreen({ navigation }: Props) {
               transform: [{ rotate: armSpin }],
             }}
           >
-            {/* A disc — offset by ORBIT_R from pivot, counter-rotated to stay upright */}
+            {/* A disc — offset by tiny ORBIT_R, counter-rotated to stay upright */}
             <Animated.View
               style={{
                 position: 'absolute',
@@ -203,7 +205,6 @@ export default function SplashScreen({ navigation }: Props) {
                 start={{ x: 0.2, y: 0 }}
                 end={{ x: 0.8, y: 1 }}
               >
-                {/* Crystalline shine on disc */}
                 <LinearGradient
                   colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0.00)']}
                   style={StyleSheet.absoluteFill}
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   logoLetter: {
-    fontSize: 70,
+    fontSize: 82,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -1,
