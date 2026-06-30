@@ -254,6 +254,9 @@ export default function FarmerHomeScreen({ navigation }: Props) {
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
             <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Chat', { name: 'AgroChain Support', role: 'Support Agent' })}>
+                <Ionicons name="chatbubble-ellipses" size={20} color={colors.primaryGreen} />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
                 <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
               </TouchableOpacity>

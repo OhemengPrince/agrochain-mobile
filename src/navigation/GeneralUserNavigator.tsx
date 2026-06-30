@@ -14,6 +14,7 @@ import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 import EquipmentListScreen from '../screens/farmer/EquipmentListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
+import ChatScreen from '../screens/shared/ChatScreen';
 
 const Tab = createBottomTabNavigator<GeneralStackParamList>();
 const Stack = createNativeStackNavigator<GeneralStackParamList>();
@@ -22,6 +23,7 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="GeneralHomeMain" component={GeneralHomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

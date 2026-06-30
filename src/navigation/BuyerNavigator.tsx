@@ -16,6 +16,7 @@ import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
+import ChatScreen from '../screens/shared/ChatScreen';
 
 const Tab = createBottomTabNavigator<BuyerStackParamList>();
 const Stack = createNativeStackNavigator<BuyerStackParamList>();
@@ -26,6 +27,7 @@ function HomeStack() {
       <Stack.Screen name="BuyerHomeMain" component={BuyerHomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

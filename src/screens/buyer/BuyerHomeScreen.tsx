@@ -219,6 +219,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               <View style={styles.headerTopRow}>
                 <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
                 <View style={styles.headerActions}>
+                  <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('Chat', { name: 'AgroChain Support', role: 'Support Agent' })}>
+                    <Ionicons name="chatbubble-ellipses" size={20} color={colors.primaryGreen} />
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
                     <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
                   </TouchableOpacity>

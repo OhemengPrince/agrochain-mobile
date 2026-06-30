@@ -18,6 +18,7 @@ import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
+import ChatScreen from '../screens/shared/ChatScreen';
 
 const Tab = createBottomTabNavigator<OwnerStackParamList>();
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -26,6 +27,7 @@ function DashboardStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerDashboardMain" component={OwnerDashboardScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -45,6 +47,7 @@ function BookingsStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerBookingsList" component={IncomingBookingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

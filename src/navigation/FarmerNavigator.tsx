@@ -20,6 +20,7 @@ import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
+import ChatScreen from '../screens/shared/ChatScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -30,6 +31,7 @@ function HomeStack() {
       <Stack.Screen name="FarmerHomeMain" component={FarmerHomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FarmerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -48,6 +50,7 @@ function BookingsStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerBookingsList" component={MyBookingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

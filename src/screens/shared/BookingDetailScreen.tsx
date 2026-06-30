@@ -394,13 +394,20 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
             />
           )}
           <GradientActionButton
-            label="Contact Owner"
-            icon="call"
+            label={isOwner ? 'Message Farmer' : 'Message Owner'}
+            icon="chatbubble-ellipses-outline"
             gradient={[colors.primaryGreen, colors.primaryGreenLight]}
             height={56}
             shadowColor={colors.primaryGreen}
             styles={styles}
-            onPress={() => handlePlaceholder('You will be able to message the owner soon.')}
+            onPress={() =>
+              (navigation as any).navigate('Chat', {
+                name: isOwner
+                  ? (booking?.farmerName ?? 'Farmer')
+                  : (booking?.ownerName ?? 'Equipment Owner'),
+                role: isOwner ? 'Farmer' : 'Equipment Owner',
+              })
+            }
           />
           <OutlineDangerButton
             label="Report Issue"
