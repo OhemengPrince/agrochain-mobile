@@ -29,6 +29,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import ProfileTabs from '../../components/ProfileTabs';
 import ProfileStatCard from '../../components/ProfileStatCard';
+import ActiveIndicator from '../../components/ActiveIndicator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
@@ -293,12 +294,17 @@ export default function OwnerProfileScreen({ navigation }: Props) {
               </Pressable>
 
               <View style={styles.contactRow}>
-                <View style={styles.contactAvatar}>
-                  <Text style={styles.contactAvatarText}>{initial}</Text>
+                <View>
+                  <View style={styles.contactAvatar}>
+                    <Text style={styles.contactAvatarText}>{initial}</Text>
+                  </View>
+                  <View style={{ position: 'absolute', bottom: -4, right: -4 }}>
+                    <ActiveIndicator size={11} />
+                  </View>
                 </View>
                 <View style={styles.contactMiddle}>
                   <Text style={styles.contactName}>{user.fullName}</Text>
-                  <Text style={styles.contactRole}>Equipment Owner</Text>
+                  <Text style={styles.contactRole}>Equipment Owner · Active</Text>
                 </View>
                 <View style={styles.contactActions}>
                   <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Equipment Owner' })}>

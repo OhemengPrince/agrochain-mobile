@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
+import ActiveIndicator from '../../components/ActiveIndicator';
 
 type ChatParams = { name: string; role?: string };
 
@@ -159,15 +160,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
 
-            <View style={s.avatarLarge}>
-              <Text style={s.avatarLargeText}>{initial}</Text>
+            {/* Avatar with pulsing active badge */}
+            <View style={{ position: 'relative', marginHorizontal: 4 }}>
+              <View style={s.avatarLarge}>
+                <Text style={s.avatarLargeText}>{initial}</Text>
+              </View>
+              <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
+                <ActiveIndicator size={11} />
+              </View>
             </View>
 
             <View style={s.headerInfo}>
               <Text style={s.headerName} numberOfLines={1}>{name}</Text>
               <View style={s.onlineRow}>
-                <View style={s.onlineDot} />
-                <Text style={s.onlineSub}>{role}</Text>
+                <ActiveIndicator size={7} />
+                <Text style={s.onlineSub}>Active now · {role}</Text>
               </View>
             </View>
 
@@ -265,13 +272,7 @@ function createStyles(colors: ThemeColors) {
     avatarLargeText: { fontSize: 18, fontWeight: '700', color: '#fff' },
     headerInfo: { flex: 1 },
     headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-    onlineDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-      backgroundColor: '#4ade80',
-    },
+    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
     onlineSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
 
     // Date separator

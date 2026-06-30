@@ -28,6 +28,7 @@ import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 import ProfileTabs from '../../components/ProfileTabs';
 import ProfileStatCard from '../../components/ProfileStatCard';
+import ActiveIndicator from '../../components/ActiveIndicator';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
@@ -195,12 +196,17 @@ export default function GeneralProfileScreen({ navigation }: Props) {
               </Pressable>
 
               <View style={styles.contactRow}>
-                <View style={styles.contactAvatar}>
-                  <Text style={styles.contactAvatarText}>{initial}</Text>
+                <View>
+                  <View style={styles.contactAvatar}>
+                    <Text style={styles.contactAvatarText}>{initial}</Text>
+                  </View>
+                  <View style={{ position: 'absolute', bottom: -4, right: -4 }}>
+                    <ActiveIndicator size={11} />
+                  </View>
                 </View>
                 <View style={styles.contactMiddle}>
                   <Text style={styles.contactName}>{user.fullName}</Text>
-                  <Text style={styles.contactRole}>General User</Text>
+                  <Text style={styles.contactRole}>General User · Active</Text>
                 </View>
                 <View style={styles.contactActions}>
                   <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'General User' })}>
