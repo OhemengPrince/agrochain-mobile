@@ -3,8 +3,9 @@ import { GUARDIAN_API_KEY } from '@env';
 const BASE = 'https://content.guardianapis.com/search';
 const FIELDS = 'trailText,thumbnail';
 
-// Keywords that must appear in the article HEADLINE for it to qualify as agriculture news.
-// This is the strictest filter — body mentions are not enough.
+export type NewsTopicChip = 'All' | 'Farming' | 'Harvest' | 'Fertilizers' | 'Livestock' | 'Markets';
+
+// Keywords that must appear in the HEADLINE for an article to pass the agric gate
 const AGRIC_HEADLINE_KEYWORDS = [
   'agric', 'farm', 'farmer', 'crop', 'harvest', 'food',
   'cocoa', 'maize', 'cassava', 'rice', 'yam', 'groundnut',
@@ -12,8 +13,55 @@ const AGRIC_HEADLINE_KEYWORDS = [
   'rubber', 'livestock', 'poultry', 'cattle', 'irrigation',
   'fertiliser', 'fertilizer', 'soil', 'plantation', 'seeds',
   'COCOBOD', 'smallholder', 'rural', 'MoFA', 'GAEC',
-  'fishing', 'aquaculture', 'agroforest',
+  'fishing', 'aquaculture', 'agroforest', 'feed', 'pest',
+  'NPK', 'urea', 'manure', 'compost', 'nutrient',
 ];
+
+// Topic classification — checked in priority order (most-specific first)
+const TOPIC_RULES: { topic: NewsTopicChip; keywords: string[] }[] = [
+  {
+    topic: 'Harvest',
+    keywords: ['harvest', 'yield', 'bumper', 'post-harvest', 'storage', 'drying', 'milling', 'season'],
+  },
+  {
+    topic: 'Fertilizers',
+    keywords: [
+      'fertiliser', 'fertilizer', 'npk', 'urea', 'manure', 'compost',
+      'nutrient', 'soil health', 'soil fertility', 'agro-chemical', 'pesticide',
+      'herbicide', 'weedicide', 'insecticide', 'planting material',
+    ],
+  },
+  {
+    topic: 'Livestock',
+    keywords: [
+      'livestock', 'poultry', 'cattle', 'sheep', 'goat', 'pig', 'chicken',
+      'dairy', 'fishing', 'aquaculture', 'animal husbandry', 'veterinary',
+    ],
+  },
+  {
+    topic: 'Markets',
+    keywords: [
+      'market', 'price', 'export', 'import', 'trade', 'agribusiness',
+      'commodity', 'supply', 'demand', 'cocobod', 'buyer', 'revenue',
+    ],
+  },
+  {
+    topic: 'Farming',
+    keywords: [
+      'farm', 'agric', 'crop', 'plantation', 'smallholder', 'cocoa',
+      'maize', 'cassava', 'rice', 'yam', 'groundnut', 'tomato', 'food',
+      'irrigation', 'seeds', 'rural', 'rural', 'shea',
+    ],
+  },
+];
+
+function classifyTopic(headline: string, summary = ''): NewsTopicChip {
+  const text = `${headline} ${summary}`.toLowerCase();
+  for (const { topic, keywords } of TOPIC_RULES) {
+    if (keywords.some((kw) => text.includes(kw))) return topic;
+  }
+  return 'Farming';
+}
 
 interface GuardianArticle {
   id: string;
@@ -32,9 +80,11 @@ export interface NewsItem {
   headline: string;
   source: string;
   time: string;
+  publishedAt: string;
   url: string;
   summary?: string;
   imageUrl?: string;
+  topic: NewsTopicChip;
 }
 
 function timeAgo(dateStr: string): string {
@@ -53,20 +103,23 @@ function isAgricHeadline(title: string): boolean {
 }
 
 function toNewsItem(a: GuardianArticle): NewsItem {
+  const summary = a.fields?.trailText;
   return {
     id: a.id,
     headline: a.webTitle,
     source: 'The Guardian',
     time: timeAgo(a.webPublicationDate),
+    publishedAt: a.webPublicationDate,
     url: a.webUrl,
-    summary: a.fields?.trailText,
+    summary,
     imageUrl: a.fields?.thumbnail,
+    topic: classifyTopic(a.webTitle, summary),
   };
 }
 
 async function guardianFetch(q: string, pageSize: number): Promise<GuardianArticle[]> {
   const params = new URLSearchParams({
-    tag: 'world/ghana',   // hard-lock: only articles editorially tagged as Ghana
+    tag: 'world/ghana',
     q,
     'show-fields': FIELDS,
     'page-size': String(pageSize),
@@ -79,32 +132,46 @@ async function guardianFetch(q: string, pageSize: number): Promise<GuardianArtic
   return data.response.results;
 }
 
+// Four parallel queries to maximise variety and volume
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const [diverse, cocoaExtra] = await Promise.all([
-    // Query 1: broad Ghana agric — no cocoa bias
+  const [crops, fertilizers, livestock, markets] = await Promise.all([
     guardianFetch(
-      'farming OR maize OR cassava OR rice OR yam OR groundnut OR sorghum OR plantain OR ' +
-      'tomato OR pepper OR onion OR livestock OR poultry OR shea OR rubber OR irrigation OR ' +
-      'agriculture OR "food security" OR fertiliser OR agribusiness OR harvest OR crops OR ' +
-      'smallholder OR seeds OR fishing OR aquaculture',
-      20,
+      'farming OR maize OR cassava OR rice OR yam OR groundnut OR sorghum OR ' +
+      'plantain OR tomato OR pepper OR onion OR shea OR rubber OR agriculture OR ' +
+      'food OR smallholder OR seeds OR plantation OR crop',
+      50,
     ),
-    // Query 2: cocoa capped at 4 results
-    guardianFetch('cocoa OR COCOBOD', 4),
+    guardianFetch(
+      'fertiliser OR fertilizer OR NPK OR urea OR manure OR compost OR ' +
+      'soil OR irrigation OR pesticide OR herbicide OR agro-chemical OR ' +
+      '"soil health" OR "soil fertility" OR "planting materials"',
+      50,
+    ),
+    guardianFetch(
+      'livestock OR poultry OR cattle OR sheep OR goat OR chicken OR ' +
+      'dairy OR fishing OR aquaculture OR "animal husbandry" OR veterinary',
+      50,
+    ),
+    guardianFetch(
+      'cocoa OR COCOBOD OR "food security" OR harvest OR agribusiness OR ' +
+      '"market price" OR "farm gate" OR export OR commodity',
+      50,
+    ),
   ]);
 
   const seen = new Set<string>();
   const merged: NewsItem[] = [];
 
-  for (const a of [...diverse, ...cocoaExtra]) {
+  for (const a of [...crops, ...fertilizers, ...livestock, ...markets]) {
     if (seen.has(a.id)) continue;
     seen.add(a.id);
-    // Strict gate: the HEADLINE must contain an agriculture keyword.
-    // This cuts politics/sports/crime articles that merely mention a farm word in passing.
     if (isAgricHeadline(a.webTitle)) {
       merged.push(toNewsItem(a));
     }
   }
+
+  // Sort merged results newest-first
+  merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   return merged;
 }
