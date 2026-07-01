@@ -6,8 +6,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../../hooks/useTheme';
-import { ThemeColors } from '../../context/ThemeContext';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
 type ChatParams = { name: string; role?: string };
@@ -36,8 +34,6 @@ const SEED: Message[] = [
 ];
 
 export default function ChatScreen({ route, navigation }: { route: { params: ChatParams }; navigation: any }) {
-  const { colors } = useTheme();
-  const s = createStyles(colors);
   const { name, role = 'AgroChain User' } = route.params;
 
   const [messages, setMessages] = useState<Message[]>(SEED);
@@ -68,7 +64,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       return (
         <View style={s.sep}>
           <View style={s.sepLine} />
-          <Text style={s.sepText}>{item.label}</Text>
+          <View style={s.sepPill}>
+            <Text style={s.sepText}>{item.label}</Text>
+          </View>
           <View style={s.sepLine} />
         </View>
       );
@@ -84,33 +82,42 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
           )}
           <View>
-            <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-              <TouchableOpacity style={s.playBtn} activeOpacity={0.8}>
-                <Ionicons name="play" size={15} color="#fff" />
-              </TouchableOpacity>
-              <View style={s.waveform}>
-                {WAVE_HEIGHTS.map((h, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      s.waveBar,
-                      { height: h },
-                      i >= 9 && { opacity: 0.4 },
-                    ]}
-                  />
-                ))}
+            {item.sent ? (
+              <LinearGradient
+                colors={['rgba(26,107,46,0.98)', 'rgba(34,197,94,0.88)']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={[s.voiceBubble, s.voiceBubbleSent]}
+              >
+                <TouchableOpacity style={s.playBtn} activeOpacity={0.8}>
+                  <Ionicons name="play" size={15} color="#fff" />
+                </TouchableOpacity>
+                <View style={s.waveform}>
+                  {WAVE_HEIGHTS.map((h, i) => (
+                    <View key={i} style={[s.waveBar, { height: h }, i >= 9 && { opacity: 0.35 }]} />
+                  ))}
+                </View>
+                <Text style={[s.voiceDur, { color: 'rgba(255,255,255,0.75)' }]}>0:22</Text>
+              </LinearGradient>
+            ) : (
+              <View style={[s.voiceBubble, s.voiceBubbleRecv]}>
+                <TouchableOpacity style={s.playBtnRecv} activeOpacity={0.8}>
+                  <Ionicons name="play" size={15} color="#fff" />
+                </TouchableOpacity>
+                <View style={s.waveform}>
+                  {WAVE_HEIGHTS.map((h, i) => (
+                    <View key={i} style={[s.waveBarRecv, { height: h }, i >= 9 && { opacity: 0.35 }]} />
+                  ))}
+                </View>
+                <Text style={[s.voiceDur, { color: 'rgba(255,255,255,0.55)' }]}>0:22</Text>
               </View>
-              <Text style={[s.voiceDur, item.sent ? { color: 'rgba(255,255,255,0.75)' } : { color: colors.secondaryText }]}>
-                0:22
-              </Text>
-            </View>
+            )}
             <View style={[s.timeMeta, item.sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
-              <Text style={[s.time, item.sent ? s.timeSent : s.timeRecv]}>{item.time}</Text>
+              <Text style={s.time}>{item.time}</Text>
               {item.sent && (
                 <Ionicons
                   name="checkmark-done"
                   size={13}
-                  color={item.read ? '#4ade80' : colors.secondaryText}
+                  color={item.read ? '#4ade80' : 'rgba(255,255,255,0.35)'}
                   style={{ marginLeft: 2 }}
                 />
               )}
@@ -129,18 +136,26 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           </View>
         )}
         <View style={{ maxWidth: '75%' }}>
-          <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-            <Text style={[s.bubbleText, item.sent ? s.bubbleTextSent : s.bubbleTextRecv]}>
-              {item.text}
-            </Text>
-          </View>
+          {item.sent ? (
+            <LinearGradient
+              colors={['rgba(26,107,46,0.98)', 'rgba(34,197,94,0.88)']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={[s.bubble, s.bubbleSent]}
+            >
+              <Text style={s.bubbleTextSent}>{item.text}</Text>
+            </LinearGradient>
+          ) : (
+            <View style={[s.bubble, s.bubbleReceived]}>
+              <Text style={s.bubbleTextRecv}>{item.text}</Text>
+            </View>
+          )}
           <View style={[s.timeMeta, item.sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
-            <Text style={[s.time, item.sent ? s.timeSent : s.timeRecv]}>{item.time}</Text>
+            <Text style={s.time}>{item.time}</Text>
             {item.sent && (
               <Ionicons
                 name="checkmark-done"
                 size={13}
-                color={item.read ? '#4ade80' : colors.secondaryText}
+                color={item.read ? '#4ade80' : 'rgba(255,255,255,0.35)'}
                 style={{ marginLeft: 2 }}
               />
             )}
@@ -151,13 +166,18 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   };
 
   return (
-    <View style={s.root}>
-      {/* ── Header ── */}
-      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.headerGrad}>
+    <LinearGradient colors={['#071422', '#0D2035', '#0A1B2E', '#071422']} style={s.root}>
+      {/* Crystalline ambient orbs */}
+      <View style={[s.orb, s.orb1]} />
+      <View style={[s.orb, s.orb2]} />
+      <View style={[s.orb, s.orb3]} />
+
+      {/* Glass header */}
+      <View style={s.headerGlass}>
         <SafeAreaView edges={['top']}>
           <View style={s.headerRow}>
             <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
             </TouchableOpacity>
 
             {/* Avatar with pulsing active badge */}
@@ -179,18 +199,18 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
 
             <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-              <Ionicons name="call-outline" size={20} color="#fff" />
+              <Ionicons name="call-outline" size={20} color="rgba(255,255,255,0.9)" />
             </TouchableOpacity>
             <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+              <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.9)" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
 
-      {/* ── Messages + Input ── */}
+      {/* Messages + Input */}
       <KeyboardAvoidingView
-        style={[s.flex, { backgroundColor: colors.background }]}
+        style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
@@ -204,17 +224,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           showsVerticalScrollIndicator={false}
         />
 
-        {/* ── Input Bar ── */}
-        <View style={[s.inputBar, { backgroundColor: colors.card }]}>
+        {/* Glass input bar */}
+        <View style={s.inputBar}>
           <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
-            <Ionicons name="attach" size={22} color={colors.secondaryText} />
+            <Ionicons name="attach" size={22} color="rgba(255,255,255,0.5)" />
           </TouchableOpacity>
 
-          <View style={[s.inputWrap, { backgroundColor: colors.inputBackground }]}>
+          <View style={s.inputWrap}>
             <TextInput
-              style={[s.input, { color: colors.text }]}
+              style={s.input}
               placeholder="Send a message..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor="rgba(255,255,255,0.30)"
               value={inputText}
               onChangeText={setInputText}
               multiline
@@ -225,183 +245,251 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
           {inputText.trim() ? (
             <TouchableOpacity onPress={sendMessage} activeOpacity={0.8}>
-              <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.sendBtn}>
+              <LinearGradient colors={['#1A6B2E', '#22c55e']} style={s.sendBtn}>
                 <Ionicons name="send" size={17} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity activeOpacity={0.8}>
-              <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.sendBtn}>
+              <LinearGradient colors={['#1A6B2E', '#22c55e']} style={s.sendBtn}>
                 <Ionicons name="mic" size={20} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.card }} />
+        <SafeAreaView edges={['bottom']} style={{ backgroundColor: 'transparent' }} />
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.primaryGreen },
-    flex: { flex: 1 },
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
 
-    // Header
-    headerGrad: { paddingBottom: 12 },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 6,
-      paddingTop: 8,
-      gap: 4,
-    },
-    iconBtn: { padding: 8 },
-    avatarLarge: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor: 'rgba(255,255,255,0.25)',
-      borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.5)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginHorizontal: 4,
-    },
-    avatarLargeText: { fontSize: 18, fontWeight: '700', color: '#fff' },
-    headerInfo: { flex: 1 },
-    headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-    onlineSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
+  // Ambient crystalline orbs (subtle colour bleed behind glass panels)
+  orb: { position: 'absolute', borderRadius: 9999 },
+  orb1: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#22c55e',
+    opacity: 0.09,
+    top: -100,
+    right: -80,
+  },
+  orb2: {
+    width: 240,
+    height: 240,
+    backgroundColor: '#0ea5e9',
+    opacity: 0.07,
+    bottom: 100,
+    left: -80,
+  },
+  orb3: {
+    width: 160,
+    height: 160,
+    backgroundColor: '#a78bfa',
+    opacity: 0.05,
+    top: '45%',
+    right: -40,
+  },
 
-    // Date separator
-    sep: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: 16,
-      paddingHorizontal: 16,
-      gap: 10,
-    },
-    sepLine: { flex: 1, height: 1, backgroundColor: colors.divider },
-    sepText: { fontSize: 12, color: colors.secondaryText, fontWeight: '600' },
+  // Frosted glass header
+  headerGlass: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.09)',
+    paddingBottom: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingTop: 8,
+    gap: 4,
+  },
+  iconBtn: { padding: 8 },
+  avatarLarge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(34,197,94,0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(34,197,94,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+  },
+  avatarLargeText: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerInfo: { flex: 1 },
+  headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  onlineSub: { fontSize: 12, color: 'rgba(255,255,255,0.60)' },
 
-    // Messages
-    list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 4 },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      marginVertical: 2,
-      gap: 6,
-    },
-    rowSent: { justifyContent: 'flex-end' },
-    rowReceived: { justifyContent: 'flex-start' },
+  // Date separator
+  sep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  sepLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.09)' },
+  sepPill: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.11)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+  },
+  sepText: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '600' },
 
-    // Small avatar (received side)
-    avatar: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.primaryGreen,
-      alignItems: 'center',
-      justifyContent: 'center',
-      alignSelf: 'flex-end',
-      flexShrink: 0,
-    },
-    avatarText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  // Message list
+  list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 4 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginVertical: 2,
+    gap: 6,
+  },
+  rowSent: { justifyContent: 'flex-end' },
+  rowReceived: { justifyContent: 'flex-start' },
 
-    // Bubble
-    bubble: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 20,
-    },
-    bubbleSent: {
-      backgroundColor: colors.primaryGreen,
-      borderBottomRightRadius: 4,
-    },
-    bubbleReceived: {
-      backgroundColor: colors.card,
-      borderBottomLeftRadius: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.07,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    bubbleText: { fontSize: 15, lineHeight: 21 },
-    bubbleTextSent: { color: '#fff' },
-    bubbleTextRecv: { color: colors.text },
+  // Small avatar (received side)
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(34,197,94,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.38)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    flexShrink: 0,
+  },
+  avatarText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-    // Time + checkmark row
-    timeMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 3,
-      gap: 2,
-    },
-    time: { fontSize: 11 },
-    timeSent: { color: colors.secondaryText },
-    timeRecv: { color: colors.secondaryText },
+  // Text bubbles
+  bubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  bubbleSent: {
+    borderBottomRightRadius: 4,
+    // green glow
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  bubbleReceived: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    borderBottomLeftRadius: 4,
+  },
+  bubbleTextSent: { fontSize: 15, lineHeight: 21, color: '#fff' },
+  bubbleTextRecv: { fontSize: 15, lineHeight: 21, color: 'rgba(255,255,255,0.90)' },
 
-    // Voice bubble
-    voiceBubble: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      borderRadius: 20,
-      gap: 8,
-      minWidth: 180,
-    },
-    playBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: 'rgba(255,255,255,0.25)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    waveform: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      height: 24,
-    },
-    waveBar: {
-      width: 3,
-      borderRadius: 2,
-      backgroundColor: 'rgba(255,255,255,0.9)',
-    },
-    voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
+  // Time + checkmark row
+  timeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    gap: 2,
+  },
+  time: { fontSize: 11, color: 'rgba(255,255,255,0.38)' },
 
-    // Input bar
-    inputBar: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      gap: 8,
-      borderTopWidth: 1,
-      borderTopColor: colors.divider,
-    },
-    attachBtn: { paddingBottom: 10 },
-    inputWrap: {
-      flex: 1,
-      borderRadius: 24,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      maxHeight: 120,
-    },
-    input: { fontSize: 15, lineHeight: 20 },
-    sendBtn: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-  });
-}
+  // Voice bubble
+  voiceBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+    minWidth: 180,
+  },
+  voiceBubbleSent: {
+    borderBottomRightRadius: 4,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  voiceBubbleRecv: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    borderBottomLeftRadius: 4,
+  },
+  playBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  playBtnRecv: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  waveform: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    height: 24,
+  },
+  waveBar: { width: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.90)' },
+  waveBarRecv: { width: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.55)' },
+  voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
+
+  // Glass input bar
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  attachBtn: { paddingBottom: 10 },
+  inputWrap: {
+    flex: 1,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    maxHeight: 120,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  input: { fontSize: 15, lineHeight: 20, color: 'rgba(255,255,255,0.92)' },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+});
