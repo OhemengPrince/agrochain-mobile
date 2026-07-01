@@ -139,7 +139,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <Ionicons name="person" size={20} color="#1A6B2E" />
+                <Ionicons name="person" size={20} color={colors.white} />
               </TouchableOpacity>
             </View>
           </View>
@@ -231,7 +231,7 @@ function createStyles(colors: ThemeColors) {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: colors.white,
+      backgroundColor: 'rgba(255,255,255,0.20)',
       alignItems: 'center',
       justifyContent: 'center',
     },

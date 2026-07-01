@@ -255,10 +255,10 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
-                <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
+                <Ionicons name="notifications" size={20} color={colors.white} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
-                <Ionicons name="person" size={20} color={colors.primaryGreen} />
+                <Ionicons name="person" size={20} color={colors.white} />
               </TouchableOpacity>
             </View>
           </View>
@@ -398,7 +398,7 @@ function createStyles(colors: ThemeColors) {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: colors.white,
+      backgroundColor: 'rgba(255,255,255,0.20)',
       alignItems: 'center',
       justifyContent: 'center',
     },

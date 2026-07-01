@@ -341,13 +341,15 @@ function createStyles(colors: ThemeColors) {
       marginTop: 16,
     },
     statPill: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: 'rgba(255,255,255,0.22)',
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
     },
     statPillText: {
-      color: colors.primaryGreen,
+      color: colors.white,
       fontSize: 13,
       fontWeight: '700',
     },
@@ -372,6 +374,8 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       backgroundColor: colors.card,
       paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     tab: {
       flex: 1,
@@ -379,6 +383,7 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 12,
       borderBottomWidth: 3,
       borderBottomColor: 'transparent',
+      backgroundColor: colors.card,
     },
     tabActive: {
       borderBottomColor: colors.primaryGreen,

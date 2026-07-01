@@ -319,9 +319,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 18,
       height: 40,
       borderRadius: 25,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.card,
       borderWidth: 1.5,
-      borderColor: '#E5E7EB',
+      borderColor: colors.border,
       marginRight: 10,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
@@ -330,16 +330,16 @@ function createStyles(colors: ThemeColors) {
       elevation: 1,
     },
     filterChipActive: {
-      backgroundColor: '#1A6B2E',
-      borderColor: '#1A6B2E',
+      backgroundColor: colors.primaryGreen,
+      borderColor: colors.primaryGreen,
     },
     filterChipText: {
       fontSize: 13,
       fontWeight: '600',
-      color: '#6B7280',
+      color: colors.secondaryText,
     },
     filterChipTextActive: {
-      color: '#FFFFFF',
+      color: colors.white,
     },
     sortRow: {
       flexDirection: 'row',

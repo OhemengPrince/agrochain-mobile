@@ -220,10 +220,10 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
                 <View style={styles.headerActions}>
                   <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
-                    <Ionicons name="notifications" size={20} color={colors.primaryGreen} />
+                    <Ionicons name="notifications" size={20} color={colors.white} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
-                    <Ionicons name="person" size={20} color={colors.primaryGreen} />
+                    <Ionicons name="person" size={20} color={colors.white} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -393,7 +393,7 @@ function createStyles(colors: ThemeColors) {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: colors.white,
+      backgroundColor: 'rgba(255,255,255,0.20)',
       alignItems: 'center',
       justifyContent: 'center',
     },
