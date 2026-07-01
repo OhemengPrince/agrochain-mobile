@@ -36,8 +36,8 @@ const SEED: Message[] = [
 ];
 
 export default function ChatScreen({ route, navigation }: { route: { params: ChatParams }; navigation: any }) {
-  const { colors } = useTheme();
-  const s = createStyles(colors);
+  const { colors, isDarkMode } = useTheme();
+  const s = createStyles(colors, isDarkMode);
   const { name, role = 'AgroChain User' } = route.params;
 
   const [messages, setMessages] = useState<Message[]>(SEED);
@@ -63,18 +63,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
 
   const renderItem = ({ item }: { item: Message }) => {
-    // Date separator
     if (item.type === 'sep') {
       return (
         <View style={s.sep}>
-          <View style={s.sepLine} />
-          <Text style={s.sepText}>{item.label}</Text>
-          <View style={s.sepLine} />
+          <View style={s.sepPill}>
+            <Text style={s.sepText}>{item.label}</Text>
+          </View>
         </View>
       );
     }
 
-    // Voice message
     if (item.type === 'voice') {
       return (
         <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
@@ -95,6 +93,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                     style={[
                       s.waveBar,
                       { height: h },
+                      item.sent
+                        ? { backgroundColor: 'rgba(255,255,255,0.85)' }
+                        : { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.35)' },
                       i >= 9 && { opacity: 0.4 },
                     ]}
                   />
@@ -120,7 +121,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       );
     }
 
-    // Text message
     return (
       <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
         {!item.sent && (
@@ -153,44 +153,79 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   return (
     <View style={s.root}>
       {/* ── Header ── */}
-      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.headerGrad}>
-        <SafeAreaView edges={['top']}>
-          <View style={s.headerRow}>
-            <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
-            </TouchableOpacity>
+      {isDarkMode ? (
+        <View style={s.headerDark}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerRow}>
+              <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
+                <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.90)" />
+              </TouchableOpacity>
 
-            {/* Avatar with pulsing active badge */}
-            <View style={{ position: 'relative', marginHorizontal: 4 }}>
-              <View style={s.avatarLarge}>
-                <Text style={s.avatarLargeText}>{initial}</Text>
+              <View style={{ position: 'relative', marginHorizontal: 4 }}>
+                <View style={s.avatarLarge}>
+                  <Text style={s.avatarLargeText}>{initial}</Text>
+                </View>
+                <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
+                  <ActiveIndicator size={11} />
+                </View>
               </View>
-              <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
-                <ActiveIndicator size={11} />
+
+              <View style={s.headerInfo}>
+                <Text style={s.headerName} numberOfLines={1}>{name}</Text>
+                <View style={s.onlineRow}>
+                  <ActiveIndicator size={7} />
+                  <Text style={s.onlineSub}>Active now · {role}</Text>
+                </View>
               </View>
+
+              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+                <Ionicons name="call-outline" size={20} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
+              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+                <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
             </View>
+          </SafeAreaView>
+        </View>
+      ) : (
+        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.headerGrad}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerRow}>
+              <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
+                <Ionicons name="arrow-back" size={22} color="#fff" />
+              </TouchableOpacity>
 
-            <View style={s.headerInfo}>
-              <Text style={s.headerName} numberOfLines={1}>{name}</Text>
-              <View style={s.onlineRow}>
-                <ActiveIndicator size={7} />
-                <Text style={s.onlineSub}>Active now · {role}</Text>
+              <View style={{ position: 'relative', marginHorizontal: 4 }}>
+                <View style={s.avatarLargeLight}>
+                  <Text style={s.avatarLargeText}>{initial}</Text>
+                </View>
+                <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
+                  <ActiveIndicator size={11} />
+                </View>
               </View>
-            </View>
 
-            <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-              <Ionicons name="call-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+              <View style={s.headerInfo}>
+                <Text style={s.headerName} numberOfLines={1}>{name}</Text>
+                <View style={s.onlineRow}>
+                  <ActiveIndicator size={7} />
+                  <Text style={s.onlineSub}>Active now · {role}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+                <Ionicons name="call-outline" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+                <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+      )}
 
       {/* ── Messages + Input ── */}
       <KeyboardAvoidingView
-        style={[s.flex, { backgroundColor: colors.background }]}
+        style={[s.flex, { backgroundColor: s.msgBg.backgroundColor }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
@@ -205,12 +240,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         />
 
         {/* ── Input Bar ── */}
-        <View style={[s.inputBar, { backgroundColor: colors.card }]}>
+        <View style={s.inputBar}>
           <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
             <Ionicons name="attach" size={22} color={colors.secondaryText} />
           </TouchableOpacity>
 
-          <View style={[s.inputWrap, { backgroundColor: colors.inputBackground }]}>
+          <View style={s.inputWrap}>
             <TextInput
               style={[s.input, { color: colors.text }]}
               placeholder="Send a message..."
@@ -237,19 +272,51 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </TouchableOpacity>
           )}
         </View>
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.card }} />
+        <SafeAreaView edges={['bottom']} style={s.inputBarSafe} />
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.primaryGreen },
-    flex: { flex: 1 },
+function createStyles(colors: ThemeColors, isDarkMode: boolean) {
+  // ── palette tokens ──
+  const bgColor = isDarkMode ? '#0E0E10' : '#F4F5F7';
+  const headerDarkBg = 'rgba(20,20,24,0.99)';
+  const headerDarkBorder = 'rgba(255,255,255,0.08)';
 
-    // Header
+  const bubbleSentBg = isDarkMode ? 'rgba(18,68,32,0.92)' : colors.primaryGreen;
+  const bubbleSentBorder = isDarkMode ? 'rgba(60,160,80,0.28)' : 'transparent';
+
+  const bubbleRecvBg = isDarkMode ? 'rgba(30,30,36,0.95)' : '#FFFFFF';
+  const bubbleRecvBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+
+  const inputBarBg = isDarkMode ? 'rgba(14,14,18,0.99)' : '#FFFFFF';
+  const inputBarBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : '#E8EAED';
+
+  const inputBg = isDarkMode ? 'rgba(30,30,36,0.95)' : '#F0F2F5';
+
+  const sepPillBg = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)';
+  const sepTextColor = isDarkMode ? 'rgba(255,255,255,0.55)' : colors.secondaryText;
+
+  const avatarBg = isDarkMode ? 'rgba(255,255,255,0.10)' : colors.primaryGreen;
+  const avatarBorder = isDarkMode ? 'rgba(255,255,255,0.20)' : 'transparent';
+
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: isDarkMode ? '#0E0E10' : colors.primaryGreen },
+    flex: { flex: 1 },
+    msgBg: { backgroundColor: bgColor },
+
+    // ── Dark header ──
+    headerDark: {
+      backgroundColor: headerDarkBg,
+      borderBottomWidth: 1,
+      borderBottomColor: headerDarkBorder,
+      paddingBottom: 12,
+    },
+
+    // ── Light header (gradient wrapper) ──
     headerGrad: { paddingBottom: 12 },
+
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -258,7 +325,21 @@ function createStyles(colors: ThemeColors) {
       gap: 4,
     },
     iconBtn: { padding: 8 },
+
+    // Large avatar — dark mode: glass circle
     avatarLarge: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: avatarBg,
+      borderWidth: 1.5,
+      borderColor: avatarBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginHorizontal: 4,
+    },
+    // Light mode large avatar
+    avatarLargeLight: {
       width: 42,
       height: 42,
       borderRadius: 21,
@@ -270,23 +351,34 @@ function createStyles(colors: ThemeColors) {
       marginHorizontal: 4,
     },
     avatarLargeText: { fontSize: 18, fontWeight: '700', color: '#fff' },
-    headerInfo: { flex: 1 },
-    headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-    onlineSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
 
-    // Date separator
+    headerInfo: { flex: 1 },
+    headerName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#fff',
+    },
+    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+    onlineSub: {
+      fontSize: 12,
+      color: isDarkMode ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.85)',
+    },
+
+    // ── Date separator ──
     sep: {
-      flexDirection: 'row',
       alignItems: 'center',
       marginVertical: 16,
       paddingHorizontal: 16,
-      gap: 10,
     },
-    sepLine: { flex: 1, height: 1, backgroundColor: colors.divider },
-    sepText: { fontSize: 12, color: colors.secondaryText, fontWeight: '600' },
+    sepPill: {
+      backgroundColor: sepPillBg,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+    },
+    sepText: { fontSize: 12, color: sepTextColor, fontWeight: '600' },
 
-    // Messages
+    // ── Messages ──
     list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 4 },
     row: {
       flexDirection: 'row',
@@ -297,12 +389,14 @@ function createStyles(colors: ThemeColors) {
     rowSent: { justifyContent: 'flex-end' },
     rowReceived: { justifyContent: 'flex-start' },
 
-    // Small avatar (received side)
+    // Small avatar
     avatar: {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: colors.primaryGreen,
+      backgroundColor: avatarBg,
+      borderWidth: 1,
+      borderColor: avatarBorder,
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'flex-end',
@@ -310,30 +404,28 @@ function createStyles(colors: ThemeColors) {
     },
     avatarText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-    // Bubble
+    // Bubbles
     bubble: {
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 20,
+      borderWidth: 1,
     },
     bubbleSent: {
-      backgroundColor: colors.primaryGreen,
+      backgroundColor: bubbleSentBg,
+      borderColor: bubbleSentBorder,
       borderBottomRightRadius: 4,
     },
     bubbleReceived: {
-      backgroundColor: colors.card,
+      backgroundColor: bubbleRecvBg,
+      borderColor: bubbleRecvBorder,
       borderBottomLeftRadius: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.07,
-      shadowRadius: 4,
-      elevation: 2,
     },
     bubbleText: { fontSize: 15, lineHeight: 21 },
     bubbleTextSent: { color: '#fff' },
-    bubbleTextRecv: { color: colors.text },
+    bubbleTextRecv: { color: isDarkMode ? 'rgba(255,255,255,0.90)' : colors.text },
 
-    // Time + checkmark row
+    // Time row
     timeMeta: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -341,8 +433,8 @@ function createStyles(colors: ThemeColors) {
       gap: 2,
     },
     time: { fontSize: 11 },
-    timeSent: { color: colors.secondaryText },
-    timeRecv: { color: colors.secondaryText },
+    timeSent: { color: isDarkMode ? 'rgba(255,255,255,0.40)' : colors.secondaryText },
+    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.35)' : colors.secondaryText },
 
     // Voice bubble
     voiceBubble: {
@@ -351,6 +443,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 10,
       paddingVertical: 10,
       borderRadius: 20,
+      borderWidth: 1,
       gap: 8,
       minWidth: 180,
     },
@@ -358,7 +451,7 @@ function createStyles(colors: ThemeColors) {
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: 'rgba(255,255,255,0.25)',
+      backgroundColor: 'rgba(255,255,255,0.20)',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
@@ -373,7 +466,6 @@ function createStyles(colors: ThemeColors) {
     waveBar: {
       width: 3,
       borderRadius: 2,
-      backgroundColor: 'rgba(255,255,255,0.9)',
     },
     voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
 
@@ -384,9 +476,11 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 10,
       paddingVertical: 10,
       gap: 8,
+      backgroundColor: inputBarBg,
       borderTopWidth: 1,
-      borderTopColor: colors.divider,
+      borderTopColor: inputBarBorder,
     },
+    inputBarSafe: { backgroundColor: inputBarBg },
     attachBtn: { paddingBottom: 10 },
     inputWrap: {
       flex: 1,
@@ -394,6 +488,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 16,
       paddingVertical: 10,
       maxHeight: 120,
+      backgroundColor: inputBg,
+      borderWidth: isDarkMode ? 1 : 0,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'transparent',
     },
     input: { fontSize: 15, lineHeight: 20 },
     sendBtn: {

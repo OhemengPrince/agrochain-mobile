@@ -105,11 +105,11 @@ export default function BuyerNavigator() {
       <Tab.Screen
         name="BuyerScanner"
         component={ScannerStack}
-        options={({ route }) => ({
+        options={{
           title: 'Scan QR',
           tabBarIcon: tabBarIcon('qr-code'),
-          tabBarStyle: getTabBarStyleForRoute(route),
-        })}
+          tabBarStyle: { display: 'none' },
+        }}
       />
       <Tab.Screen
         name="BuyerCatalogue"
