@@ -1,17 +1,28 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Image, Alert,
+  KeyboardAvoidingView, Platform, Image, Alert, StyleProp, ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
-type ChatParams = { name: string; role?: string };
+// ─────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────
+
+type ChatParams = {
+  name: string;
+  role?: string;
+  // Pass a local URI or remote URL to swap the chat wallpaper.
+  // Omit (or pass null) to fall back to the default green gradient.
+  wallpaperUri?: string | null;
+};
 
 type Message = {
   id: string;
@@ -22,6 +33,10 @@ type Message = {
   time: string;
   read?: boolean;
 };
+
+// ─────────────────────────────────────────────────────────────
+// Static data — untouched
+// ─────────────────────────────────────────────────────────────
 
 const WAVE_HEIGHTS = [5, 13, 8, 18, 11, 22, 7, 16, 10, 20, 6, 14, 19, 9, 15, 12, 7, 17, 11, 8, 14];
 
@@ -36,10 +51,37 @@ const SEED: Message[] = [
   { id: '7', type: 'text', text: 'Yes please! That works perfectly for me. Thank you!', sent: true, time: '10:17 AM', read: false },
 ];
 
+// ─────────────────────────────────────────────────────────────
+// Glass blur helper
+// On iOS: real BlurView. On Android: opaque fallback tint.
+// ─────────────────────────────────────────────────────────────
+
+function GlassBlur({
+  intensity,
+  tint,
+  style,
+  androidFallbackColor,
+}: {
+  intensity: number;
+  tint: 'light' | 'dark' | 'default';
+  style?: StyleProp<ViewStyle>;
+  androidFallbackColor: string;
+}) {
+  if (Platform.OS === 'ios') {
+    return <BlurView intensity={intensity} tint={tint} style={style} />;
+  }
+  return <View style={[style, { backgroundColor: androidFallbackColor }]} />;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────
+
 export default function ChatScreen({ route, navigation }: { route: { params: ChatParams }; navigation: any }) {
   const { colors, isDarkMode } = useTheme();
-  const { name, role = 'AgroChain User' } = route.params;
+  const { name, role = 'AgroChain User', wallpaperUri = null } = route.params;
 
+  // ── State — untouched ──
   const [messages, setMessages] = useState<Message[]>(SEED);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
@@ -47,6 +89,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
 
+  // ── Profile picture picker — untouched ──
   const handleUpdateProfilePicture = async () => {
     Alert.alert(
       'Update Profile Picture',
@@ -60,11 +103,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               Alert.alert('Permission needed', 'Allow camera access to take a profile photo.');
               return;
             }
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.85,
-            });
+            const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.85 });
             if (!result.canceled) setProfileImageUri(result.assets[0].uri);
           },
         },
@@ -76,12 +115,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               Alert.alert('Permission needed', 'Allow photo library access to choose a profile photo.');
               return;
             }
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.85,
-            });
+            const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85 });
             if (!result.canceled) setProfileImageUri(result.assets[0].uri);
           },
         },
@@ -90,6 +124,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     );
   };
 
+  // ── Send message — untouched ──
   const sendMessage = () => {
     const text = inputText.trim();
     if (!text) return;
@@ -107,7 +142,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   };
 
   const s = createStyles(colors, isDarkMode);
+  const blurTint = isDarkMode ? 'dark' : 'light';
 
+  // ── renderItem — logic untouched, styles reference s ──
   const renderItem = ({ item }: { item: Message }) => {
     if (item.type === 'sep') {
       return (
@@ -124,7 +161,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     if (item.type === 'voice') {
       return (
         <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
-          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
+          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} colors={colors} />}
           <View>
             <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
               <TouchableOpacity style={s.playBtn} activeOpacity={0.8}>
@@ -139,13 +176,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                       { height: h },
                       item.sent
                         ? { backgroundColor: 'rgba(255,255,255,0.85)' }
-                        : { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.30)' },
+                        : { backgroundColor: 'rgba(0,0,0,0.35)' },
                       i >= 9 && { opacity: 0.38 },
                     ]}
                   />
                 ))}
               </View>
-              <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.75)' : colors.secondaryText }]}>
+              <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>
                 0:22
               </Text>
             </View>
@@ -157,7 +194,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     return (
       <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
-        {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
+        {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} colors={colors} />}
         <View style={{ maxWidth: '75%' }}>
           <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
             <Text style={[s.bubbleText, item.sent ? s.bubbleTextSent : s.bubbleTextRecv]}>
@@ -170,14 +207,56 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     );
   };
 
+  // ─────────────────────────────────────────────────────────
+  // JSX  —  Layer order:
+  //   1. Wallpaper   (absoluteFill, behind everything)
+  //   2. Header      (solid green  ← OPTION A, active)
+  //   3. KAV wrapper
+  //      ├─ Message area
+  //      │    ├─ BlurView (absoluteFill over wallpaper)
+  //      │    └─ FlatList (transparent bg, floats above blur)
+  //      └─ Input bar
+  //           ├─ BlurView (absoluteFill)
+  //           ├─ Semi-transparent white overlay
+  //           └─ Input row
+  // ─────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
-      {/* ── Header ── */}
+
+      {/* ══ LAYER 1: Wallpaper ══════════════════════════════════
+          • If wallpaperUri is provided → show the image
+          • Otherwise → default green-tinted gradient placeholder
+          ═══════════════════════════════════════════════════════ */}
+      {wallpaperUri ? (
+        <Image
+          source={{ uri: wallpaperUri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      ) : (
+        <LinearGradient
+          // Default gradient placeholder — looks finished without a custom image
+          colors={
+            isDarkMode
+              ? ['#04251A', '#061F10', '#030E08']  // near-black dark green
+              : ['#0B6E36', '#085C2C', '#04331A']  // rich AgroChain green
+          }
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+
+      {/* ══ HEADER ══════════════════════════════════════════════
+          OPTION A (active): Solid green — picks up brand color cleanly.
+          OPTION B (frosted): Uncomment the block below and remove option A
+          to get a BlurView header that reflects the wallpaper through it.
+          ═══════════════════════════════════════════════════════ */}
+
+      {/* — OPTION A: Solid green header ————————————————————— */}
       {isDarkMode ? (
         <DarkHeader
-          name={name}
-          role={role}
-          initial={initial}
+          name={name} role={role} initial={initial}
           profileImageUri={profileImageUri}
           onBack={() => navigation.goBack()}
           onUpdatePhoto={handleUpdateProfilePicture}
@@ -185,76 +264,126 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         />
       ) : (
         <LightHeader
-          name={name}
-          role={role}
-          initial={initial}
+          name={name} role={role} initial={initial}
           profileImageUri={profileImageUri}
           onBack={() => navigation.goBack()}
           onUpdatePhoto={handleUpdateProfilePicture}
-          s={s}
-          colors={colors}
+          s={s} colors={colors}
         />
       )}
 
-      {/* ── Messages + Input ── */}
+      {/*
+      — OPTION B: Frosted glass green header (picks up wallpaper) ———
+      Replace the header block above with this to enable it:
+
+      <View style={s.frostedHeaderOuter}>
+        <GlassBlur
+          intensity={70} tint={blurTint}
+          style={StyleSheet.absoluteFill}
+          androidFallbackColor={isDarkMode ? 'rgba(4,37,26,0.90)' : 'rgba(11,110,54,0.82)'}
+        />
+        <View style={[StyleSheet.absoluteFill, s.frostedHeaderOverlay]} />
+        {isDarkMode ? (
+          <DarkHeader ... s={s} />
+        ) : (
+          <LightHeader ... s={s} colors={colors} />
+        )}
+      </View>
+      */}
+
+      {/* ══ LAYER 2 + 3: Messages & Input ══════════════════════ */}
       <KeyboardAvoidingView
-        style={s.flex}
+        style={s.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={s.list}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-          showsVerticalScrollIndicator={false}
-          style={{ backgroundColor: s.root.backgroundColor }}
-        />
+        {/* Message area ─────────────────────────────────────── */}
+        <View style={s.messageArea}>
+          {/* BlurView blurs the wallpaper, creating the frosted chat backdrop */}
+          <GlassBlur
+            intensity={isDarkMode ? 40 : 55}
+            tint={blurTint}
+            style={StyleSheet.absoluteFill}
+            androidFallbackColor={isDarkMode ? 'rgba(10,20,12,0.85)' : 'rgba(240,241,243,0.82)'}
+          />
+          {/* Very subtle tint overlay so bubble text stays readable */}
+          <View style={[StyleSheet.absoluteFill, s.messageAreaOverlay]} />
 
-        {/* ── Input Bar ── */}
-        <View style={s.inputBar}>
-          <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
-            <Ionicons name="attach" size={22} color={colors.secondaryText} />
-          </TouchableOpacity>
-
-          <View style={s.inputWrap}>
-            <TextInput
-              style={[s.input, { color: isDarkMode ? '#fff' : colors.text }]}
-              placeholder="Send a message..."
-              placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : colors.secondaryText}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              returnKeyType="send"
-              onSubmitEditing={sendMessage}
-            />
-          </View>
-
-          {inputText.trim() ? (
-            <TouchableOpacity onPress={sendMessage} activeOpacity={0.8}>
-              <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.sendBtn}>
-                <Ionicons name="send" size={17} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity activeOpacity={0.8}>
-              <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.sendBtn}>
-                <Ionicons name="mic" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={s.list}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            showsVerticalScrollIndicator={false}
+            // Must be transparent so the BlurView behind it shows through
+            style={s.flatList}
+          />
         </View>
+
+        {/* Input bar ─────────────────────────────────────────── */}
+        <View style={s.inputBarOuter}>
+          {/* Blur layer */}
+          <GlassBlur
+            intensity={65}
+            tint={blurTint}
+            style={StyleSheet.absoluteFill}
+            androidFallbackColor={isDarkMode ? 'rgba(8,16,10,0.92)' : 'rgba(255,255,255,0.88)'}
+          />
+          {/* Semi-transparent tint on top of blur */}
+          <View style={[StyleSheet.absoluteFill, s.inputBarBlurOverlay]} />
+          {/* Top border line */}
+          <View style={s.inputBarTopBorder} />
+
+          {/* The actual input row */}
+          <View style={s.inputBar}>
+            <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
+              <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
+            </TouchableOpacity>
+
+            <View style={s.inputWrap}>
+              <TextInput
+                style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
+                placeholder="Send a message..."
+                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                returnKeyType="send"
+                onSubmitEditing={sendMessage}
+              />
+            </View>
+
+            {inputText.trim() ? (
+              <TouchableOpacity onPress={sendMessage} activeOpacity={0.8}>
+                <LinearGradient colors={['#0B6E36', '#1B8B50']} style={s.sendBtn}>
+                  <Ionicons name="send" size={17} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity activeOpacity={0.8}>
+                <LinearGradient colors={['#0B6E36', '#1B8B50']} style={s.sendBtn}>
+                  <Ionicons name="mic" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         <SafeAreaView edges={['bottom']} style={s.inputSafeArea} />
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Sub-components — logic untouched, only styles referenced
+// ─────────────────────────────────────────────────────────────
 
-function SmallAvatar({ initial, profileUri, s }: { initial: string; profileUri: string | null; s: any }) {
+function SmallAvatar({ initial, profileUri, s, colors }: {
+  initial: string; profileUri: string | null; s: any; colors: ThemeColors;
+}) {
   return (
     <View style={s.avatarSmall}>
       {profileUri ? (
@@ -276,7 +405,7 @@ function TimeMeta({ sent, time, read, s, colors }: {
         <Ionicons
           name="checkmark-done"
           size={13}
-          color={read ? '#4ade80' : colors.secondaryText}
+          color={read ? '#4ade80' : 'rgba(255,255,255,0.45)'}
           style={{ marginLeft: 2 }}
         />
       )}
@@ -287,14 +416,8 @@ function TimeMeta({ sent, time, read, s, colors }: {
 function AvatarWithCamera({
   initial, profileUri, onUpdatePhoto, largeStyle, imageStyle, textStyle, cameraBadgeStyle, cameraIconColor,
 }: {
-  initial: string;
-  profileUri: string | null;
-  onUpdatePhoto: () => void;
-  largeStyle: any;
-  imageStyle: any;
-  textStyle: any;
-  cameraBadgeStyle: any;
-  cameraIconColor: string;
+  initial: string; profileUri: string | null; onUpdatePhoto: () => void;
+  largeStyle: any; imageStyle: any; textStyle: any; cameraBadgeStyle: any; cameraIconColor: string;
 }) {
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onUpdatePhoto} style={{ position: 'relative' }}>
@@ -305,7 +428,6 @@ function AvatarWithCamera({
           <Text style={textStyle}>{initial}</Text>
         )}
       </View>
-      {/* Camera badge */}
       <View style={cameraBadgeStyle}>
         <Ionicons name="camera" size={11} color={cameraIconColor} />
       </View>
@@ -319,46 +441,38 @@ function DarkHeader({ name, role, initial, profileImageUri, onBack, onUpdatePhot
 }) {
   return (
     <View style={s.darkHeader}>
-      {/* Gloss highlight strip at top */}
       <View style={s.darkHeaderGloss} />
       <SafeAreaView edges={['top']}>
         <View style={s.headerRow}>
           <TouchableOpacity style={s.iconBtn} onPress={onBack} activeOpacity={0.75}>
-            <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.85)" />
+            <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-
           <View style={{ position: 'relative', marginHorizontal: 6 }}>
             <AvatarWithCamera
-              initial={initial}
-              profileUri={profileImageUri}
-              onUpdatePhoto={onUpdatePhoto}
-              largeStyle={s.avatarLargeDark}
-              imageStyle={s.avatarLargeImage}
-              textStyle={s.avatarLargeText}
-              cameraBadgeStyle={s.cameraBadgeDark}
+              initial={initial} profileUri={profileImageUri} onUpdatePhoto={onUpdatePhoto}
+              largeStyle={s.avatarLargeDark} imageStyle={s.avatarLargeImage}
+              textStyle={s.avatarLargeText} cameraBadgeStyle={s.cameraBadgeDark}
               cameraIconColor="rgba(255,255,255,0.90)"
             />
             <View style={{ position: 'absolute', bottom: 2, right: 20 }}>
               <ActiveIndicator size={10} />
             </View>
           </View>
-
           <View style={s.headerInfo}>
-            <Text style={s.headerNameDark} numberOfLines={1}>{name}</Text>
+            <Text style={s.headerName} numberOfLines={1}>{name}</Text>
             <View style={s.onlineRow}>
               <ActiveIndicator size={6} />
-              <Text style={s.onlineSubDark}>Active now · {role}</Text>
+              <Text style={s.onlineSub}>Active now · {role}</Text>
             </View>
           </View>
-
           <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-            <View style={s.headerIconGlass}>
-              <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.80)" />
+            <View style={s.headerIconCircle}>
+              <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.85)" />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-            <View style={s.headerIconGlass}>
-              <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.80)" />
+            <View style={s.headerIconCircle}>
+              <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
             </View>
           </TouchableOpacity>
         </View>
@@ -372,108 +486,119 @@ function LightHeader({ name, role, initial, profileImageUri, onBack, onUpdatePho
   onBack: () => void; onUpdatePhoto: () => void; s: any; colors: ThemeColors;
 }) {
   return (
-    <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.lightHeader}>
+    // Solid #0B6E36 header — clean, brand-accurate, matches the screenshot
+    <View style={s.lightHeader}>
+      {/* Subtle gloss line at very top */}
+      <View style={s.lightHeaderGloss} />
       <SafeAreaView edges={['top']}>
         <View style={s.headerRow}>
           <TouchableOpacity style={s.iconBtn} onPress={onBack} activeOpacity={0.75}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-
           <View style={{ position: 'relative', marginHorizontal: 6 }}>
             <AvatarWithCamera
-              initial={initial}
-              profileUri={profileImageUri}
-              onUpdatePhoto={onUpdatePhoto}
-              largeStyle={s.avatarLargeLight}
-              imageStyle={s.avatarLargeImage}
-              textStyle={s.avatarLargeText}
-              cameraBadgeStyle={s.cameraBadgeLight}
+              initial={initial} profileUri={profileImageUri} onUpdatePhoto={onUpdatePhoto}
+              largeStyle={s.avatarLargeLight} imageStyle={s.avatarLargeImage}
+              textStyle={s.avatarLargeText} cameraBadgeStyle={s.cameraBadgeLight}
               cameraIconColor="#fff"
             />
             <View style={{ position: 'absolute', bottom: 2, right: 20 }}>
               <ActiveIndicator size={10} />
             </View>
           </View>
-
           <View style={s.headerInfo}>
-            <Text style={s.headerNameLight} numberOfLines={1}>{name}</Text>
+            <Text style={s.headerName} numberOfLines={1}>{name}</Text>
             <View style={s.onlineRow}>
               <ActiveIndicator size={6} />
-              <Text style={s.onlineSubLight}>Active now · {role}</Text>
+              <Text style={s.onlineSub}>Active now · {role}</Text>
             </View>
           </View>
-
           <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-            <View style={s.headerIconGlassLight}>
-              <Ionicons name="call-outline" size={18} color="#fff" />
+            <View style={s.headerIconCircle}>
+              <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.85)" />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-            <View style={s.headerIconGlassLight}>
-              <Ionicons name="ellipsis-vertical" size={18} color="#fff" />
+            <View style={s.headerIconCircle}>
+              <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
             </View>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────────────────────────
 
 function createStyles(colors: ThemeColors, isDarkMode: boolean) {
-  const PAGE_BG = isDarkMode ? '#101014' : '#F0F2F5';
+  // ── Sent bubble: solid AgroChain green + glass top-edge sheen
+  const SENT_BG         = '#0B6E36';
+  const SENT_TOP_SHEEN  = 'rgba(255,255,255,0.10)'; // inner highlight, glass feel
 
-  // Glass panel tokens (matches Smart Home reference)
-  const GLASS_BG = isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
-  const GLASS_BORDER = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-  const GLASS_GLOSS = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.80)';
+  // ── Received bubble: frosted white glass — lets wallpaper blur show through
+  const RECV_BG         = isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.58)';
+  const RECV_BORDER     = isDarkMode ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.75)';
+  const RECV_BORDER_TOP = isDarkMode ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.90)'; // gloss on top edge
 
-  const SENT_BG = isDarkMode ? 'rgba(255,255,255,0.07)' : colors.primaryGreen;
-  const SENT_BORDER_TOP = isDarkMode ? 'rgba(255,255,255,0.18)' : 'transparent';
-  const SENT_BORDER = isDarkMode ? 'rgba(60,180,90,0.22)' : 'transparent';
-  // sent bubble gets a green tint overlay via LinearGradient in dark mode
-  const RECV_BG = isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
-  const RECV_BORDER_TOP = isDarkMode ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.06)';
-  const RECV_BORDER = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)';
+  // ── Header: solid green (Option A)
+  const HEADER_BG       = '#0B6E36';
 
-  const INPUT_BAR_BG = isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF';
-  const INPUT_BAR_BORDER = isDarkMode ? 'rgba(255,255,255,0.10)' : '#E5E7EB';
-  const INPUT_FIELD_BG = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F3F4F6';
+  // ── Date separator pill
+  const SEP_BG          = isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.45)';
+  const SEP_BORDER      = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.70)';
+  const SEP_TEXT_COLOR  = isDarkMode ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.55)';
+  const SEP_LINE_COLOR  = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.40)';
 
-  const SEP_BG = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)';
-  const SEP_TEXT = isDarkMode ? 'rgba(255,255,255,0.50)' : colors.secondaryText;
-  const SEP_LINE = isDarkMode ? 'rgba(255,255,255,0.08)' : colors.divider;
+  // ── Input bar overlay on top of BlurView
+  const INPUT_OVERLAY   = isDarkMode ? 'rgba(8,20,10,0.55)' : 'rgba(255,255,255,0.42)';
+  const INPUT_BORDER    = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)';
 
-  const AVATAR_SMALL_BG = isDarkMode ? 'rgba(255,255,255,0.10)' : colors.primaryGreen;
-  const AVATAR_LARGE_DARK_BG = 'rgba(255,255,255,0.10)';
-  const AVATAR_LARGE_DARK_BORDER = 'rgba(255,255,255,0.22)';
+  // ── Text input pill
+  const INPUT_PILL_BG   = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.65)';
+  const INPUT_PILL_BORDER = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.80)';
+
+  // ── Avatar
+  const AVATAR_SMALL_BG  = '#0B6E36';
 
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: PAGE_BG },
-    flex: { flex: 1, backgroundColor: PAGE_BG },
+    // ── Root: transparent so wallpaper bleeds through ──────
+    root: { flex: 1, backgroundColor: 'transparent' },
+    kav:  { flex: 1, backgroundColor: 'transparent' },
 
-    // ── Dark header (glass panel) ──
+    // ── Headers ───────────────────────────────────────────
+    // Option A: Solid green (currently active)
+    lightHeader: {
+      backgroundColor: HEADER_BG,
+      paddingBottom: 14,
+      overflow: 'hidden',
+    },
+    lightHeaderGloss: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0,
+      height: 1,
+      backgroundColor: 'rgba(255,255,255,0.20)',
+    },
     darkHeader: {
-      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
-      borderBottomWidth: 1,
-      borderBottomColor: GLASS_BORDER,
+      backgroundColor: isDarkMode ? 'rgba(6,42,20,0.96)' : HEADER_BG,
       paddingBottom: 14,
       overflow: 'hidden',
     },
     darkHeaderGloss: {
       position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
+      top: 0, left: 0, right: 0,
       height: 1,
-      backgroundColor: GLASS_GLOSS,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    // Option B frosted header styles (used if you enable Option B above)
+    frostedHeaderOuter: { overflow: 'hidden' },
+    frostedHeaderOverlay: {
+      backgroundColor: isDarkMode ? 'rgba(4,37,26,0.75)' : 'rgba(11,110,54,0.75)',
     },
 
-    // ── Light header ──
-    lightHeader: { paddingBottom: 14 },
-
-    // Shared header layout
+    // ── Shared header layout ──────────────────────────────
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -483,218 +608,151 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
     iconBtn: { padding: 8 },
     headerInfo: { flex: 1, paddingLeft: 2 },
-
-    headerNameDark: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.1 },
-    headerNameLight: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.1 },
-
+    headerName: { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: 0.1 },
     onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-    onlineSubDark: { fontSize: 12, color: 'rgba(255,255,255,0.50)' },
-    onlineSubLight: { fontSize: 12, color: 'rgba(255,255,255,0.80)' },
-
-    // Glass icon buttons in header
-    headerIconGlass: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: GLASS_BG,
-      borderWidth: 1,
-      borderColor: GLASS_BORDER,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerIconGlassLight: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.30)',
-      alignItems: 'center',
-      justifyContent: 'center',
+    onlineSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
+    headerIconCircle: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+      alignItems: 'center', justifyContent: 'center',
     },
 
-    // ── Avatars ──
-    avatarLargeDark: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: AVATAR_LARGE_DARK_BG,
-      borderWidth: 1.5,
-      borderColor: AVATAR_LARGE_DARK_BORDER,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-    },
+    // ── Avatars ───────────────────────────────────────────
     avatarLargeLight: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
+      width: 50, height: 50, borderRadius: 25,
       backgroundColor: 'rgba(255,255,255,0.22)',
-      borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.50)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.55)',
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    },
+    avatarLargeDark: {
+      width: 50, height: 50, borderRadius: 25,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.28)',
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
     avatarLargeImage: { width: 50, height: 50, borderRadius: 25 },
     avatarLargeText: { fontSize: 20, fontWeight: '700', color: '#fff' },
-
-    cameraBadgeDark: {
-      position: 'absolute',
-      bottom: -2,
-      right: -2,
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: colors.primaryGreen,
-      borderWidth: 1.5,
-      borderColor: '#101014',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     cameraBadgeLight: {
-      position: 'absolute',
-      bottom: -2,
-      right: -2,
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+      position: 'absolute', bottom: -2, right: -2,
+      width: 22, height: 22, borderRadius: 11,
       backgroundColor: 'rgba(0,0,0,0.55)',
-      borderWidth: 1.5,
-      borderColor: 'rgba(255,255,255,0.50)',
-      alignItems: 'center',
-      justifyContent: 'center',
+      borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.50)',
+      alignItems: 'center', justifyContent: 'center',
     },
-
+    cameraBadgeDark: {
+      position: 'absolute', bottom: -2, right: -2,
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: HEADER_BG,
+      borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.40)',
+      alignItems: 'center', justifyContent: 'center',
+    },
     avatarSmall: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+      width: 30, height: 30, borderRadius: 15,
       backgroundColor: AVATAR_SMALL_BG,
-      borderWidth: 1,
-      borderColor: isDarkMode ? 'rgba(255,255,255,0.18)' : 'transparent',
-      alignItems: 'center',
-      justifyContent: 'center',
-      alignSelf: 'flex-end',
-      flexShrink: 0,
-      overflow: 'hidden',
+      borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.40)',
+      alignItems: 'center', justifyContent: 'center',
+      alignSelf: 'flex-end', flexShrink: 0, overflow: 'hidden',
     },
     avatarSmallImage: { width: 30, height: 30, borderRadius: 15 },
     avatarSmallText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-    // ── Date separator ──
-    sep: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: 18,
-      paddingHorizontal: 16,
-      gap: 10,
+    // ── Message area ──────────────────────────────────────
+    messageArea: { flex: 1, overflow: 'hidden' },
+    messageAreaOverlay: {
+      // Very subtle overlay so text is always legible even without a wallpaper
+      backgroundColor: isDarkMode ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
     },
-    sepLine: { flex: 1, height: 1, backgroundColor: SEP_LINE },
+    flatList: { backgroundColor: 'transparent' },
+    list: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, gap: 4 },
+
+    // ── Date separator ────────────────────────────────────
+    sep: {
+      flexDirection: 'row', alignItems: 'center',
+      marginVertical: 18, paddingHorizontal: 16, gap: 10,
+    },
+    sepLine: { flex: 1, height: 1, backgroundColor: SEP_LINE_COLOR },
     sepPill: {
       backgroundColor: SEP_BG,
-      borderRadius: 20,
-      paddingHorizontal: 14,
-      paddingVertical: 5,
-      borderWidth: 1,
-      borderColor: isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+      borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5,
+      borderWidth: 1, borderColor: SEP_BORDER,
     },
-    sepText: { fontSize: 12, color: SEP_TEXT, fontWeight: '600', letterSpacing: 0.3 },
+    sepText: { fontSize: 12, color: SEP_TEXT_COLOR, fontWeight: '600', letterSpacing: 0.3 },
 
-    // ── Message list ──
-    list: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, gap: 4 },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      marginVertical: 2,
-      gap: 6,
-    },
+    // ── Message rows ──────────────────────────────────────
+    row: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 2, gap: 6 },
     rowSent: { justifyContent: 'flex-end' },
     rowReceived: { justifyContent: 'flex-start' },
 
-    // ── Bubbles ── (glass style)
+    // ── Bubbles ───────────────────────────────────────────
     bubble: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 20,
-      borderWidth: 1,
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderRadius: 20, borderWidth: 1,
     },
+
+    // Sent: solid #0B6E36 + rgba top sheen for glass feel
     bubbleSent: {
-      backgroundColor: isDarkMode ? 'rgba(26,80,42,0.72)' : colors.primaryGreen,
-      borderTopColor: isDarkMode ? SENT_BORDER_TOP : 'transparent',
-      borderColor: isDarkMode ? SENT_BORDER : 'transparent',
+      backgroundColor: SENT_BG,
+      borderColor: 'transparent',
+      borderTopColor: SENT_TOP_SHEEN, // <── glass sheen on top edge
       borderBottomRightRadius: 4,
     },
+
+    // Received: frosted white — wallpaper blur shows through
     bubbleReceived: {
       backgroundColor: RECV_BG,
-      borderTopColor: RECV_BORDER_TOP,
       borderColor: RECV_BORDER,
+      borderTopColor: RECV_BORDER_TOP, // <── brighter top = glass gloss
       borderBottomLeftRadius: 4,
     },
+
     bubbleText: { fontSize: 15, lineHeight: 21 },
     bubbleTextSent: { color: '#fff' },
-    bubbleTextRecv: {
-      color: isDarkMode ? 'rgba(255,255,255,0.90)' : colors.text,
-    },
+    bubbleTextRecv: { color: isDarkMode ? 'rgba(255,255,255,0.92)' : '#111827' },
 
-    // ── Time + checkmark ──
-    timeMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 3,
-      gap: 2,
-    },
+    // ── Time + ticks ──────────────────────────────────────
+    timeMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 2 },
     timeText: { fontSize: 11 },
-    timeSent: { color: isDarkMode ? 'rgba(255,255,255,0.38)' : colors.secondaryText },
-    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.32)' : colors.secondaryText },
+    timeSent: { color: 'rgba(255,255,255,0.55)' },
+    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)' },
 
-    // ── Voice bubble ──
+    // ── Voice bubble ──────────────────────────────────────
     voiceBubble: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      borderRadius: 20,
-      borderWidth: 1,
-      gap: 8,
-      minWidth: 180,
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 10, paddingVertical: 10,
+      borderRadius: 20, borderWidth: 1,
+      gap: 8, minWidth: 180,
     },
     playBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
-      borderWidth: 1,
-      borderColor: isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.50)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
-    waveform: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      height: 24,
-    },
-    waveBar: {
-      width: 3,
-      borderRadius: 2,
-    },
+    waveform: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 24 },
+    waveBar: { width: 3, borderRadius: 2 },
     voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
 
-    // ── Input bar (glass dock) ──
+    // ── Input bar ─────────────────────────────────────────
+    inputBarOuter: {
+      overflow: 'hidden',
+      // No explicit bg — BlurView + overlay provide it
+    },
+    inputBarBlurOverlay: { backgroundColor: INPUT_OVERLAY },
+    inputBarTopBorder: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0,
+      height: 1,
+      backgroundColor: INPUT_BORDER,
+    },
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       paddingHorizontal: 10,
       paddingVertical: 10,
       gap: 8,
-      backgroundColor: INPUT_BAR_BG,
-      borderTopWidth: 1,
-      borderTopColor: INPUT_BAR_BORDER,
     },
-    inputSafeArea: { backgroundColor: INPUT_BAR_BG },
+    inputSafeArea: { backgroundColor: INPUT_OVERLAY },
     attachBtn: { paddingBottom: 10 },
     inputWrap: {
       flex: 1,
@@ -702,17 +760,14 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       paddingHorizontal: 16,
       paddingVertical: 10,
       maxHeight: 120,
-      backgroundColor: INPUT_FIELD_BG,
+      backgroundColor: INPUT_PILL_BG,
       borderWidth: 1,
-      borderColor: isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
+      borderColor: INPUT_PILL_BORDER,
     },
     input: { fontSize: 15, lineHeight: 20 },
     sendBtn: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: 44, height: 44, borderRadius: 22,
+      alignItems: 'center', justifyContent: 'center',
     },
   });
 }
