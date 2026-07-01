@@ -44,6 +44,7 @@ function EquipmentStack() {
       <Stack.Screen name="FarmerEquipmentList" component={EquipmentListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

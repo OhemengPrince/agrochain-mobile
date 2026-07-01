@@ -55,6 +55,7 @@ function BrowseStack() {
       <Stack.Screen name="GeneralEquipmentList" component={EquipmentListScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
