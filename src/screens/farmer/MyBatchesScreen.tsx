@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, TextInput, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, TextInput, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -505,7 +505,7 @@ function createStyles(colors: ThemeColors) {
     fabWrap: {
       position: 'absolute',
       right: 20,
-      bottom: 24,
+      bottom: Platform.OS === 'ios' ? 116 : 100,
     },
     fab: {
       width: 60,
