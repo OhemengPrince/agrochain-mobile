@@ -14,12 +14,11 @@ import AppButton from '../../components/AppButton';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerQrScanner'>;
 
-// NOTE: this screen's overlay intentionally stays fixed-dark regardless of the app theme
-// (camera UIs read best with a dark scrim no matter light/dark mode) — this matches the
-// deliberate choice already made when dark mode was rolled out across the app.
+// The camera overlay stays dark for readability, but UI panels (bottom card, buttons)
+// adapt to the current theme.
 export default function QrScannerScreen({ navigation }: Props) {
-  const { colors } = useTheme();
-  const styles = createStyles(colors);
+  const { colors, isDarkMode } = useTheme();
+  const styles = createStyles(colors, isDarkMode);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -96,11 +95,11 @@ export default function QrScannerScreen({ navigation }: Props) {
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={styles.topBar}>
           <Pressable style={styles.circleButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={22} color="#1C1C1C" />
+            <Ionicons name="chevron-back" size={22} color={isDarkMode ? '#FFFFFF' : '#1C1C1C'} />
           </Pressable>
           <Text style={styles.title}>Scan Produce QR Code</Text>
           <Pressable style={styles.circleButton} onPress={handleToggleTorch}>
-            <Ionicons name={torchOn ? 'flash' : 'flash-outline'} size={20} color="#1C1C1C" />
+            <Ionicons name={torchOn ? 'flash' : 'flash-outline'} size={20} color={isDarkMode ? '#FFFFFF' : '#1C1C1C'} />
           </Pressable>
         </View>
 
@@ -127,11 +126,16 @@ export default function QrScannerScreen({ navigation }: Props) {
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, isDarkMode: boolean) {
+  // Glass tokens (same palette as ChatScreen)
+  const GLASS_BG = 'rgba(255,255,255,0.09)';
+  const GLASS_BORDER = 'rgba(255,255,255,0.16)';
+  const GLASS_GLOSS = 'rgba(255,255,255,0.20)';
+
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#1C1C1C',
+      backgroundColor: '#0E0E10',
     },
     camera: {
       flex: 1,
@@ -152,10 +156,12 @@ function createStyles(colors: ThemeColors) {
       paddingTop: 56,
     },
     circleButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: '#FFFFFF',
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: isDarkMode ? GLASS_BG : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: isDarkMode ? GLASS_BORDER : 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -163,6 +169,7 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
       color: '#FFFFFF',
+      letterSpacing: 0.2,
     },
     frameWrap: {
       flex: 1,
@@ -186,7 +193,7 @@ function createStyles(colors: ThemeColors) {
       borderTopWidth: 4,
       borderLeftWidth: 4,
       borderTopLeftRadius: 8,
-      borderColor: '#2E8B45',
+      borderColor: colors.primaryGreen,
     },
     cornerTopRight: {
       top: 0,
@@ -208,27 +215,33 @@ function createStyles(colors: ThemeColors) {
       borderBottomWidth: 4,
       borderRightWidth: 4,
       borderBottomRightRadius: 8,
-      borderColor: '#2E8B45',
+      borderColor: colors.primaryGreen,
     },
     scanLine: {
       position: 'absolute',
       left: 4,
       right: 4,
       height: 2,
-      backgroundColor: '#2E8B45',
+      backgroundColor: colors.primaryGreen,
     },
     bottomCard: {
-      backgroundColor: '#FFFFFF',
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingVertical: 24,
+      backgroundColor: isDarkMode ? GLASS_BG : '#FFFFFF',
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: isDarkMode ? GLASS_GLOSS : 'transparent',
+      paddingVertical: 28,
       paddingHorizontal: 24,
       alignItems: 'center',
+      gap: 4,
     },
     bottomCardText: {
       fontSize: 14,
-      color: '#6B7280',
+      color: isDarkMode ? 'rgba(255,255,255,0.65)' : '#6B7280',
       textAlign: 'center',
+      lineHeight: 20,
     },
     message: {
       color: colors.white,
