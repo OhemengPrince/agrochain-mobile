@@ -252,7 +252,7 @@ function createStyles(colors: ThemeColors) {
     backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -280,7 +280,7 @@ function createStyles(colors: ThemeColors) {
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.inputBackground,
     borderRadius: 16,
     height: 52,
     paddingHorizontal: 16,
@@ -308,9 +308,9 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 18,
     height: 40,
     borderRadius: 25,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     marginRight: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -325,7 +325,7 @@ function createStyles(colors: ThemeColors) {
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.secondaryText,
   },
   chipTextActive: {
     color: '#FFFFFF',
