@@ -284,7 +284,7 @@ export type AuthStackParamList = {
   CreateAccount: undefined;
   OtpVerify: { email: string };
   ForgotPassword: undefined;
-  ResetPassword: { email: string };
+  ResetPassword: { identifier: string; method: 'email' | 'sms' };
 };
 
 export type MapRouteParams = {

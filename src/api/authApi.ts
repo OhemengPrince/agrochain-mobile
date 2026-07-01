@@ -123,3 +123,27 @@ export async function resetPassword(payload: ResetPasswordPayload): Promise<void
   }
   await apiClient.post('/auth/reset-password', payload);
 }
+
+export async function forgotPasswordSms(payload: { phone: string }): Promise<void> {
+  if (USE_MOCK_DATA) {
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.post('/auth/forgot-password-sms', payload);
+}
+
+export async function verifyResetOtpSms(payload: { phone: string; otp: string }): Promise<void> {
+  if (USE_MOCK_DATA) {
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.post('/auth/verify-reset-otp-sms', payload);
+}
+
+export async function resetPasswordBySms(payload: { phone: string; otp: string; newPassword: string }): Promise<void> {
+  if (USE_MOCK_DATA) {
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.post('/auth/reset-password-sms', payload);
+}
