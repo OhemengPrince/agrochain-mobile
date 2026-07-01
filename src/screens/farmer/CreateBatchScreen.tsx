@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { FarmerStackParamList, InputItem } from '../../types';
 import { createBatch } from '../../api/produceApi';
 import { useTheme } from '../../hooks/useTheme';
@@ -159,8 +160,38 @@ export default function CreateBatchScreen({ navigation }: Props) {
   const [inputs, setInputs] = useState<InputItem[]>([]);
   const [inputName, setInputName] = useState('');
   const [inputQuantity, setInputQuantity] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow camera access to photograph your harvest.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.82,
+    });
+    if (!result.canceled) setImageUri(result.assets[0].uri);
+  };
+
+  const handlePickFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to choose a harvest image.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.82,
+    });
+    if (!result.canceled) setImageUri(result.assets[0].uri);
+  };
 
   const currentStep = !cropName || !quantityKg ? 1 : !region || !district ? 2 : 3;
 
@@ -238,6 +269,39 @@ export default function CreateBatchScreen({ navigation }: Props) {
               );
             })}
           </ScrollView>
+
+          {/* ── Harvest Photo ── */}
+          <Text style={styles.label}>Harvest Photo <Text style={styles.optionalTag}>(optional)</Text></Text>
+          {imageUri ? (
+            <View style={styles.imagePreviewWrap}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+              <Pressable style={styles.removeImageBtn} onPress={() => setImageUri(null)}>
+                <Ionicons name="close-circle" size={28} color="#fff" />
+              </Pressable>
+              <View style={styles.imagePreviewBadge}>
+                <Ionicons name="checkmark-circle" size={14} color="#22c55e" />
+                <Text style={styles.imagePreviewBadgeText}>Photo added</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.imagePickerRow}>
+              <Pressable style={styles.imagePickerBtn} onPress={handleTakePhoto} activeOpacity={0.75}>
+                <LinearGradient
+                  colors={[colors.primaryGreen, colors.primaryGreenLight]}
+                  style={styles.imagePickerBtnInner}
+                >
+                  <Ionicons name="camera-outline" size={22} color="#fff" />
+                  <Text style={styles.imagePickerBtnText}>Camera</Text>
+                </LinearGradient>
+              </Pressable>
+              <Pressable style={styles.imagePickerBtn} onPress={handlePickFromGallery} activeOpacity={0.75}>
+                <View style={[styles.imagePickerBtnInner, styles.imagePickerBtnGallery, { borderColor: colors.primaryGreen, backgroundColor: colors.lightGreen }]}>
+                  <Ionicons name="images-outline" size={22} color={colors.primaryGreen} />
+                  <Text style={[styles.imagePickerBtnText, { color: colors.primaryGreen }]}>Gallery</Text>
+                </View>
+              </Pressable>
+            </View>
+          )}
 
           <Text style={styles.label}>Variety (optional)</Text>
           <TextInput
@@ -597,6 +661,73 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
       color: '#FFFFFF',
+    },
+
+    // ── Image picker ──
+    optionalTag: {
+      fontSize: 12,
+      fontWeight: '400',
+      color: colors.secondaryText,
+    },
+    imagePickerRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    imagePickerBtn: {
+      flex: 1,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    imagePickerBtnInner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      height: 56,
+      borderRadius: 14,
+    },
+    imagePickerBtnGallery: {
+      borderWidth: 1.5,
+      borderStyle: 'dashed' as const,
+    },
+    imagePickerBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    imagePreviewWrap: {
+      borderRadius: 14,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    imagePreview: {
+      width: '100%',
+      height: 190,
+      borderRadius: 14,
+    },
+    removeImageBtn: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      borderRadius: 14,
+    },
+    imagePreviewBadge: {
+      position: 'absolute',
+      bottom: 10,
+      left: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: 'rgba(0,0,0,0.52)',
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    imagePreviewBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#fff',
     },
   });
 }
