@@ -70,6 +70,29 @@ const CONTACT_PREFERENCES: { label: string; value: MarketplaceContactPreference;
 
 const MAX_PHOTOS = 5;
 
+const CATEGORY_HINTS: Record<MarketplaceCategory, { name: string; description: string }> = {
+  PRODUCE: {
+    name: 'e.g. Fresh Maize, Ripe Tomatoes, Cocoa Beans…',
+    description: 'Describe the crop: variety, quality grade, harvest date, packaging, and storage conditions.',
+  },
+  EQUIPMENT: {
+    name: 'e.g. Massey Ferguson Tractor, Combine Harvester…',
+    description: 'Describe the equipment: brand, model, year, working condition, hours used, and what is included.',
+  },
+  SEEDS: {
+    name: 'e.g. Hybrid Maize Seed, Improved Tomato Seed…',
+    description: 'Describe the seed: variety, germination rate, treatment status, source, and packaging size.',
+  },
+  TOOLS: {
+    name: 'e.g. Cutlass, Hand Hoe, Knapsack Sprayer…',
+    description: 'Describe the tool: brand, condition (new/used), size or capacity, and any accessories included.',
+  },
+  OTHER: {
+    name: 'e.g. Fertiliser, Pesticide, Irrigation Pipe, Crates…',
+    description: 'Describe the item clearly: what it is, its condition, quantity available, and relevant specifications.',
+  },
+};
+
 function Chip({
   label,
   active,
@@ -278,7 +301,7 @@ export default function CreateListingScreen({ navigation }: Props) {
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Fresh Maize, Knapsack Sprayer..."
+            placeholder={CATEGORY_HINTS[category].name}
             placeholderTextColor={colors.secondaryText}
           />
 
@@ -287,7 +310,7 @@ export default function CreateListingScreen({ navigation }: Props) {
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe the item, condition, and any other details"
+            placeholder={CATEGORY_HINTS[category].description}
             placeholderTextColor={colors.secondaryText}
             multiline
           />
