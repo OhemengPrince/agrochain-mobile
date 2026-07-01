@@ -61,7 +61,8 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
   const contactPress = usePressAnimation();
 
   const handleContact = () => {
-    Alert.alert('Contact Farmer', 'Messaging is coming soon. This is a placeholder action.');
+    if (!batch) return;
+    navigation.navigate('Chat', { name: batch.farmerName, role: 'Farmer' });
   };
 
   const handleDownloadReport = () => {

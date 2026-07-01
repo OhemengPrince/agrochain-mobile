@@ -89,19 +89,34 @@ function describeText(group: ConditionGroup, windSpeed: number, humidity: number
 
 // ---------- Animated weather effect overlays ----------
 
-function useLoop(duration: number, delay = 0) {
+// Apply the stagger delay ONCE at startup, then loop with zero gap.
+// The previous pattern put the delay inside Animated.loop which caused
+// a visible pause between every cycle.
+function useLoop(duration: number, initialDelay = 0) {
   const value = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     value.setValue(0);
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [duration, delay]);
+    let anim: Animated.CompositeAnimation | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const startLoop = () => {
+      anim = Animated.loop(
+        Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true })
+      );
+      anim.start();
+    };
+
+    if (initialDelay > 0) {
+      timer = setTimeout(startLoop, initialDelay);
+    } else {
+      startLoop();
+    }
+
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+      if (anim !== null) anim.stop();
+    };
+  }, [duration, initialDelay]);
   return value;
 }
 
@@ -180,6 +195,7 @@ function CloudsOverlay() {
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
       <CloudShape index={0} speed={9000} />
       <CloudShape index={1} speed={13000} />
+      <CloudShape index={2} speed={17000} />
     </View>
   );
 }
@@ -221,17 +237,13 @@ function StormFlash() {
 function WeatherEffects({ group }: { group: ConditionGroup }) {
   switch (group) {
     case 'rain':
-      return (
-        <>
-          <RainOverlay count={22} intense />
-        </>
-      );
+      return <RainOverlay count={30} intense />;
     case 'drizzle':
-      return <RainOverlay count={12} />;
+      return <RainOverlay count={16} />;
     case 'storm':
       return (
         <>
-          <RainOverlay count={26} intense />
+          <RainOverlay count={36} intense />
           <StormFlash />
         </>
       );

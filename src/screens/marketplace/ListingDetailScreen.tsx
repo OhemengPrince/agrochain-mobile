@@ -139,12 +139,7 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
 
   const handleContactSeller = () => {
     if (!listing) return;
-    Alert.alert(
-      'Contact Seller',
-      `${listing.sellerName} prefers to be contacted via ${contactPreferenceLabel(
-        listing
-      )}. Messaging is coming soon.`
-    );
+    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller' });
   };
 
   const handleMakeOffer = () => {

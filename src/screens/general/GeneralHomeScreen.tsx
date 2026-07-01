@@ -30,7 +30,7 @@ const QUICK_ACCESS: {
   icon: keyof typeof Ionicons.glyphMap;
   gradient: [string, string];
 }[] = [
-  { key: 'marketplace', label: 'Marketplace', icon: 'storefront', gradient: ['#6A1B9A', '#4A148C'] },
+  { key: 'marketplace', label: 'Marketplace', icon: 'storefront', gradient: ['#1A6B2E', '#2E8B4A'] },
   { key: 'browse', label: 'Browse Equipment', icon: 'construct', gradient: ['#1565C0', '#0D47A1'] },
   { key: 'myListings', label: 'My Listings', icon: 'list', gradient: ['#FF8F00', '#E65100'] },
 ];
@@ -134,12 +134,12 @@ export default function GeneralHomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.header}>
+        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <Ionicons name="person" size={20} color="#8E24AA" />
+                <Ionicons name="person" size={20} color="#1A6B2E" />
               </TouchableOpacity>
             </View>
           </View>

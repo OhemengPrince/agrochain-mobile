@@ -300,6 +300,7 @@ export type MarketplaceStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   Map: MapRouteParams;
+  Chat: { name: string; role?: string };
 };
 
 export type FarmerStackParamList = {

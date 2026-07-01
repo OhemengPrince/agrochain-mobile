@@ -40,6 +40,7 @@ function CatalogueStack() {
       <Stack.Screen name="BuyerCatalogueList" component={CatalogueScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -50,6 +51,7 @@ function ScannerStack() {
       <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -62,6 +64,7 @@ function MarketStack() {
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
