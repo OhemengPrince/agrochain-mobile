@@ -604,7 +604,7 @@ function createStyles(colors: ThemeColors) {
     },
     contactActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 16,
     },
     contactActionCircle: {
       width: 32,
