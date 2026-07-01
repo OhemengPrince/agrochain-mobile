@@ -250,7 +250,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
   };
 
   const handleContact = (listing: MarketplaceListing) => {
-    Alert.alert('Coming soon', 'In-app messaging is not available yet.');
+    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller' });
   };
 
   if (loading) {
