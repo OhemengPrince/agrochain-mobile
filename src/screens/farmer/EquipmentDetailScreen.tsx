@@ -248,9 +248,17 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
                   {equipment.district}, {equipment.region} Region
                 </Text>
               </View>
-              <Pressable onPress={comingSoon} style={styles.viewMapRow}>
+              <Pressable
+                style={styles.viewMapRow}
+                onPress={() => navigation.navigate('Map', {
+                  title: equipment.name,
+                  subtitle: 'Equipment',
+                  district: equipment.district,
+                  region: equipment.region,
+                })}
+              >
                 <Text style={styles.viewMapText}>View on Map</Text>
-                <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
+                <Ionicons name="map" size={12} color={colors.primaryGreen} />
               </Pressable>
             </View>
             <Text style={styles.distanceText}>12.5 km from you</Text>

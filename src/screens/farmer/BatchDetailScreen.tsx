@@ -246,6 +246,18 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
                 <Ionicons name="location-outline" size={12} color={colors.secondaryText} />
                 <Text style={styles.metaText}>{batch.district}, {batch.region}</Text>
               </View>
+              <Pressable
+                style={styles.metaRow}
+                onPress={() => navigation.navigate('Map', {
+                  title: batch.cropName,
+                  subtitle: 'Farm',
+                  district: batch.district,
+                  region: batch.region,
+                })}
+              >
+                <Ionicons name="map" size={12} color={colors.primaryGreen} />
+                <Text style={[styles.metaText, { color: colors.primaryGreen, fontWeight: '600' }]}>View on Map</Text>
+              </Pressable>
               <View style={styles.metaRow}>
                 <Ionicons name="calendar-outline" size={12} color={colors.secondaryText} />
                 <Text style={styles.metaText}>{formatDate(batch.harvestedDate ?? batch.createdAt)}</Text>

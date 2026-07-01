@@ -21,6 +21,7 @@ import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
+import MapScreen from '../screens/shared/MapScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -32,6 +33,7 @@ function HomeStack() {
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FarmerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -41,6 +43,7 @@ function EquipmentStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerEquipmentList" component={EquipmentListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -62,6 +65,7 @@ function MarketStack() {
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -72,6 +76,7 @@ function TraceabilityStack() {
       <Stack.Screen name="FarmerBatchesList" component={MyBatchesScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateBatch" component={CreateBatchScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BatchDetail" component={BatchDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

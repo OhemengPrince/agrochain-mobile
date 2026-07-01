@@ -287,11 +287,19 @@ export type AuthStackParamList = {
   ResetPassword: { email: string };
 };
 
+export type MapRouteParams = {
+  title: string;
+  subtitle: string;
+  district: string;
+  region: string;
+};
+
 export type MarketplaceStackParamList = {
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
+  Map: MapRouteParams;
 };
 
 export type FarmerStackParamList = {
@@ -317,6 +325,7 @@ export type FarmerStackParamList = {
   MyMarketplaceListings: undefined;
   FarmerNews: undefined;
   Chat: { name: string; role?: string };
+  Map: MapRouteParams;
 };
 
 export type OwnerStackParamList = {
@@ -340,6 +349,7 @@ export type OwnerStackParamList = {
   MyMarketplaceListings: undefined;
   OwnerNews: undefined;
   Chat: { name: string; role?: string };
+  Map: MapRouteParams;
 };
 
 export type BuyerStackParamList = {
@@ -361,6 +371,7 @@ export type BuyerStackParamList = {
   MyMarketplaceListings: undefined;
   BuyerNews: undefined;
   Chat: { name: string; role?: string };
+  Map: MapRouteParams;
 };
 
 export type GeneralStackParamList = {
@@ -379,4 +390,5 @@ export type GeneralStackParamList = {
   MyMarketplaceListings: undefined;
   GeneralNews: undefined;
   Chat: { name: string; role?: string };
+  Map: MapRouteParams;
 };

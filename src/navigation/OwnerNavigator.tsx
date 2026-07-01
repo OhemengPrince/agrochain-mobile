@@ -19,6 +19,7 @@ import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
+import MapScreen from '../screens/shared/MapScreen';
 
 const Tab = createBottomTabNavigator<OwnerStackParamList>();
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -59,6 +60,7 @@ function MarketStack() {
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

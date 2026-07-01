@@ -15,6 +15,7 @@ import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen
 import EquipmentListScreen from '../screens/farmer/EquipmentListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
+import MapScreen from '../screens/shared/MapScreen';
 
 const Tab = createBottomTabNavigator<GeneralStackParamList>();
 const Stack = createNativeStackNavigator<GeneralStackParamList>();
@@ -34,6 +35,7 @@ function MarketStack() {
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -51,6 +53,7 @@ function BrowseStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="GeneralEquipmentList" component={EquipmentListScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen as any} options={{ headerShown: false }} />
+      <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

@@ -158,9 +158,23 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
           </View>
           <View style={[styles.row, !batch.pricePerKg && styles.rowLast]}>
             <Text style={styles.label}>Farm Location</Text>
-            <View style={styles.locationValueRow}>
-              <Ionicons name="location" size={13} color={colors.secondaryText} />
-              <Text style={styles.value}>{batch.district}, {batch.region}</Text>
+            <View style={{ alignItems: 'flex-end', gap: 4 }}>
+              <View style={styles.locationValueRow}>
+                <Ionicons name="location" size={13} color={colors.secondaryText} />
+                <Text style={styles.value}>{batch.district}, {batch.region}</Text>
+              </View>
+              <Pressable
+                style={styles.viewMapBtn}
+                onPress={() => navigation.navigate('Map', {
+                  title: batch.cropName,
+                  subtitle: 'Farm',
+                  district: batch.district,
+                  region: batch.region,
+                })}
+              >
+                <Ionicons name="map" size={11} color={colors.primaryGreen} />
+                <Text style={[styles.viewMapText, { color: colors.primaryGreen }]}>View on Map</Text>
+              </Pressable>
             </View>
           </View>
           {batch.pricePerKg !== undefined && (
@@ -520,6 +534,15 @@ function createStyles(colors: ThemeColors) {
     },
     actionButton: {
       width: '100%',
+    },
+    viewMapBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    viewMapText: {
+      fontSize: 11,
+      fontWeight: '600',
     },
   });
 }

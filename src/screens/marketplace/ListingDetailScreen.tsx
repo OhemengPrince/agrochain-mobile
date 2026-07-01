@@ -224,9 +224,23 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             ) : null}
           </View>
 
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={16} color={colors.secondaryText} />
-            <Text style={styles.locationText}>{listing.district}, {listing.region}</Text>
+          <View style={styles.locationBlockRow}>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={16} color={colors.secondaryText} />
+              <Text style={styles.locationText}>{listing.district}, {listing.region}</Text>
+            </View>
+            <Pressable
+              style={styles.viewMapBtn}
+              onPress={() => navigation.navigate('Map', {
+                title: listing.name,
+                subtitle: listing.sellerName,
+                district: listing.district,
+                region: listing.region,
+              })}
+            >
+              <Ionicons name="map" size={13} color={colors.primaryGreen} />
+              <Text style={styles.viewMapText}>View on Map</Text>
+            </Pressable>
           </View>
 
           <View style={styles.section}>
@@ -439,15 +453,30 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       color: colors.secondaryText,
     },
+    locationBlockRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
     locationRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 8,
     },
     locationText: {
       fontSize: 14,
       color: colors.secondaryText,
+    },
+    viewMapBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    viewMapText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primaryGreen,
     },
     section: {
       marginTop: 20,
