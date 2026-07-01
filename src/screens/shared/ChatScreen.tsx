@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, Alert, Modal,
@@ -13,7 +13,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
-// Bundled default wallpaper — used when user hasn't picked a custom one
+// Bundled default wallpaper — always shown unless user picks a custom one
 const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
 
 // ─────────────────────────────────────────────────────────────
@@ -54,7 +54,8 @@ const SEED: Message[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// GlassBlur helper
+// GlassBlur — iOS: real BlurView, Android: semi-transparent fallback
+// Keep opacity LOW so wallpaper remains visible in both themes
 // ─────────────────────────────────────────────────────────────
 
 function GlassBlur({
@@ -80,23 +81,72 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const insets = useSafeAreaInsets();
   const { name, role = 'AgroChain User' } = route.params;
 
-  // null = show DEFAULT_WALLPAPER; string uri = show custom picked image
+  // null = show DEFAULT_WALLPAPER; string uri = custom picked image
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);
   const [messages, setMessages] = useState<Message[]>(SEED);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+
+  // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [callOptionsVisible, setCallOptionsVisible] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(false);
+
+  // Search state
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [matchCursor, setMatchCursor] = useState(0);
+
   const [muted, setMuted] = useState(false);
   const listRef = useRef<FlatList>(null);
+  const searchInputRef = useRef<TextInput>(null);
 
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
   const s = createStyles(colors, isDarkMode);
   const blurTint = isDarkMode ? 'dark' : 'light';
 
-  // ── Profile picture picker (accessible from options panel avatar) ──
+  // ── Search logic ──────────────────────────────────────────
+  const matchedIds = useMemo<Set<string>>(() => {
+    if (!searchQuery.trim()) return new Set();
+    const q = searchQuery.toLowerCase();
+    const set = new Set<string>();
+    messages.forEach((m) => {
+      if (m.type === 'text' && m.text?.toLowerCase().includes(q)) set.add(m.id);
+    });
+    return set;
+  }, [searchQuery, messages]);
+
+  const matchedList = useMemo(
+    () => messages.filter((m) => matchedIds.has(m.id)),
+    [matchedIds, messages],
+  );
+
+  const navigateMatch = useCallback((direction: 1 | -1) => {
+    if (matchedList.length === 0) return;
+    const next = (matchCursor + direction + matchedList.length) % matchedList.length;
+    setMatchCursor(next);
+    const targetId = matchedList[next].id;
+    const idx = messages.findIndex((m) => m.id === targetId);
+    if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
+  }, [matchCursor, matchedList, messages]);
+
+  const openSearch = useCallback(() => {
+    setOptionsVisible(false);
+    setSearchVisible(true);
+    setSearchQuery('');
+    setMatchCursor(0);
+    setTimeout(() => searchInputRef.current?.focus(), 150);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setSearchVisible(false);
+    setSearchQuery('');
+    setMatchCursor(0);
+  }, []);
+
+  // ── Profile picture picker ────────────────────────────────
   const handleUpdateProfilePicture = async () => {
-    Alert.alert('Update Contact Photo', 'Choose how you want to update the photo.', [
+    Alert.alert('Update Contact Photo', 'Choose a photo source.', [
       {
         text: 'Camera',
         onPress: async () => {
@@ -122,19 +172,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   // ── Wallpaper picker ──────────────────────────────────────
   const handleChangeWallpaper = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to choose a wallpaper.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setWallpaperUri(result.assets[0].uri);
-      setOptionsVisible(false);
-    }
+    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to choose a wallpaper.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1 });
+    if (!result.canceled) { setWallpaperUri(result.assets[0].uri); setOptionsVisible(false); }
   };
 
   // ── Clear chat ────────────────────────────────────────────
@@ -142,8 +182,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     Alert.alert('Clear Chat', 'All messages will be deleted. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Clear',
-        style: 'destructive',
+        text: 'Clear', style: 'destructive',
         onPress: () => {
           setMessages([{ id: 'sep1', type: 'sep', label: 'Today', sent: false, time: '' }]);
           setOptionsVisible(false);
@@ -157,10 +196,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const text = inputText.trim();
     if (!text) return;
     const msg: Message = {
-      id: Date.now().toString(),
-      type: 'text',
-      text,
-      sent: true,
+      id: Date.now().toString(), type: 'text', text, sent: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       read: false,
     };
@@ -171,6 +207,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // ── renderItem ────────────────────────────────────────────
   const renderItem = ({ item }: { item: Message }) => {
+    const isMatch = matchedIds.has(item.id);
+
     if (item.type === 'sep') {
       return (
         <View style={s.sep}>
@@ -183,7 +221,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     if (item.type === 'voice') {
       return (
-        <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
+        <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
           {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
           <View>
             <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
@@ -192,14 +230,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               </TouchableOpacity>
               <View style={s.waveform}>
                 {WAVE_HEIGHTS.map((h, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      s.waveBar, { height: h },
-                      item.sent ? { backgroundColor: 'rgba(255,255,255,0.85)' } : { backgroundColor: 'rgba(0,0,0,0.35)' },
-                      i >= 9 && { opacity: 0.38 },
-                    ]}
-                  />
+                  <View key={i} style={[s.waveBar, { height: h },
+                    item.sent ? { backgroundColor: 'rgba(255,255,255,0.85)' } : { backgroundColor: 'rgba(0,0,0,0.35)' },
+                    i >= 9 && { opacity: 0.38 }]} />
                 ))}
               </View>
               <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>0:22</Text>
@@ -211,11 +244,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     }
 
     return (
-      <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
+      <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
         {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
         <View style={{ maxWidth: '75%' }}>
           <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-            <Text style={[s.bubbleText, item.sent ? s.bubbleTextSent : s.bubbleTextRecv]}>{item.text}</Text>
+            <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
           </View>
           <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
         </View>
@@ -226,12 +259,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   return (
     <View style={s.root}>
 
-      {/* ── LAYER 1: Wallpaper ── */}
-      {/* Always show the bundled default; custom uri overrides it */}
+      {/* ── LAYER 1: Wallpaper — always visible; theme change must NOT hide it ── */}
       <Image
         source={wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
+        // key forces re-mount when source type changes, preventing stale blank frame
+        key={wallpaperUri ?? 'default'}
       />
 
       {/* ── LAYER 2: Header ── */}
@@ -245,20 +279,53 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         colors={colors} s={s}
       />
 
-      {/* ── LAYER 3: Messages + Input ── */}
+      {/* ── LAYER 3: Search bar (below header, above messages) ── */}
+      {searchVisible && (
+        <View style={s.searchBar}>
+          <TouchableOpacity onPress={closeSearch} style={s.searchClose}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <TextInput
+            ref={searchInputRef}
+            style={s.searchInput}
+            placeholder="Search messages…"
+            placeholderTextColor={colors.secondaryText}
+            value={searchQuery}
+            onChangeText={(t) => { setSearchQuery(t); setMatchCursor(0); }}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Text style={s.searchCount}>
+              {matchedList.length > 0 ? `${matchCursor + 1}/${matchedList.length}` : '0'}
+            </Text>
+          )}
+          <TouchableOpacity onPress={() => navigateMatch(-1)} style={s.searchNav} disabled={matchedList.length === 0}>
+            <Ionicons name="chevron-up" size={20} color={matchedList.length > 0 ? colors.primaryGreen : colors.secondaryText} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMatch(1)} style={s.searchNav} disabled={matchedList.length === 0}>
+            <Ionicons name="chevron-down" size={20} color={matchedList.length > 0 ? colors.primaryGreen : colors.secondaryText} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={closeSearch} style={s.searchClose}>
+            <Ionicons name="close" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── LAYER 4: Messages + Input ── */}
       <KeyboardAvoidingView
         style={s.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Message area */}
+        {/* Message area — LOW opacity glass so wallpaper stays visible */}
         <View style={s.messageArea}>
           <GlassBlur
-            intensity={isDarkMode ? 40 : 55} tint={blurTint}
+            intensity={isDarkMode ? 18 : 20}
+            tint={blurTint}
             style={StyleSheet.absoluteFill}
-            androidFallbackColor={isDarkMode ? 'rgba(10,20,12,0.85)' : 'rgba(240,241,243,0.82)'}
+            androidFallbackColor={isDarkMode ? 'rgba(4,10,5,0.48)' : 'rgba(255,255,255,0.38)'}
           />
-          <View style={[StyleSheet.absoluteFill, s.messageAreaOverlay]} />
           <FlatList
             ref={listRef}
             data={messages}
@@ -268,15 +335,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
             showsVerticalScrollIndicator={false}
             style={s.flatList}
+            onScrollToIndexFailed={() => {}}
           />
         </View>
 
-        {/* Input bar + bottom safe area — all inside one BlurView container */}
+        {/* Input bar + bottom safe area inside one BlurView container */}
         <View style={s.inputBarOuter}>
           <GlassBlur
-            intensity={65} tint={blurTint}
+            intensity={60} tint={blurTint}
             style={StyleSheet.absoluteFill}
-            androidFallbackColor={isDarkMode ? 'rgba(8,16,10,0.92)' : 'rgba(255,255,255,0.88)'}
+            androidFallbackColor={isDarkMode ? 'rgba(4,10,5,0.88)' : 'rgba(255,255,255,0.88)'}
           />
           <View style={[StyleSheet.absoluteFill, s.inputBarBlurOverlay]} />
           <View style={s.inputBarTopBorder} />
@@ -312,24 +380,22 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             )}
           </View>
 
-          {/* Bottom safe area inside the glass container */}
           <View style={{ height: insets.bottom }} />
         </View>
       </KeyboardAvoidingView>
 
-      {/* ── LAYER 4: Contact options panel ── */}
+      {/* ── LAYER 5: Contact options panel ── */}
       <ChatOptionsPanel
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
-        name={name}
-        role={role}
-        initial={initial}
+        name={name} role={role} initial={initial}
         profileImageUri={profileImageUri}
         muted={muted}
         hasCustomWallpaper={wallpaperUri !== null}
-        colors={colors}
-        isDarkMode={isDarkMode}
+        colors={colors} isDarkMode={isDarkMode}
         onUpdatePhoto={handleUpdateProfilePicture}
+        onViewProfile={() => { setOptionsVisible(false); setProfileVisible(true); }}
+        onSearchInChat={openSearch}
         onMuteToggle={() => setMuted((p) => !p)}
         onChangeWallpaper={handleChangeWallpaper}
         onRestoreWallpaper={() => { setWallpaperUri(null); setOptionsVisible(false); }}
@@ -338,13 +404,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onReport={() => { setOptionsVisible(false); Alert.alert('Report', 'This feature is coming soon.'); }}
       />
 
-      {/* ── LAYER 5: Call options panel (three-dots) ── */}
+      {/* ── LAYER 6: Call options panel ── */}
       <CallOptionsPanel
         visible={callOptionsVisible}
         onClose={() => setCallOptionsVisible(false)}
-        name={name}
-        colors={colors}
-        isDarkMode={isDarkMode}
+        name={name} colors={colors} isDarkMode={isDarkMode}
+      />
+
+      {/* ── LAYER 7: Contact profile modal ── */}
+      <ContactProfileModal
+        visible={profileVisible}
+        onClose={() => setProfileVisible(false)}
+        name={name} role={role} initial={initial}
+        profileImageUri={profileImageUri}
+        onUpdatePhoto={handleUpdateProfilePicture}
+        colors={colors} isDarkMode={isDarkMode}
       />
     </View>
   );
@@ -352,15 +426,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
 // ─────────────────────────────────────────────────────────────
 // ChatHeader
-// Avatar/name → contact profile menu
-// Three dots → call options (audio / video)
 // ─────────────────────────────────────────────────────────────
 
 function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s }: {
   name: string; role: string; initial: string; profileImageUri: string | null;
   isDarkMode: boolean; onBack: () => void;
-  onContactPress: () => void;
-  onDotsPress: () => void;
+  onContactPress: () => void; onDotsPress: () => void;
   colors: ThemeColors; s: any;
 }) {
   return (
@@ -368,30 +439,23 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
       <View style={s.headerGloss} />
       <SafeAreaView edges={['top']}>
         <View style={s.headerRow}>
-          {/* Back */}
           <TouchableOpacity style={s.iconBtn} onPress={onBack} activeOpacity={0.75}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
 
-          {/* Avatar + info — tap opens contact profile/options menu */}
-          <TouchableOpacity
-            style={s.headerCenter}
-            onPress={onContactPress}
-            activeOpacity={0.8}
-          >
-            {/* Avatar — no camera badge here; photo editing is in the options panel */}
-            <View style={s.avatarLargeWrap}>
-              {profileImageUri ? (
-                <Image source={{ uri: profileImageUri }} style={s.avatarLargeImage} />
-              ) : (
-                <Text style={s.avatarLargeText}>{initial}</Text>
-              )}
+          <TouchableOpacity style={s.headerCenter} onPress={onContactPress} activeOpacity={0.8}>
+            <View style={{ position: 'relative' }}>
+              <View style={s.avatarLargeWrap}>
+                {profileImageUri ? (
+                  <Image source={{ uri: profileImageUri }} style={s.avatarLargeImage} />
+                ) : (
+                  <Text style={s.avatarLargeText}>{initial}</Text>
+                )}
+              </View>
+              <View style={{ position: 'absolute', bottom: 0, right: 0 }}>
+                <ActiveIndicator size={10} />
+              </View>
             </View>
-            <View style={{ position: 'absolute', left: 34, bottom: -2 }}>
-              <ActiveIndicator size={10} />
-            </View>
-
-            {/* Name + status */}
             <View style={s.headerInfo}>
               <Text style={s.headerName} numberOfLines={1}>{name}</Text>
               <View style={s.onlineRow}>
@@ -401,7 +465,6 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
             </View>
           </TouchableOpacity>
 
-          {/* Three dots → audio/video call options */}
           <TouchableOpacity style={s.iconBtn} onPress={onDotsPress} activeOpacity={0.75}>
             <View style={s.headerIconCircle}>
               <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
@@ -414,8 +477,114 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 }
 
 // ─────────────────────────────────────────────────────────────
-// CallOptionsPanel — slides up when three-dots pressed
-// Shows Voice Call + Video Call
+// ContactProfileModal — full-screen slide-up profile view
+// ─────────────────────────────────────────────────────────────
+
+function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, onUpdatePhoto, colors, isDarkMode }: {
+  visible: boolean; onClose: () => void;
+  name: string; role: string; initial: string; profileImageUri: string | null;
+  onUpdatePhoto: () => void; colors: ThemeColors; isDarkMode: boolean;
+}) {
+  const bg = isDarkMode ? '#0F0F12' : '#F8F9FA';
+  const cardBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
+  const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
+  const subColor = isDarkMode ? 'rgba(255,255,255,0.50)' : '#6B7280';
+  const borderColor = isDarkMode ? 'rgba(255,255,255,0.08)' : '#EFEFEF';
+
+  const infoRows = [
+    { icon: 'briefcase-outline', label: 'Role', value: role },
+    { icon: 'location-outline', label: 'Region', value: 'Ashanti Region, Ghana' },
+    { icon: 'call-outline', label: 'Phone', value: '+233 XX XXX XXXX' },
+    { icon: 'calendar-outline', label: 'Member since', value: 'January 2024' },
+    { icon: 'shield-checkmark-outline', label: 'Status', value: 'Verified AgroChain Member' },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: bg }}>
+        {/* Green gradient header */}
+        <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={{ paddingBottom: 36, overflow: 'hidden' }}>
+          <SafeAreaView edges={['top']}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingTop: 8 }}>
+              <TouchableOpacity onPress={onClose} style={{ padding: 10 }} activeOpacity={0.75}>
+                <Ionicons name="arrow-back" size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
+                Profile
+              </Text>
+              <TouchableOpacity onPress={onUpdatePhoto} style={{ padding: 10 }} activeOpacity={0.75}>
+                <Ionicons name="create-outline" size={22} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        {/* Avatar — overlaps the gradient */}
+        <View style={{ alignItems: 'center', marginTop: -52 }}>
+          <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
+            <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: colors.primaryGreen, borderWidth: 4, borderColor: cardBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={{ width: 104, height: 104 }} />
+              ) : (
+                <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff' }}>{initial}</Text>
+              )}
+            </View>
+            <View style={{ position: 'absolute', bottom: 2, right: 2, width: 30, height: 30, borderRadius: 15, backgroundColor: '#0B6E36', borderWidth: 2.5, borderColor: cardBg, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <Text style={{ fontSize: 22, fontWeight: '800', color: labelColor, marginTop: 14, letterSpacing: 0.2 }}>{name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+            <ActiveIndicator size={7} />
+            <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: '600' }}>Active now</Text>
+          </View>
+        </View>
+
+        {/* Action buttons */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 24, marginBottom: 8, paddingHorizontal: 20 }}>
+          {[
+            { icon: 'chatbubble-ellipses', label: 'Message', onPress: onClose },
+            { icon: 'call', label: 'Voice Call', onPress: () => Alert.alert('Voice Call', 'Coming soon.') },
+            { icon: 'videocam', label: 'Video', onPress: () => Alert.alert('Video Call', 'Coming soon.') },
+          ].map((btn) => (
+            <TouchableOpacity key={btn.label} onPress={btn.onPress} activeOpacity={0.8} style={{ alignItems: 'center', flex: 1 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                <Ionicons name={btn.icon as any} size={24} color="#fff" />
+              </View>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: subColor }}>{btn.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Info card */}
+        <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+          <View style={{ backgroundColor: cardBg, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: borderColor }}>
+            {infoRows.map((row, i) => (
+              <View key={row.label}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 14 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.07)' : '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={row.icon as any} size={18} color={colors.primaryGreen} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: subColor, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 }}>{row.label}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: labelColor }}>{row.value}</Text>
+                  </View>
+                </View>
+                {i < infoRows.length - 1 && <View style={{ height: 1, backgroundColor: borderColor, marginLeft: 68 }} />}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        <SafeAreaView edges={['bottom']} />
+      </View>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CallOptionsPanel — audio / video call
 // ─────────────────────────────────────────────────────────────
 
 function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
@@ -428,29 +597,16 @@ function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
   const divider = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }}
-        activeOpacity={1}
-        onPress={onClose}
-      />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32 }}>
-        {/* Drag handle */}
         <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 16 }}>
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
         </View>
-
         <Text style={{ fontSize: 13, fontWeight: '700', color: subColor, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 12 }}>
           Call {name}
         </Text>
 
-        {/* Voice Call */}
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
           onPress={() => { onClose(); Alert.alert('Voice Call', 'Voice calling is coming soon.'); }}
@@ -468,7 +624,6 @@ function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
 
         <View style={{ height: 1, backgroundColor: divider, marginLeft: 88 }} />
 
-        {/* Video Call */}
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
           onPress={() => { onClose(); Alert.alert('Video Call', 'Video calling is coming soon.'); }}
@@ -491,26 +646,21 @@ function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ChatOptionsPanel — WhatsApp-style contact sheet
+// ChatOptionsPanel — WhatsApp-style bottom sheet
 // ─────────────────────────────────────────────────────────────
 
-type OptionItem = {
-  icon: string;
-  label: string;
-  sublabel?: string;
-  color?: string;
-  onPress: () => void;
-};
+type OptionItem = { icon: string; label: string; sublabel?: string; color?: string; onPress: () => void; };
 
 function ChatOptionsPanel({
   visible, onClose, name, role, initial, profileImageUri,
   muted, hasCustomWallpaper, colors, isDarkMode,
-  onUpdatePhoto, onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, onReport,
+  onUpdatePhoto, onViewProfile, onSearchInChat,
+  onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, onReport,
 }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
   muted: boolean; hasCustomWallpaper: boolean; colors: ThemeColors; isDarkMode: boolean;
-  onUpdatePhoto: () => void;
+  onUpdatePhoto: () => void; onViewProfile: () => void; onSearchInChat: () => void;
   onMuteToggle: () => void; onChangeWallpaper: () => void; onRestoreWallpaper: () => void;
   onClearChat: () => void; onBlock: () => void; onReport: () => void;
 }) {
@@ -522,16 +672,12 @@ function ChatOptionsPanel({
 
   const options: OptionItem[] = [
     {
-      icon: 'person-circle-outline',
-      label: 'View Profile',
-      sublabel: 'See full profile information',
-      onPress: () => { onClose(); Alert.alert('View Profile', 'Profile view coming soon.'); },
+      icon: 'person-circle-outline', label: 'View Profile', sublabel: 'See full profile information',
+      onPress: onViewProfile,
     },
     {
-      icon: 'search-outline',
-      label: 'Search in Chat',
-      sublabel: 'Find messages',
-      onPress: () => { onClose(); Alert.alert('Search', 'Search coming soon.'); },
+      icon: 'search-outline', label: 'Search in Chat', sublabel: 'Find messages',
+      onPress: onSearchInChat,
     },
     {
       icon: muted ? 'notifications-outline' : 'notifications-off-outline',
@@ -540,21 +686,12 @@ function ChatOptionsPanel({
       onPress: onMuteToggle,
     },
     {
-      icon: 'image-outline',
-      label: 'Change Wallpaper',
-      sublabel: 'Pick a photo from your gallery',
+      icon: 'image-outline', label: 'Change Wallpaper', sublabel: 'Pick a photo from your gallery',
       onPress: onChangeWallpaper,
     },
-    ...(hasCustomWallpaper ? [{
-      icon: 'color-palette-outline',
-      label: 'Restore Default Wallpaper',
-      sublabel: 'Go back to the AgroChain default',
-      onPress: onRestoreWallpaper,
-    }] : []),
+    ...(hasCustomWallpaper ? [{ icon: 'color-palette-outline', label: 'Restore Default Wallpaper', sublabel: 'Go back to the AgroChain default', onPress: onRestoreWallpaper }] : []),
     {
-      icon: 'trash-outline',
-      label: 'Clear Chat',
-      sublabel: 'Delete all messages',
+      icon: 'trash-outline', label: 'Clear Chat', sublabel: 'Delete all messages',
       onPress: onClearChat,
     },
   ];
@@ -566,11 +703,7 @@ function ChatOptionsPanel({
 
   function OptionRow({ item }: { item: OptionItem }) {
     return (
-      <TouchableOpacity
-        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}
-        onPress={item.onPress}
-        activeOpacity={0.7}
-      >
+      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }} onPress={item.onPress} activeOpacity={0.7}>
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.color ? 'rgba(239,68,68,0.10)' : iconBg, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name={item.icon as any} size={20} color={item.color ?? colors.primaryGreen} />
         </View>
@@ -584,23 +717,9 @@ function ChatOptionsPanel({
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      {/* Backdrop */}
-      <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }}
-        activeOpacity={1}
-        onPress={onClose}
-      />
-
-      {/* Bottom sheet */}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
-        {/* Drag handle */}
         <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
         </View>
@@ -615,7 +734,6 @@ function ChatOptionsPanel({
                 <Text style={{ fontSize: 34, fontWeight: '800', color: '#fff' }}>{initial}</Text>
               )}
             </View>
-            {/* Camera badge on options panel avatar */}
             <View style={{ position: 'absolute', bottom: 14, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: '#0B6E36', borderWidth: 2, borderColor: sheetBg, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="camera" size={13} color="#fff" />
             </View>
@@ -630,7 +748,6 @@ function ChatOptionsPanel({
 
         <View style={{ height: 1, backgroundColor: dividerColor }} />
 
-        {/* Options list */}
         <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
           {options.map((item) => (
             <View key={item.label}>
@@ -638,8 +755,6 @@ function ChatOptionsPanel({
               <View style={{ height: 1, backgroundColor: dividerColor, marginLeft: 74 }} />
             </View>
           ))}
-
-          {/* Destructive section */}
           <View style={{ height: 8, backgroundColor: isDarkMode ? 'rgba(0,0,0,0.20)' : '#F9FAFB' }} />
           {destructiveOptions.map((item) => (
             <View key={item.label}>
@@ -651,6 +766,41 @@ function ChatOptionsPanel({
         </ScrollView>
       </View>
     </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// HighlightedText — renders message text with search matches highlighted
+// ─────────────────────────────────────────────────────────────
+
+function HighlightedText({ text, query, sent, s }: {
+  text: string; query: string; sent: boolean; s: any;
+}) {
+  if (!query.trim()) {
+    return <Text style={[s.bubbleText, sent ? s.bubbleTextSent : s.bubbleTextRecv]}>{text}</Text>;
+  }
+  const lower = text.toLowerCase();
+  const lowerQ = query.toLowerCase();
+  const parts: { value: string; match: boolean }[] = [];
+  let cursor = 0;
+  let idx = lower.indexOf(lowerQ, cursor);
+  while (idx !== -1) {
+    if (idx > cursor) parts.push({ value: text.slice(cursor, idx), match: false });
+    parts.push({ value: text.slice(idx, idx + query.length), match: true });
+    cursor = idx + query.length;
+    idx = lower.indexOf(lowerQ, cursor);
+  }
+  if (cursor < text.length) parts.push({ value: text.slice(cursor), match: false });
+  return (
+    <Text style={[s.bubbleText, sent ? s.bubbleTextSent : s.bubbleTextRecv]}>
+      {parts.map((p, i) =>
+        p.match ? (
+          <Text key={i} style={s.highlight}>{p.value}</Text>
+        ) : (
+          <Text key={i}>{p.value}</Text>
+        )
+      )}
+    </Text>
   );
 }
 
@@ -672,9 +822,7 @@ function TimeMeta({ sent, time, read, s, colors }: {
   return (
     <View style={[s.timeMeta, sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
       <Text style={[s.timeText, sent ? s.timeSent : s.timeRecv]}>{time}</Text>
-      {sent && (
-        <Ionicons name="checkmark-done" size={13} color={read ? '#4ade80' : 'rgba(255,255,255,0.45)'} style={{ marginLeft: 2 }} />
-      )}
+      {sent && <Ionicons name="checkmark-done" size={13} color={read ? '#4ade80' : 'rgba(255,255,255,0.45)'} style={{ marginLeft: 2 }} />}
     </View>
   );
 }
@@ -685,25 +833,25 @@ function TimeMeta({ sent, time, read, s, colors }: {
 
 function createStyles(colors: ThemeColors, isDarkMode: boolean) {
   const SENT_BG        = '#0B6E36';
-  const RECV_BG        = isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.58)';
-  const RECV_BORDER    = isDarkMode ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.75)';
-  const RECV_TOP       = isDarkMode ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.90)';
-  const INPUT_OVERLAY  = isDarkMode ? 'rgba(8,20,10,0.55)' : 'rgba(255,255,255,0.42)';
-  const INPUT_BORDER   = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)';
-  const INPUT_PILL_BG  = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.65)';
-  const INPUT_PILL_BRD = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.80)';
-  const SEP_BG         = isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.45)';
-  const SEP_BORDER     = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.70)';
-  const SEP_TEXT       = isDarkMode ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.55)';
-  const SEP_LINE       = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.40)';
+  const RECV_BG        = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.72)';
+  const RECV_BORDER    = isDarkMode ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.85)';
+  const RECV_TOP       = isDarkMode ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)';
+  const INPUT_OVERLAY  = isDarkMode ? 'rgba(4,10,5,0.50)' : 'rgba(255,255,255,0.40)';
+  const INPUT_BORDER   = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.60)';
+  const INPUT_PILL_BG  = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.70)';
+  const INPUT_PILL_BRD = isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.85)';
+  const SEP_BG         = isDarkMode ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.55)';
+  const SEP_BORDER     = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.75)';
+  const SEP_TEXT       = isDarkMode ? 'rgba(255,255,255,0.80)' : 'rgba(0,0,0,0.60)';
+  const SEP_LINE       = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.50)';
 
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: 'transparent' },
+    root: { flex: 1, backgroundColor: '#04331A' }, // fallback color while image loads
     kav:  { flex: 1, backgroundColor: 'transparent' },
 
     // ── Header ──────────────────────────────────────────────
     headerLight: { backgroundColor: '#0B6E36', paddingBottom: 14, overflow: 'hidden' },
-    headerDark:  { backgroundColor: isDarkMode ? 'rgba(6,42,20,0.96)' : '#0B6E36', paddingBottom: 14, overflow: 'hidden' },
+    headerDark:  { backgroundColor: 'rgba(6,42,20,0.97)', paddingBottom: 14, overflow: 'hidden' },
     headerGloss: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.20)' },
     headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingTop: 8, gap: 2 },
     headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4 },
@@ -718,6 +866,19 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
       alignItems: 'center', justifyContent: 'center',
     },
+
+    // ── Search bar ───────────────────────────────────────────
+    searchBar: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: isDarkMode ? '#1A1A1E' : '#FFFFFF',
+      paddingHorizontal: 4, paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#EFEFEF',
+    },
+    searchClose: { padding: 8 },
+    searchInput: { flex: 1, fontSize: 15, color: colors.text, paddingVertical: 4 },
+    searchCount: { fontSize: 13, color: colors.secondaryText, paddingHorizontal: 6 },
+    searchNav: { padding: 6 },
 
     // ── Header avatar ────────────────────────────────────────
     avatarLargeWrap: {
@@ -740,11 +901,23 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     avatarSmallImage: { width: 30, height: 30, borderRadius: 15 },
     avatarSmallText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-    // ── Message area ────────────────────────────────────────
+    // ── Message area — intentionally LOW opacity so wallpaper always shows ──
     messageArea: { flex: 1, overflow: 'hidden' },
-    messageAreaOverlay: { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' },
     flatList: { backgroundColor: 'transparent' },
     list: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, gap: 4 },
+
+    // ── Match highlight ──────────────────────────────────────
+    rowHighlight: {
+      backgroundColor: isDarkMode ? 'rgba(255,221,0,0.08)' : 'rgba(255,221,0,0.15)',
+      borderRadius: 12,
+      marginHorizontal: -4,
+      paddingHorizontal: 4,
+    },
+    highlight: {
+      backgroundColor: '#FFE066',
+      color: '#111827',
+      borderRadius: 3,
+    },
 
     // ── Date separator ──────────────────────────────────────
     sep: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, paddingHorizontal: 16, gap: 10 },
@@ -773,13 +946,13 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
     bubbleText: { fontSize: 15, lineHeight: 21 },
     bubbleTextSent: { color: '#fff' },
-    bubbleTextRecv: { color: isDarkMode ? 'rgba(255,255,255,0.92)' : '#111827' },
+    bubbleTextRecv: { color: isDarkMode ? 'rgba(255,255,255,0.95)' : '#111827' },
 
     // ── Time + ticks ────────────────────────────────────────
     timeMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 2 },
     timeText: { fontSize: 11 },
     timeSent: { color: 'rgba(255,255,255,0.55)' },
-    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)' },
+    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.45)' },
 
     // ── Voice bubble ────────────────────────────────────────
     voiceBubble: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderRadius: 20, borderWidth: 1, gap: 8, minWidth: 180 },
