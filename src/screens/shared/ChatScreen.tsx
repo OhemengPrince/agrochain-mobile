@@ -13,6 +13,9 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
+// Bundled default wallpaper — used when user hasn't picked a custom one
+const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
+
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -34,7 +37,7 @@ type Message = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Static data — untouched
+// Static data
 // ─────────────────────────────────────────────────────────────
 
 const WAVE_HEIGHTS = [5, 13, 8, 18, 11, 22, 7, 16, 10, 20, 6, 14, 19, 9, 15, 12, 7, 17, 11, 8, 14];
@@ -51,7 +54,7 @@ const SEED: Message[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// GlassBlur helper — iOS: real BlurView, Android: solid fallback
+// GlassBlur helper
 // ─────────────────────────────────────────────────────────────
 
 function GlassBlur({
@@ -77,12 +80,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const insets = useSafeAreaInsets();
   const { name, role = 'AgroChain User' } = route.params;
 
-  // wallpaperUri lives in state so the options panel can update it
+  // null = show DEFAULT_WALLPAPER; string uri = show custom picked image
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);
   const [messages, setMessages] = useState<Message[]>(SEED);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [callOptionsVisible, setCallOptionsVisible] = useState(false);
   const [muted, setMuted] = useState(false);
   const listRef = useRef<FlatList>(null);
 
@@ -90,14 +94,14 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const s = createStyles(colors, isDarkMode);
   const blurTint = isDarkMode ? 'dark' : 'light';
 
-  // ── Profile picture picker ────────────────────────────────
+  // ── Profile picture picker (accessible from options panel avatar) ──
   const handleUpdateProfilePicture = async () => {
-    Alert.alert('Update Profile Picture', 'Choose how you want to update the profile photo.', [
+    Alert.alert('Update Contact Photo', 'Choose how you want to update the photo.', [
       {
         text: 'Camera',
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access to take a profile photo.'); return; }
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access.'); return; }
           const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.85 });
           if (!result.canceled) setProfileImageUri(result.assets[0].uri);
         },
@@ -106,7 +110,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         text: 'Photo Library',
         onPress: async () => {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to choose a profile photo.'); return; }
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access.'); return; }
           const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85 });
           if (!result.canceled) setProfileImageUri(result.assets[0].uri);
         },
@@ -115,7 +119,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     ]);
   };
 
-  // ── Wallpaper picker (from options panel) ─────────────────
+  // ── Wallpaper picker ──────────────────────────────────────
   const handleChangeWallpaper = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -148,7 +152,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     ]);
   };
 
-  // ── Send message — untouched ──────────────────────────────
+  // ── Send message ──────────────────────────────────────────
   const sendMessage = () => {
     const text = inputText.trim();
     if (!text) return;
@@ -165,7 +169,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  // ── renderItem — logic untouched ─────────────────────────
+  // ── renderItem ────────────────────────────────────────────
   const renderItem = ({ item }: { item: Message }) => {
     if (item.type === 'sep') {
       return (
@@ -219,26 +223,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     );
   };
 
-  // ─────────────────────────────────────────────────────────
-  // JSX — Layer order:
-  //   1. Wallpaper (absoluteFill)
-  //   2. Header (solid green)
-  //   3. KAV → MessageArea (BlurView + FlatList) + InputBar (BlurView + SafeArea)
-  //   4. Chat options Modal (slides up from bottom)
-  // ─────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
 
       {/* ── LAYER 1: Wallpaper ── */}
-      {wallpaperUri ? (
-        <Image source={{ uri: wallpaperUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-      ) : (
-        <LinearGradient
-          colors={isDarkMode ? ['#04251A', '#061F10', '#030E08'] : ['#0B6E36', '#085C2C', '#04331A']}
-          start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
+      {/* Always show the bundled default; custom uri overrides it */}
+      <Image
+        source={wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
 
       {/* ── LAYER 2: Header ── */}
       <ChatHeader
@@ -246,8 +240,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         profileImageUri={profileImageUri}
         isDarkMode={isDarkMode}
         onBack={() => navigation.goBack()}
-        onUpdatePhoto={handleUpdateProfilePicture}
-        onHeaderPress={() => setOptionsVisible(true)}
+        onContactPress={() => setOptionsVisible(true)}
+        onDotsPress={() => setCallOptionsVisible(true)}
         colors={colors} s={s}
       />
 
@@ -277,7 +271,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           />
         </View>
 
-        {/* ── Input bar + bottom safe area — all inside one BlurView container ── */}
+        {/* Input bar + bottom safe area — all inside one BlurView container */}
         <View style={s.inputBarOuter}>
           <GlassBlur
             intensity={65} tint={blurTint}
@@ -318,12 +312,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             )}
           </View>
 
-          {/* Bottom safe area INSIDE the glass container — fixes the bar at the bottom */}
+          {/* Bottom safe area inside the glass container */}
           <View style={{ height: insets.bottom }} />
         </View>
       </KeyboardAvoidingView>
 
-      {/* ── LAYER 4: Chat options modal ── */}
+      {/* ── LAYER 4: Contact options panel ── */}
       <ChatOptionsPanel
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
@@ -332,29 +326,42 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         initial={initial}
         profileImageUri={profileImageUri}
         muted={muted}
-        wallpaperUri={wallpaperUri}
+        hasCustomWallpaper={wallpaperUri !== null}
         colors={colors}
         isDarkMode={isDarkMode}
+        onUpdatePhoto={handleUpdateProfilePicture}
         onMuteToggle={() => setMuted((p) => !p)}
         onChangeWallpaper={handleChangeWallpaper}
-        onRemoveWallpaper={() => { setWallpaperUri(null); setOptionsVisible(false); }}
+        onRestoreWallpaper={() => { setWallpaperUri(null); setOptionsVisible(false); }}
         onClearChat={handleClearChat}
         onBlock={() => { setOptionsVisible(false); Alert.alert('Block Contact', 'This feature is coming soon.'); }}
         onReport={() => { setOptionsVisible(false); Alert.alert('Report', 'This feature is coming soon.'); }}
+      />
+
+      {/* ── LAYER 5: Call options panel (three-dots) ── */}
+      <CallOptionsPanel
+        visible={callOptionsVisible}
+        onClose={() => setCallOptionsVisible(false)}
+        name={name}
+        colors={colors}
+        isDarkMode={isDarkMode}
       />
     </View>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// ChatHeader — unified component for both light and dark modes
-// Tapping the avatar area / name opens the options panel
+// ChatHeader
+// Avatar/name → contact profile menu
+// Three dots → call options (audio / video)
 // ─────────────────────────────────────────────────────────────
 
-function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onUpdatePhoto, onHeaderPress, colors, s }: {
+function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s }: {
   name: string; role: string; initial: string; profileImageUri: string | null;
-  isDarkMode: boolean; onBack: () => void; onUpdatePhoto: () => void;
-  onHeaderPress: () => void; colors: ThemeColors; s: any;
+  isDarkMode: boolean; onBack: () => void;
+  onContactPress: () => void;
+  onDotsPress: () => void;
+  colors: ThemeColors; s: any;
 }) {
   return (
     <View style={isDarkMode ? s.headerDark : s.headerLight}>
@@ -366,27 +373,22 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
 
-          {/* Avatar + info — tap opens options panel */}
+          {/* Avatar + info — tap opens contact profile/options menu */}
           <TouchableOpacity
             style={s.headerCenter}
-            onPress={onHeaderPress}
+            onPress={onContactPress}
             activeOpacity={0.8}
           >
-            {/* Avatar with camera badge */}
-            <View style={{ position: 'relative' }}>
-              <TouchableOpacity activeOpacity={0.85} onPress={onUpdatePhoto} style={s.avatarLargeWrap}>
-                {profileImageUri ? (
-                  <Image source={{ uri: profileImageUri }} style={s.avatarLargeImage} />
-                ) : (
-                  <Text style={s.avatarLargeText}>{initial}</Text>
-                )}
-              </TouchableOpacity>
-              <View style={s.cameraBadge}>
-                <Ionicons name="camera" size={10} color="#fff" />
-              </View>
-              <View style={{ position: 'absolute', bottom: 0, right: 18 }}>
-                <ActiveIndicator size={10} />
-              </View>
+            {/* Avatar — no camera badge here; photo editing is in the options panel */}
+            <View style={s.avatarLargeWrap}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={s.avatarLargeImage} />
+              ) : (
+                <Text style={s.avatarLargeText}>{initial}</Text>
+              )}
+            </View>
+            <View style={{ position: 'absolute', left: 34, bottom: -2 }}>
+              <ActiveIndicator size={10} />
             </View>
 
             {/* Name + status */}
@@ -399,14 +401,8 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
             </View>
           </TouchableOpacity>
 
-          {/* Call */}
-          <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-            <View style={s.headerIconCircle}>
-              <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.85)" />
-            </View>
-          </TouchableOpacity>
-          {/* More */}
-          <TouchableOpacity style={s.iconBtn} onPress={onHeaderPress} activeOpacity={0.75}>
+          {/* Three dots → audio/video call options */}
+          <TouchableOpacity style={s.iconBtn} onPress={onDotsPress} activeOpacity={0.75}>
             <View style={s.headerIconCircle}>
               <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
             </View>
@@ -418,7 +414,84 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 }
 
 // ─────────────────────────────────────────────────────────────
-// Chat options panel — WhatsApp-style bottom sheet
+// CallOptionsPanel — slides up when three-dots pressed
+// Shows Voice Call + Video Call
+// ─────────────────────────────────────────────────────────────
+
+function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
+  visible: boolean; onClose: () => void;
+  name: string; colors: ThemeColors; isDarkMode: boolean;
+}) {
+  const sheetBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
+  const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
+  const subColor = isDarkMode ? 'rgba(255,255,255,0.45)' : '#6B7280';
+  const divider = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <TouchableOpacity
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32 }}>
+        {/* Drag handle */}
+        <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 16 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
+        </View>
+
+        <Text style={{ fontSize: 13, fontWeight: '700', color: subColor, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 12 }}>
+          Call {name}
+        </Text>
+
+        {/* Voice Call */}
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
+          onPress={() => { onClose(); Alert.alert('Voice Call', 'Voice calling is coming soon.'); }}
+          activeOpacity={0.7}
+        >
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#0B6E36', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="call" size={24} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: labelColor }}>Voice Call</Text>
+            <Text style={{ fontSize: 13, color: subColor, marginTop: 2 }}>Start an audio call</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={subColor} />
+        </TouchableOpacity>
+
+        <View style={{ height: 1, backgroundColor: divider, marginLeft: 88 }} />
+
+        {/* Video Call */}
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
+          onPress={() => { onClose(); Alert.alert('Video Call', 'Video calling is coming soon.'); }}
+          activeOpacity={0.7}
+        >
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#1B8B50', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="videocam" size={24} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: labelColor }}>Video Call</Text>
+            <Text style={{ fontSize: 13, color: subColor, marginTop: 2 }}>Start a video call</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={subColor} />
+        </TouchableOpacity>
+
+        <SafeAreaView edges={['bottom']} />
+      </View>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ChatOptionsPanel — WhatsApp-style contact sheet
 // ─────────────────────────────────────────────────────────────
 
 type OptionItem = {
@@ -427,18 +500,18 @@ type OptionItem = {
   sublabel?: string;
   color?: string;
   onPress: () => void;
-  trailing?: React.ReactNode;
 };
 
 function ChatOptionsPanel({
   visible, onClose, name, role, initial, profileImageUri,
-  muted, wallpaperUri, colors, isDarkMode,
-  onMuteToggle, onChangeWallpaper, onRemoveWallpaper, onClearChat, onBlock, onReport,
+  muted, hasCustomWallpaper, colors, isDarkMode,
+  onUpdatePhoto, onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, onReport,
 }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
-  muted: boolean; wallpaperUri: string | null; colors: ThemeColors; isDarkMode: boolean;
-  onMuteToggle: () => void; onChangeWallpaper: () => void; onRemoveWallpaper: () => void;
+  muted: boolean; hasCustomWallpaper: boolean; colors: ThemeColors; isDarkMode: boolean;
+  onUpdatePhoto: () => void;
+  onMuteToggle: () => void; onChangeWallpaper: () => void; onRestoreWallpaper: () => void;
   onClearChat: () => void; onBlock: () => void; onReport: () => void;
 }) {
   const sheetBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
@@ -472,11 +545,11 @@ function ChatOptionsPanel({
       sublabel: 'Pick a photo from your gallery',
       onPress: onChangeWallpaper,
     },
-    ...(wallpaperUri ? [{
+    ...(hasCustomWallpaper ? [{
       icon: 'color-palette-outline',
-      label: 'Remove Wallpaper',
-      sublabel: 'Restore default green gradient',
-      onPress: onRemoveWallpaper,
+      label: 'Restore Default Wallpaper',
+      sublabel: 'Go back to the AgroChain default',
+      onPress: onRestoreWallpaper,
     }] : []),
     {
       icon: 'trash-outline',
@@ -532,15 +605,21 @@ function ChatOptionsPanel({
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
         </View>
 
-        {/* Contact header */}
+        {/* Contact header — tap avatar to update photo */}
         <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
-          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primaryGreen, borderWidth: 3, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 12 }}>
-            {profileImageUri ? (
-              <Image source={{ uri: profileImageUri }} style={{ width: 80, height: 80, borderRadius: 40 }} />
-            ) : (
-              <Text style={{ fontSize: 32, fontWeight: '800', color: '#fff' }}>{initial}</Text>
-            )}
-          </View>
+          <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
+            <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primaryGreen, borderWidth: 3, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 12 }}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={{ width: 84, height: 84, borderRadius: 42 }} />
+              ) : (
+                <Text style={{ fontSize: 34, fontWeight: '800', color: '#fff' }}>{initial}</Text>
+              )}
+            </View>
+            {/* Camera badge on options panel avatar */}
+            <View style={{ position: 'absolute', bottom: 14, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: '#0B6E36', borderWidth: 2, borderColor: sheetBg, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="camera" size={13} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <Text style={{ fontSize: 20, fontWeight: '800', color: labelColor, letterSpacing: 0.2 }}>{name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 }}>
             <ActiveIndicator size={7} />
@@ -551,7 +630,7 @@ function ChatOptionsPanel({
 
         <View style={{ height: 1, backgroundColor: dividerColor }} />
 
-        {/* Options */}
+        {/* Options list */}
         <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
           {options.map((item) => (
             <View key={item.label}>
@@ -640,7 +719,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       alignItems: 'center', justifyContent: 'center',
     },
 
-    // ── Avatars ─────────────────────────────────────────────
+    // ── Header avatar ────────────────────────────────────────
     avatarLargeWrap: {
       width: 46, height: 46, borderRadius: 23,
       backgroundColor: 'rgba(255,255,255,0.22)',
@@ -649,13 +728,8 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
     avatarLargeImage: { width: 46, height: 46, borderRadius: 23 },
     avatarLargeText:  { fontSize: 18, fontWeight: '700', color: '#fff' },
-    cameraBadge: {
-      position: 'absolute', bottom: -1, right: -1,
-      width: 20, height: 20, borderRadius: 10,
-      backgroundColor: 'rgba(0,0,0,0.55)',
-      borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.50)',
-      alignItems: 'center', justifyContent: 'center',
-    },
+
+    // ── Small in-chat avatar ─────────────────────────────────
     avatarSmall: {
       width: 30, height: 30, borderRadius: 15,
       backgroundColor: '#0B6E36',
@@ -714,7 +788,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     waveBar: { width: 3, borderRadius: 2 },
     voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
 
-    // ── Input bar — BlurView covers this whole block ────────
+    // ── Input bar ────────────────────────────────────────────
     inputBarOuter: { overflow: 'hidden' },
     inputBarBlurOverlay: { backgroundColor: INPUT_OVERLAY },
     inputBarTopBorder: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: INPUT_BORDER },
