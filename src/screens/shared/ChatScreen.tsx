@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ActiveIndicator from '../../components/ActiveIndicator';
@@ -37,12 +38,57 @@ const SEED: Message[] = [
 
 export default function ChatScreen({ route, navigation }: { route: { params: ChatParams }; navigation: any }) {
   const { colors, isDarkMode } = useTheme();
-  const s = createStyles(colors, isDarkMode);
   const { name, role = 'AgroChain User' } = route.params;
 
   const [messages, setMessages] = useState<Message[]>(SEED);
   const [inputText, setInputText] = useState('');
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
+
+  const initial = name.trim()[0]?.toUpperCase() ?? '?';
+
+  const handleUpdateProfilePicture = async () => {
+    Alert.alert(
+      'Update Profile Picture',
+      'Choose how you want to update the profile photo.',
+      [
+        {
+          text: 'Camera',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Allow camera access to take a profile photo.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.85,
+            });
+            if (!result.canceled) setProfileImageUri(result.assets[0].uri);
+          },
+        },
+        {
+          text: 'Photo Library',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Allow photo library access to choose a profile photo.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.85,
+            });
+            if (!result.canceled) setProfileImageUri(result.assets[0].uri);
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
 
   const sendMessage = () => {
     const text = inputText.trim();
@@ -60,15 +106,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const initial = name.trim()[0]?.toUpperCase() ?? '?';
+  const s = createStyles(colors, isDarkMode);
 
   const renderItem = ({ item }: { item: Message }) => {
     if (item.type === 'sep') {
       return (
         <View style={s.sep}>
+          <View style={s.sepLine} />
           <View style={s.sepPill}>
             <Text style={s.sepText}>{item.label}</Text>
           </View>
+          <View style={s.sepLine} />
         </View>
       );
     }
@@ -76,11 +124,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     if (item.type === 'voice') {
       return (
         <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
-          {!item.sent && (
-            <View style={s.avatar}>
-              <Text style={s.avatarText}>{initial}</Text>
-            </View>
-          )}
+          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
           <View>
             <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
               <TouchableOpacity style={s.playBtn} activeOpacity={0.8}>
@@ -95,27 +139,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                       { height: h },
                       item.sent
                         ? { backgroundColor: 'rgba(255,255,255,0.85)' }
-                        : { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.35)' },
-                      i >= 9 && { opacity: 0.4 },
+                        : { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.30)' },
+                      i >= 9 && { opacity: 0.38 },
                     ]}
                   />
                 ))}
               </View>
-              <Text style={[s.voiceDur, item.sent ? { color: 'rgba(255,255,255,0.75)' } : { color: colors.secondaryText }]}>
+              <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.75)' : colors.secondaryText }]}>
                 0:22
               </Text>
             </View>
-            <View style={[s.timeMeta, item.sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
-              <Text style={[s.time, item.sent ? s.timeSent : s.timeRecv]}>{item.time}</Text>
-              {item.sent && (
-                <Ionicons
-                  name="checkmark-done"
-                  size={13}
-                  color={item.read ? '#4ade80' : colors.secondaryText}
-                  style={{ marginLeft: 2 }}
-                />
-              )}
-            </View>
+            <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
           </View>
         </View>
       );
@@ -123,28 +157,14 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     return (
       <View style={[s.row, item.sent ? s.rowSent : s.rowReceived]}>
-        {!item.sent && (
-          <View style={s.avatar}>
-            <Text style={s.avatarText}>{initial}</Text>
-          </View>
-        )}
+        {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
         <View style={{ maxWidth: '75%' }}>
           <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
             <Text style={[s.bubbleText, item.sent ? s.bubbleTextSent : s.bubbleTextRecv]}>
               {item.text}
             </Text>
           </View>
-          <View style={[s.timeMeta, item.sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
-            <Text style={[s.time, item.sent ? s.timeSent : s.timeRecv]}>{item.time}</Text>
-            {item.sent && (
-              <Ionicons
-                name="checkmark-done"
-                size={13}
-                color={item.read ? '#4ade80' : colors.secondaryText}
-                style={{ marginLeft: 2 }}
-              />
-            )}
-          </View>
+          <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
         </View>
       </View>
     );
@@ -154,78 +174,31 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     <View style={s.root}>
       {/* ── Header ── */}
       {isDarkMode ? (
-        <View style={s.headerDark}>
-          <SafeAreaView edges={['top']}>
-            <View style={s.headerRow}>
-              <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-                <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.90)" />
-              </TouchableOpacity>
-
-              <View style={{ position: 'relative', marginHorizontal: 4 }}>
-                <View style={s.avatarLarge}>
-                  <Text style={s.avatarLargeText}>{initial}</Text>
-                </View>
-                <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
-                  <ActiveIndicator size={11} />
-                </View>
-              </View>
-
-              <View style={s.headerInfo}>
-                <Text style={s.headerName} numberOfLines={1}>{name}</Text>
-                <View style={s.onlineRow}>
-                  <ActiveIndicator size={7} />
-                  <Text style={s.onlineSub}>Active now · {role}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-                <Ionicons name="call-outline" size={20} color="rgba(255,255,255,0.85)" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-                <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.85)" />
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </View>
+        <DarkHeader
+          name={name}
+          role={role}
+          initial={initial}
+          profileImageUri={profileImageUri}
+          onBack={() => navigation.goBack()}
+          onUpdatePhoto={handleUpdateProfilePicture}
+          s={s}
+        />
       ) : (
-        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.headerGrad}>
-          <SafeAreaView edges={['top']}>
-            <View style={s.headerRow}>
-              <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
-              </TouchableOpacity>
-
-              <View style={{ position: 'relative', marginHorizontal: 4 }}>
-                <View style={s.avatarLargeLight}>
-                  <Text style={s.avatarLargeText}>{initial}</Text>
-                </View>
-                <View style={{ position: 'absolute', bottom: -3, right: -3 }}>
-                  <ActiveIndicator size={11} />
-                </View>
-              </View>
-
-              <View style={s.headerInfo}>
-                <Text style={s.headerName} numberOfLines={1}>{name}</Text>
-                <View style={s.onlineRow}>
-                  <ActiveIndicator size={7} />
-                  <Text style={s.onlineSub}>Active now · {role}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-                <Ionicons name="call-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-                <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
+        <LightHeader
+          name={name}
+          role={role}
+          initial={initial}
+          profileImageUri={profileImageUri}
+          onBack={() => navigation.goBack()}
+          onUpdatePhoto={handleUpdateProfilePicture}
+          s={s}
+          colors={colors}
+        />
       )}
 
       {/* ── Messages + Input ── */}
       <KeyboardAvoidingView
-        style={[s.flex, { backgroundColor: s.msgBg.backgroundColor }]}
+        style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
@@ -237,6 +210,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           contentContainerStyle={s.list}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           showsVerticalScrollIndicator={false}
+          style={{ backgroundColor: s.root.backgroundColor }}
         />
 
         {/* ── Input Bar ── */}
@@ -247,9 +221,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
           <View style={s.inputWrap}>
             <TextInput
-              style={[s.input, { color: colors.text }]}
+              style={[s.input, { color: isDarkMode ? '#fff' : colors.text }]}
               placeholder="Send a message..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : colors.secondaryText}
               value={inputText}
               onChangeText={setInputText}
               multiline
@@ -272,114 +246,363 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </TouchableOpacity>
           )}
         </View>
-        <SafeAreaView edges={['bottom']} style={s.inputBarSafe} />
+        <SafeAreaView edges={['bottom']} style={s.inputSafeArea} />
       </KeyboardAvoidingView>
     </View>
   );
 }
 
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SmallAvatar({ initial, profileUri, s }: { initial: string; profileUri: string | null; s: any }) {
+  return (
+    <View style={s.avatarSmall}>
+      {profileUri ? (
+        <Image source={{ uri: profileUri }} style={s.avatarSmallImage} />
+      ) : (
+        <Text style={s.avatarSmallText}>{initial}</Text>
+      )}
+    </View>
+  );
+}
+
+function TimeMeta({ sent, time, read, s, colors }: {
+  sent: boolean; time: string; read?: boolean; s: any; colors: ThemeColors;
+}) {
+  return (
+    <View style={[s.timeMeta, sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
+      <Text style={[s.timeText, sent ? s.timeSent : s.timeRecv]}>{time}</Text>
+      {sent && (
+        <Ionicons
+          name="checkmark-done"
+          size={13}
+          color={read ? '#4ade80' : colors.secondaryText}
+          style={{ marginLeft: 2 }}
+        />
+      )}
+    </View>
+  );
+}
+
+function AvatarWithCamera({
+  initial, profileUri, onUpdatePhoto, largeStyle, imageStyle, textStyle, cameraBadgeStyle, cameraIconColor,
+}: {
+  initial: string;
+  profileUri: string | null;
+  onUpdatePhoto: () => void;
+  largeStyle: any;
+  imageStyle: any;
+  textStyle: any;
+  cameraBadgeStyle: any;
+  cameraIconColor: string;
+}) {
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onUpdatePhoto} style={{ position: 'relative' }}>
+      <View style={largeStyle}>
+        {profileUri ? (
+          <Image source={{ uri: profileUri }} style={imageStyle} />
+        ) : (
+          <Text style={textStyle}>{initial}</Text>
+        )}
+      </View>
+      {/* Camera badge */}
+      <View style={cameraBadgeStyle}>
+        <Ionicons name="camera" size={11} color={cameraIconColor} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function DarkHeader({ name, role, initial, profileImageUri, onBack, onUpdatePhoto, s }: {
+  name: string; role: string; initial: string; profileImageUri: string | null;
+  onBack: () => void; onUpdatePhoto: () => void; s: any;
+}) {
+  return (
+    <View style={s.darkHeader}>
+      {/* Gloss highlight strip at top */}
+      <View style={s.darkHeaderGloss} />
+      <SafeAreaView edges={['top']}>
+        <View style={s.headerRow}>
+          <TouchableOpacity style={s.iconBtn} onPress={onBack} activeOpacity={0.75}>
+            <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+
+          <View style={{ position: 'relative', marginHorizontal: 6 }}>
+            <AvatarWithCamera
+              initial={initial}
+              profileUri={profileImageUri}
+              onUpdatePhoto={onUpdatePhoto}
+              largeStyle={s.avatarLargeDark}
+              imageStyle={s.avatarLargeImage}
+              textStyle={s.avatarLargeText}
+              cameraBadgeStyle={s.cameraBadgeDark}
+              cameraIconColor="rgba(255,255,255,0.90)"
+            />
+            <View style={{ position: 'absolute', bottom: 2, right: 20 }}>
+              <ActiveIndicator size={10} />
+            </View>
+          </View>
+
+          <View style={s.headerInfo}>
+            <Text style={s.headerNameDark} numberOfLines={1}>{name}</Text>
+            <View style={s.onlineRow}>
+              <ActiveIndicator size={6} />
+              <Text style={s.onlineSubDark}>Active now · {role}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+            <View style={s.headerIconGlass}>
+              <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.80)" />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+            <View style={s.headerIconGlass}>
+              <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.80)" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function LightHeader({ name, role, initial, profileImageUri, onBack, onUpdatePhoto, s, colors }: {
+  name: string; role: string; initial: string; profileImageUri: string | null;
+  onBack: () => void; onUpdatePhoto: () => void; s: any; colors: ThemeColors;
+}) {
+  return (
+    <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={s.lightHeader}>
+      <SafeAreaView edges={['top']}>
+        <View style={s.headerRow}>
+          <TouchableOpacity style={s.iconBtn} onPress={onBack} activeOpacity={0.75}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={{ position: 'relative', marginHorizontal: 6 }}>
+            <AvatarWithCamera
+              initial={initial}
+              profileUri={profileImageUri}
+              onUpdatePhoto={onUpdatePhoto}
+              largeStyle={s.avatarLargeLight}
+              imageStyle={s.avatarLargeImage}
+              textStyle={s.avatarLargeText}
+              cameraBadgeStyle={s.cameraBadgeLight}
+              cameraIconColor="#fff"
+            />
+            <View style={{ position: 'absolute', bottom: 2, right: 20 }}>
+              <ActiveIndicator size={10} />
+            </View>
+          </View>
+
+          <View style={s.headerInfo}>
+            <Text style={s.headerNameLight} numberOfLines={1}>{name}</Text>
+            <View style={s.onlineRow}>
+              <ActiveIndicator size={6} />
+              <Text style={s.onlineSubLight}>Active now · {role}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+            <View style={s.headerIconGlassLight}>
+              <Ionicons name="call-outline" size={18} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
+            <View style={s.headerIconGlassLight}>
+              <Ionicons name="ellipsis-vertical" size={18} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 function createStyles(colors: ThemeColors, isDarkMode: boolean) {
-  // ── palette tokens ──
-  const bgColor = isDarkMode ? '#0E0E10' : '#F4F5F7';
-  const headerDarkBg = 'rgba(20,20,24,0.99)';
-  const headerDarkBorder = 'rgba(255,255,255,0.08)';
+  const PAGE_BG = isDarkMode ? '#101014' : '#F0F2F5';
 
-  const bubbleSentBg = isDarkMode ? 'rgba(18,68,32,0.92)' : colors.primaryGreen;
-  const bubbleSentBorder = isDarkMode ? 'rgba(60,160,80,0.28)' : 'transparent';
+  // Glass panel tokens (matches Smart Home reference)
+  const GLASS_BG = isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+  const GLASS_BORDER = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const GLASS_GLOSS = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.80)';
 
-  const bubbleRecvBg = isDarkMode ? 'rgba(30,30,36,0.95)' : '#FFFFFF';
-  const bubbleRecvBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+  const SENT_BG = isDarkMode ? 'rgba(255,255,255,0.07)' : colors.primaryGreen;
+  const SENT_BORDER_TOP = isDarkMode ? 'rgba(255,255,255,0.18)' : 'transparent';
+  const SENT_BORDER = isDarkMode ? 'rgba(60,180,90,0.22)' : 'transparent';
+  // sent bubble gets a green tint overlay via LinearGradient in dark mode
+  const RECV_BG = isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
+  const RECV_BORDER_TOP = isDarkMode ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.06)';
+  const RECV_BORDER = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)';
 
-  const inputBarBg = isDarkMode ? 'rgba(14,14,18,0.99)' : '#FFFFFF';
-  const inputBarBorder = isDarkMode ? 'rgba(255,255,255,0.09)' : '#E8EAED';
+  const INPUT_BAR_BG = isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFFFFF';
+  const INPUT_BAR_BORDER = isDarkMode ? 'rgba(255,255,255,0.10)' : '#E5E7EB';
+  const INPUT_FIELD_BG = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F3F4F6';
 
-  const inputBg = isDarkMode ? 'rgba(30,30,36,0.95)' : '#F0F2F5';
+  const SEP_BG = isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)';
+  const SEP_TEXT = isDarkMode ? 'rgba(255,255,255,0.50)' : colors.secondaryText;
+  const SEP_LINE = isDarkMode ? 'rgba(255,255,255,0.08)' : colors.divider;
 
-  const sepPillBg = isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)';
-  const sepTextColor = isDarkMode ? 'rgba(255,255,255,0.55)' : colors.secondaryText;
-
-  const avatarBg = isDarkMode ? 'rgba(255,255,255,0.10)' : colors.primaryGreen;
-  const avatarBorder = isDarkMode ? 'rgba(255,255,255,0.20)' : 'transparent';
+  const AVATAR_SMALL_BG = isDarkMode ? 'rgba(255,255,255,0.10)' : colors.primaryGreen;
+  const AVATAR_LARGE_DARK_BG = 'rgba(255,255,255,0.10)';
+  const AVATAR_LARGE_DARK_BORDER = 'rgba(255,255,255,0.22)';
 
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: isDarkMode ? '#0E0E10' : colors.primaryGreen },
-    flex: { flex: 1 },
-    msgBg: { backgroundColor: bgColor },
+    root: { flex: 1, backgroundColor: PAGE_BG },
+    flex: { flex: 1, backgroundColor: PAGE_BG },
 
-    // ── Dark header ──
-    headerDark: {
-      backgroundColor: headerDarkBg,
+    // ── Dark header (glass panel) ──
+    darkHeader: {
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
       borderBottomWidth: 1,
-      borderBottomColor: headerDarkBorder,
-      paddingBottom: 12,
+      borderBottomColor: GLASS_BORDER,
+      paddingBottom: 14,
+      overflow: 'hidden',
+    },
+    darkHeaderGloss: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 1,
+      backgroundColor: GLASS_GLOSS,
     },
 
-    // ── Light header (gradient wrapper) ──
-    headerGrad: { paddingBottom: 12 },
+    // ── Light header ──
+    lightHeader: { paddingBottom: 14 },
 
+    // Shared header layout
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 6,
+      paddingHorizontal: 4,
       paddingTop: 8,
-      gap: 4,
+      gap: 2,
     },
     iconBtn: { padding: 8 },
+    headerInfo: { flex: 1, paddingLeft: 2 },
 
-    // Large avatar — dark mode: glass circle
-    avatarLarge: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor: avatarBg,
+    headerNameDark: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.1 },
+    headerNameLight: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.1 },
+
+    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+    onlineSubDark: { fontSize: 12, color: 'rgba(255,255,255,0.50)' },
+    onlineSubLight: { fontSize: 12, color: 'rgba(255,255,255,0.80)' },
+
+    // Glass icon buttons in header
+    headerIconGlass: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: GLASS_BG,
+      borderWidth: 1,
+      borderColor: GLASS_BORDER,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerIconGlassLight: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.30)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    // ── Avatars ──
+    avatarLargeDark: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: AVATAR_LARGE_DARK_BG,
       borderWidth: 1.5,
-      borderColor: avatarBorder,
+      borderColor: AVATAR_LARGE_DARK_BORDER,
       alignItems: 'center',
       justifyContent: 'center',
-      marginHorizontal: 4,
+      overflow: 'hidden',
     },
-    // Light mode large avatar
     avatarLargeLight: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor: 'rgba(255,255,255,0.25)',
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: 'rgba(255,255,255,0.22)',
       borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.5)',
+      borderColor: 'rgba(255,255,255,0.50)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginHorizontal: 4,
+      overflow: 'hidden',
     },
-    avatarLargeText: { fontSize: 18, fontWeight: '700', color: '#fff' },
+    avatarLargeImage: { width: 50, height: 50, borderRadius: 25 },
+    avatarLargeText: { fontSize: 20, fontWeight: '700', color: '#fff' },
 
-    headerInfo: { flex: 1 },
-    headerName: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#fff',
+    cameraBadgeDark: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primaryGreen,
+      borderWidth: 1.5,
+      borderColor: '#101014',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-    onlineSub: {
-      fontSize: 12,
-      color: isDarkMode ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.85)',
+    cameraBadgeLight: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderWidth: 1.5,
+      borderColor: 'rgba(255,255,255,0.50)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
+
+    avatarSmall: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: AVATAR_SMALL_BG,
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.18)' : 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'flex-end',
+      flexShrink: 0,
+      overflow: 'hidden',
+    },
+    avatarSmallImage: { width: 30, height: 30, borderRadius: 15 },
+    avatarSmallText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
     // ── Date separator ──
     sep: {
+      flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 16,
+      marginVertical: 18,
       paddingHorizontal: 16,
+      gap: 10,
     },
+    sepLine: { flex: 1, height: 1, backgroundColor: SEP_LINE },
     sepPill: {
-      backgroundColor: sepPillBg,
+      backgroundColor: SEP_BG,
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
     },
-    sepText: { fontSize: 12, color: sepTextColor, fontWeight: '600' },
+    sepText: { fontSize: 12, color: SEP_TEXT, fontWeight: '600', letterSpacing: 0.3 },
 
-    // ── Messages ──
-    list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 4 },
+    // ── Message list ──
+    list: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, gap: 4 },
     row: {
       flexDirection: 'row',
       alignItems: 'flex-end',
@@ -389,22 +612,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     rowSent: { justifyContent: 'flex-end' },
     rowReceived: { justifyContent: 'flex-start' },
 
-    // Small avatar
-    avatar: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: avatarBg,
-      borderWidth: 1,
-      borderColor: avatarBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-      alignSelf: 'flex-end',
-      flexShrink: 0,
-    },
-    avatarText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-
-    // Bubbles
+    // ── Bubbles ── (glass style)
     bubble: {
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -412,31 +620,35 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       borderWidth: 1,
     },
     bubbleSent: {
-      backgroundColor: bubbleSentBg,
-      borderColor: bubbleSentBorder,
+      backgroundColor: isDarkMode ? 'rgba(26,80,42,0.72)' : colors.primaryGreen,
+      borderTopColor: isDarkMode ? SENT_BORDER_TOP : 'transparent',
+      borderColor: isDarkMode ? SENT_BORDER : 'transparent',
       borderBottomRightRadius: 4,
     },
     bubbleReceived: {
-      backgroundColor: bubbleRecvBg,
-      borderColor: bubbleRecvBorder,
+      backgroundColor: RECV_BG,
+      borderTopColor: RECV_BORDER_TOP,
+      borderColor: RECV_BORDER,
       borderBottomLeftRadius: 4,
     },
     bubbleText: { fontSize: 15, lineHeight: 21 },
     bubbleTextSent: { color: '#fff' },
-    bubbleTextRecv: { color: isDarkMode ? 'rgba(255,255,255,0.90)' : colors.text },
+    bubbleTextRecv: {
+      color: isDarkMode ? 'rgba(255,255,255,0.90)' : colors.text,
+    },
 
-    // Time row
+    // ── Time + checkmark ──
     timeMeta: {
       flexDirection: 'row',
       alignItems: 'center',
       marginTop: 3,
       gap: 2,
     },
-    time: { fontSize: 11 },
-    timeSent: { color: isDarkMode ? 'rgba(255,255,255,0.40)' : colors.secondaryText },
-    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.35)' : colors.secondaryText },
+    timeText: { fontSize: 11 },
+    timeSent: { color: isDarkMode ? 'rgba(255,255,255,0.38)' : colors.secondaryText },
+    timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.32)' : colors.secondaryText },
 
-    // Voice bubble
+    // ── Voice bubble ──
     voiceBubble: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -451,7 +663,9 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: 'rgba(255,255,255,0.20)',
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.50)',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
@@ -469,18 +683,18 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
     voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
 
-    // Input bar
+    // ── Input bar (glass dock) ──
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       paddingHorizontal: 10,
       paddingVertical: 10,
       gap: 8,
-      backgroundColor: inputBarBg,
+      backgroundColor: INPUT_BAR_BG,
       borderTopWidth: 1,
-      borderTopColor: inputBarBorder,
+      borderTopColor: INPUT_BAR_BORDER,
     },
-    inputBarSafe: { backgroundColor: inputBarBg },
+    inputSafeArea: { backgroundColor: INPUT_BAR_BG },
     attachBtn: { paddingBottom: 10 },
     inputWrap: {
       flex: 1,
@@ -488,9 +702,9 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       paddingHorizontal: 16,
       paddingVertical: 10,
       maxHeight: 120,
-      backgroundColor: inputBg,
-      borderWidth: isDarkMode ? 1 : 0,
-      borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'transparent',
+      backgroundColor: INPUT_FIELD_BG,
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
     },
     input: { fontSize: 15, lineHeight: 20 },
     sendBtn: {
