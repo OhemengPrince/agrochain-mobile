@@ -477,7 +477,8 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 }
 
 // ─────────────────────────────────────────────────────────────
-// ContactProfileModal — full-screen slide-up profile view
+// ContactProfileModal — glassmorphism full-screen profile view
+// Uses the same DEFAULT_WALLPAPER + GlassBlur layers as the chat
 // ─────────────────────────────────────────────────────────────
 
 function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, onUpdatePhoto, colors, isDarkMode }: {
@@ -485,11 +486,20 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
   name: string; role: string; initial: string; profileImageUri: string | null;
   onUpdatePhoto: () => void; colors: ThemeColors; isDarkMode: boolean;
 }) {
-  const bg = isDarkMode ? '#0F0F12' : '#F8F9FA';
-  const cardBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
+  const insets = useSafeAreaInsets();
+  const blurTint = isDarkMode ? 'dark' : 'light';
+
+  const glassCard = {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 22,
+    overflow: 'hidden' as const,
+    borderWidth: 1,
+    borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.70)',
+  };
+  const glassCardAndroid = isDarkMode ? 'rgba(4,10,5,0.62)' : 'rgba(255,255,255,0.62)';
   const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
-  const subColor = isDarkMode ? 'rgba(255,255,255,0.50)' : '#6B7280';
-  const borderColor = isDarkMode ? 'rgba(255,255,255,0.08)' : '#EFEFEF';
+  const subColor = isDarkMode ? 'rgba(255,255,255,0.55)' : '#374151';
 
   const infoRows = [
     { icon: 'briefcase-outline', label: 'Role', value: role },
@@ -501,83 +511,102 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: bg }}>
-        {/* Green gradient header */}
-        <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={{ paddingBottom: 36, overflow: 'hidden' }}>
-          <SafeAreaView edges={['top']}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingTop: 8 }}>
-              <TouchableOpacity onPress={onClose} style={{ padding: 10 }} activeOpacity={0.75}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
-              </TouchableOpacity>
-              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
-                Profile
-              </Text>
-              <TouchableOpacity onPress={onUpdatePhoto} style={{ padding: 10 }} activeOpacity={0.75}>
-                <Ionicons name="create-outline" size={22} color="rgba(255,255,255,0.85)" />
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
+      <View style={{ flex: 1 }}>
+        {/* Same wallpaper as the chat screen */}
+        <Image source={DEFAULT_WALLPAPER} style={StyleSheet.absoluteFill} resizeMode="cover" />
 
-        {/* Avatar — overlaps the gradient */}
-        <View style={{ alignItems: 'center', marginTop: -52 }}>
-          <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
-            <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: colors.primaryGreen, borderWidth: 4, borderColor: cardBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {profileImageUri ? (
-                <Image source={{ uri: profileImageUri }} style={{ width: 104, height: 104 }} />
-              ) : (
-                <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff' }}>{initial}</Text>
-              )}
-            </View>
-            <View style={{ position: 'absolute', bottom: 2, right: 2, width: 30, height: 30, borderRadius: 15, backgroundColor: '#0B6E36', borderWidth: 2.5, borderColor: cardBg, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="camera" size={14} color="#fff" />
-            </View>
-          </TouchableOpacity>
-
-          <Text style={{ fontSize: 22, fontWeight: '800', color: labelColor, marginTop: 14, letterSpacing: 0.2 }}>{name}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-            <ActiveIndicator size={7} />
-            <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: '600' }}>Active now</Text>
+        {/* ── Header bar (glass, properly inset) ── */}
+        <View style={{ paddingTop: insets.top, overflow: 'hidden' }}>
+          <GlassBlur intensity={isDarkMode ? 55 : 60} tint={blurTint} style={StyleSheet.absoluteFill}
+            androidFallbackColor={isDarkMode ? 'rgba(4,20,10,0.88)' : 'rgba(11,110,54,0.88)'} />
+          <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.20)' }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingTop: 8, paddingBottom: 14 }}>
+            <TouchableOpacity onPress={onClose} style={{ padding: 10 }} activeOpacity={0.75}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="arrow-back" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center', letterSpacing: 0.2 }}>
+              Profile
+            </Text>
+            <TouchableOpacity onPress={onUpdatePhoto} style={{ padding: 10 }} activeOpacity={0.75}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="camera-outline" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Action buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 24, marginBottom: 8, paddingHorizontal: 20 }}>
-          {[
-            { icon: 'chatbubble-ellipses', label: 'Message', onPress: onClose },
-            { icon: 'call', label: 'Voice Call', onPress: () => Alert.alert('Voice Call', 'Coming soon.') },
-            { icon: 'videocam', label: 'Video', onPress: () => Alert.alert('Video Call', 'Coming soon.') },
-          ].map((btn) => (
-            <TouchableOpacity key={btn.label} onPress={btn.onPress} activeOpacity={0.8} style={{ alignItems: 'center', flex: 1 }}>
-              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
-                <Ionicons name={btn.icon as any} size={24} color="#fff" />
+        {/* ── Scrollable content ── */}
+        <ScrollView
+          contentContainerStyle={{ paddingTop: 24, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Avatar + name */}
+          <View style={{ alignItems: 'center', marginBottom: 24 }}>
+            <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
+              <View style={{ width: 108, height: 108, borderRadius: 54, backgroundColor: colors.primaryGreen, borderWidth: 4, borderColor: 'rgba(255,255,255,0.45)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {profileImageUri ? (
+                  <Image source={{ uri: profileImageUri }} style={{ width: 108, height: 108 }} />
+                ) : (
+                  <Text style={{ fontSize: 44, fontWeight: '800', color: '#fff' }}>{initial}</Text>
+                )}
               </View>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: subColor }}>{btn.label}</Text>
+              <View style={{ position: 'absolute', bottom: 2, right: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: '#0B6E36', borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.60)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="camera" size={15} color="#fff" />
+              </View>
             </TouchableOpacity>
-          ))}
-        </View>
 
-        {/* Info card */}
-        <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-          <View style={{ backgroundColor: cardBg, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: borderColor }}>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: '#fff', marginTop: 16, letterSpacing: 0.2, textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
+              {name}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 }}>
+              <ActiveIndicator size={7} />
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.90)', fontWeight: '600' }}>Active now · {role}</Text>
+            </View>
+          </View>
+
+          {/* ── Action buttons — glass card ── */}
+          <View style={glassCard}>
+            <GlassBlur intensity={isDarkMode ? 30 : 40} tint={blurTint} style={StyleSheet.absoluteFill} androidFallbackColor={glassCardAndroid} />
+            <View style={{ flexDirection: 'row', paddingVertical: 20, paddingHorizontal: 12 }}>
+              {[
+                { icon: 'chatbubble-ellipses', label: 'Message', onPress: onClose },
+                { icon: 'call', label: 'Voice Call', onPress: () => Alert.alert('Voice Call', 'Coming soon.') },
+                { icon: 'videocam', label: 'Video', onPress: () => Alert.alert('Video Call', 'Coming soon.') },
+              ].map((btn, i) => (
+                <TouchableOpacity key={btn.label} onPress={btn.onPress} activeOpacity={0.8}
+                  style={{ flex: 1, alignItems: 'center' }}>
+                  <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#0B6E36', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', marginBottom: 7 }}>
+                    <Ionicons name={btn.icon as any} size={24} color="#fff" />
+                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: isDarkMode ? 'rgba(255,255,255,0.85)' : '#fff' }}>{btn.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* ── Info rows — glass card ── */}
+          <View style={[glassCard, { marginTop: 0 }]}>
+            <GlassBlur intensity={isDarkMode ? 30 : 40} tint={blurTint} style={StyleSheet.absoluteFill} androidFallbackColor={glassCardAndroid} />
             {infoRows.map((row, i) => (
               <View key={row.label}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 14 }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.07)' : '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={row.icon as any} size={18} color={colors.primaryGreen} />
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={row.icon as any} size={18} color="#fff" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: subColor, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 }}>{row.label}</Text>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: labelColor }}>{row.value}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 3 }}>{row.label}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>{row.value}</Text>
                   </View>
                 </View>
-                {i < infoRows.length - 1 && <View style={{ height: 1, backgroundColor: borderColor, marginLeft: 68 }} />}
+                {i < infoRows.length - 1 && <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginLeft: 70 }} />}
               </View>
             ))}
           </View>
         </ScrollView>
 
-        <SafeAreaView edges={['bottom']} />
+        <View style={{ height: insets.bottom }} />
       </View>
     </Modal>
   );
