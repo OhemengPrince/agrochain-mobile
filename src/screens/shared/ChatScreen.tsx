@@ -804,7 +804,7 @@ function ChatOptionsPanel({
 // HighlightedText — renders message text with search matches highlighted
 // ─────────────────────────────────────────────────────────────
 
-function HighlightedText({ text, query, sent, s }: {
+const HighlightedText = React.memo(function HighlightedText({ text, query, sent, s }: {
   text: string; query: string; sent: boolean; s: any;
 }) {
   if (!query.trim()) {
@@ -833,21 +833,21 @@ function HighlightedText({ text, query, sent, s }: {
       )}
     </Text>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────
 // Small sub-components
 // ─────────────────────────────────────────────────────────────
 
-function SmallAvatar({ initial, profileUri, s }: { initial: string; profileUri: string | null; s: any }) {
+const SmallAvatar = React.memo(function SmallAvatar({ initial, profileUri, s }: { initial: string; profileUri: string | null; s: any }) {
   return (
     <View style={s.avatarSmall}>
       {profileUri ? <Image source={{ uri: profileUri }} style={s.avatarSmallImage} /> : <Text style={s.avatarSmallText}>{initial}</Text>}
     </View>
   );
-}
+});
 
-function TimeMeta({ sent, time, read, s, colors }: {
+const TimeMeta = React.memo(function TimeMeta({ sent, time, read, s, colors }: {
   sent: boolean; time: string; read?: boolean; s: any; colors: ThemeColors;
 }) {
   return (
@@ -856,7 +856,7 @@ function TimeMeta({ sent, time, read, s, colors }: {
       {sent && <Ionicons name="checkmark-done" size={13} color={read ? '#4ade80' : 'rgba(255,255,255,0.45)'} style={{ marginLeft: 2 }} />}
     </View>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────
 // Styles
