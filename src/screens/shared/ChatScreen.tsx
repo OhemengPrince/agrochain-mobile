@@ -102,7 +102,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const searchInputRef = useRef<TextInput>(null);
 
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
-  const s = createStyles(colors, isDarkMode);
+  // Memoize styles — createStyles allocates many StyleSheet objects, reuse between renders
+  const s = useMemo(() => createStyles(colors, isDarkMode), [colors, isDarkMode]);
   const blurTint = isDarkMode ? 'dark' : 'light';
 
   // ── Search logic ──────────────────────────────────────────
@@ -205,8 +206,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  // ── renderItem ────────────────────────────────────────────
-  const renderItem = ({ item }: { item: Message }) => {
+  // ── renderItem — stable reference so FlatList skips unnecessary re-renders ──
+  const renderItem = useCallback(({ item }: { item: Message }) => {
     const isMatch = matchedIds.has(item.id);
 
     if (item.type === 'sep') {
@@ -254,7 +255,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         </View>
       </View>
     );
-  };
+  // deps: everything used inside renderItem
+  }, [matchedIds, searchQuery, initial, profileImageUri, s, colors]);
 
   return (
     <View style={s.root}>

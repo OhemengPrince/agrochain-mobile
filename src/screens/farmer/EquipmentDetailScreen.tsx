@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Animated, Alert,
-  Modal, TouchableOpacity, Image, Dimensions, FlatList,
+  Modal, TouchableOpacity, Image, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -235,7 +235,7 @@ function DatePickerModal({ visible, onClose, onSelect, currentDate, minDate, tit
 export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const { colors, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = createStyles(colors, isDarkMode);
+  const styles = useMemo(() => createStyles(colors, isDarkMode), [colors, isDarkMode]);
   const { equipmentId } = route.params;
 
   const [equipment, setEquipment] = useState<Equipment | null>(null);
@@ -585,13 +585,15 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       paddingHorizontal: 10, paddingVertical: 5,
     },
     viewPhotoBadgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+    // shared visual shell — NOT absolutely positioned by default
     floatingButton: {
       width: 40, height: 40, borderRadius: 20,
       backgroundColor: colors.white,
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 5,
-      elevation: 5, overflow: 'hidden', position: 'absolute',
+      elevation: 5, overflow: 'hidden',
     },
-    backButton: { left: 16 },
+    // only the back button is pulled out of flow
+    backButton: { position: 'absolute', left: 16 },
     topRightRow: { position: 'absolute', right: 16, flexDirection: 'row', gap: 10 },
     heroGradient: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: 16, paddingTop: 60 },
     categoryBadge: { alignSelf: 'flex-start', backgroundColor: colors.accentAmber, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8 },
