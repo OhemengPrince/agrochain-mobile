@@ -265,29 +265,29 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
 
-    // Header
+    // Header — kept compact so all body content (including "Back to Sign In") fits on screen
     headerGrad: {
       paddingHorizontal: 20,
-      paddingBottom: 32,
+      paddingBottom: 18,
     },
     backBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
       backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 8,
-      marginBottom: 20,
+      marginTop: 6,
+      marginBottom: 10,
     },
     lockWrap: {
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: 10,
     },
     lockCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
       backgroundColor: '#fff',
       alignItems: 'center',
       justifyContent: 'center',
@@ -298,18 +298,18 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       elevation: 8,
     },
     headerTitle: {
-      fontSize: 26,
+      fontSize: 22,
       fontWeight: '800',
       color: '#fff',
       textAlign: 'center',
       letterSpacing: 0.2,
     },
     headerSubtitle: {
-      fontSize: 14,
+      fontSize: 13,
       color: 'rgba(255,255,255,0.80)',
       textAlign: 'center',
-      marginTop: 8,
-      lineHeight: 20,
+      marginTop: 6,
+      lineHeight: 18,
       paddingHorizontal: 16,
     },
 
@@ -317,8 +317,8 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     body: { flex: 1 },
     bodyContent: {
       paddingHorizontal: 20,
-      paddingTop: 28,
-      paddingBottom: 40,
+      paddingTop: 18,
+      paddingBottom: 32,
     },
 
     sectionLabel: {
@@ -327,26 +327,26 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       color: colors.secondaryText,
       textTransform: 'uppercase',
       letterSpacing: 0.8,
-      marginBottom: 14,
+      marginBottom: 12,
     },
 
     // Method cards
     methodRow: {
       flexDirection: 'row',
       gap: 12,
-      marginBottom: 28,
+      marginBottom: 20,
     },
     methodCard: {
       flex: 1,
       backgroundColor: colors.card,
       borderRadius: 18,
-      padding: 16,
+      padding: 14,
       borderWidth: 1.5,
       borderColor: colors.border,
       alignItems: 'center',
       position: 'relative',
       overflow: 'hidden',
-      minHeight: 150,
+      minHeight: 130,
     },
     methodCardActive: {
       borderColor: colors.primaryGreen,
@@ -440,7 +440,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     sendBtn: {
       borderRadius: 16,
       overflow: 'hidden',
-      marginTop: 24,
+      marginTop: 18,
     },
     sendBtnDisabled: { opacity: 0.7 },
     sendBtnGrad: {
@@ -461,7 +461,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 24,
+      marginTop: 16,
       paddingVertical: 8,
     },
     backLinkText: {

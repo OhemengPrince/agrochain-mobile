@@ -1,8 +1,8 @@
-import React, { useRef, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Image, Alert, Modal,
-  ScrollView, StyleProp, ViewStyle,
+  KeyboardAvoidingView, Platform, Image, Alert, Modal, Animated,
+  Dimensions, ScrollView, StyleProp, ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -266,7 +266,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         source={wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
-        // key forces re-mount when source type changes, preventing stale blank frame
+        fadeDuration={0}
         key={wallpaperUri ?? 'default'}
       />
 
@@ -480,8 +480,11 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 
 // ─────────────────────────────────────────────────────────────
 // ContactProfileModal — glassmorphism full-screen profile view
-// Uses the same DEFAULT_WALLPAPER + GlassBlur layers as the chat
+// Rendered as an Animated.View inside the chat tree (NOT a native Modal)
+// so Android never pauses the parent's rendering and the chat wallpaper stays alive.
 // ─────────────────────────────────────────────────────────────
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, onUpdatePhoto, colors, isDarkMode }: {
   visible: boolean; onClose: () => void;
@@ -490,6 +493,21 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
 }) {
   const insets = useSafeAreaInsets();
   const blurTint = isDarkMode ? 'dark' : 'light';
+  const slideY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const [rendered, setRendered] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setRendered(true);
+      Animated.timing(slideY, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+    } else {
+      Animated.timing(slideY, { toValue: SCREEN_HEIGHT, duration: 260, useNativeDriver: true }).start(() => {
+        setRendered(false);
+      });
+    }
+  }, [visible]);
+
+  if (!rendered) return null;
 
   const glassCard = {
     marginHorizontal: 16,
@@ -500,8 +518,6 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
     borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.70)',
   };
   const glassCardAndroid = isDarkMode ? 'rgba(4,10,5,0.62)' : 'rgba(255,255,255,0.62)';
-  const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
-  const subColor = isDarkMode ? 'rgba(255,255,255,0.55)' : '#374151';
 
   const infoRows = [
     { icon: 'briefcase-outline', label: 'Role', value: role },
@@ -512,10 +528,12 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Animated.View
+      style={[StyleSheet.absoluteFill, { zIndex: 200, elevation: 200, transform: [{ translateY: slideY }] }]}
+    >
       <View style={{ flex: 1 }}>
-        {/* Same wallpaper as the chat screen */}
-        <Image source={DEFAULT_WALLPAPER} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        {/* Own wallpaper copy — parent's wallpaper Image stays alive behind this overlay */}
+        <Image source={DEFAULT_WALLPAPER} style={StyleSheet.absoluteFill} resizeMode="cover" fadeDuration={0} />
 
         {/* ── Header bar (glass, properly inset) ── */}
         <View style={{ paddingTop: insets.top, overflow: 'hidden' }}>
@@ -576,7 +594,7 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
                 { icon: 'chatbubble-ellipses', label: 'Message', onPress: onClose },
                 { icon: 'call', label: 'Voice Call', onPress: () => Alert.alert('Voice Call', 'Coming soon.') },
                 { icon: 'videocam', label: 'Video', onPress: () => Alert.alert('Video Call', 'Coming soon.') },
-              ].map((btn, i) => (
+              ].map((btn) => (
                 <TouchableOpacity key={btn.label} onPress={btn.onPress} activeOpacity={0.8}
                   style={{ flex: 1, alignItems: 'center' }}>
                   <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#0B6E36', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', marginBottom: 7 }}>
@@ -610,7 +628,7 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
 
         <View style={{ height: insets.bottom }} />
       </View>
-    </Modal>
+    </Animated.View>
   );
 }
 
