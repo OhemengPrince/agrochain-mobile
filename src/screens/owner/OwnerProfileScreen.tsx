@@ -282,21 +282,24 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         {activeTab === 'About' && (
           <View style={styles.premiumCardWrap}>
             <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-              <View style={styles.aboutHeadingRow}>
-                <Text style={styles.aboutHeading}>About {user.fullName}</Text>
-                <TouchableOpacity
-                  style={styles.aboutEditButton}
-                  onPress={() => { setAboutDraft(aboutText); setAboutEditVisible(true); }}
-                >
-                  <Ionicons name="add" size={18} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.aboutHeading}>About {user.fullName}</Text>
               <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
                 {aboutText}
               </Text>
               <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
                 <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
               </Pressable>
+              <TouchableOpacity
+                style={styles.addDescriptionRow}
+                onPress={() => { setAboutDraft(aboutText === BIO_TEXT ? '' : aboutText); setAboutEditVisible(true); }}
+              >
+                <View style={styles.aboutEditButton}>
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </View>
+                <Text style={styles.addDescriptionText}>
+                  {aboutText === BIO_TEXT ? 'Add a description about yourself' : 'Edit description'}
+                </Text>
+              </TouchableOpacity>
 
               <View style={styles.contactRow}>
                 <View style={styles.contactAvatar}>
@@ -696,10 +699,10 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.accentAmber,
       marginBottom: 10,
     },
-    aboutHeadingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+    aboutHeading: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text,
       marginBottom: 6,
     },
     aboutEditButton: {
@@ -710,10 +713,22 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    aboutHeading: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
+    addDescriptionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 12,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    addDescriptionText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      fontWeight: '600',
+      flex: 1,
     },
     aboutParagraph: {
       fontSize: 13,
