@@ -30,4 +30,14 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Normalizes paginated or wrapped list responses from the backend.
+// Handles: plain arrays, Spring Boot Page { content: [...] }, or { data: [...] }.
+export function extractArray<T>(raw: any): T[] {
+  if (Array.isArray(raw)) return raw;
+  if (raw?.content && Array.isArray(raw.content)) return raw.content;
+  if (raw?.data && Array.isArray(raw.data)) return raw.data;
+  if (raw?.items && Array.isArray(raw.items)) return raw.items;
+  return [];
+}
+
 export default apiClient;

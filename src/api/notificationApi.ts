@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { extractArray } from './axios';
 import { AppNotification } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { MOCK_NOTIFICATIONS } from '../mock/mockData';
@@ -8,8 +8,8 @@ export async function getNotifications(): Promise<AppNotification[]> {
   if (USE_MOCK_DATA) {
     return mockDelay([...MOCK_NOTIFICATIONS]);
   }
-  const { data } = await apiClient.get<AppNotification[]>('/notifications');
-  return data;
+  const { data } = await apiClient.get<any>('/notifications');
+  return extractArray<AppNotification>(data);
 }
 
 export async function markAsRead(notificationId: string): Promise<void> {

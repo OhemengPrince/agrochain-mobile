@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { extractArray } from './axios';
 import {
   ProduceBatch,
   CreateBatchPayload,
@@ -43,8 +43,8 @@ export async function getMyBatches(): Promise<ProduceBatch[]> {
     const mine = MOCK_BATCHES.filter((b) => b.farmerId === user?.id);
     return mockDelay(mine);
   }
-  const { data } = await apiClient.get<ProduceBatch[]>('/produce/batches/mine');
-  return data;
+  const { data } = await apiClient.get<any>('/produce/batches/mine');
+  return extractArray<ProduceBatch>(data);
 }
 
 export async function getBatchById(batchId: string): Promise<ProduceBatch> {
@@ -109,8 +109,8 @@ export async function getProduceCatalogue(params: CatalogueParams): Promise<Prod
     const limited = params.size ? filtered.slice(0, params.size) : filtered;
     return mockDelay(limited);
   }
-  const { data } = await apiClient.get<ProduceBatch[]>('/produce/catalogue', { params });
-  return data;
+  const { data } = await apiClient.get<any>('/produce/catalogue', { params });
+  return extractArray<ProduceBatch>(data);
 }
 
 export async function scanQrCode(qrCodeValue: string): Promise<ProduceBatch> {
@@ -144,8 +144,8 @@ export async function getMarketplaceListings(
     });
     return mockDelay(filtered);
   }
-  const { data } = await apiClient.get<MarketplaceListing[]>('/marketplace/listings', { params });
-  return data;
+  const { data } = await apiClient.get<any>('/marketplace/listings', { params });
+  return extractArray<MarketplaceListing>(data);
 }
 
 export async function getMarketplaceListingById(listingId: string): Promise<MarketplaceListing> {
@@ -165,8 +165,8 @@ export async function getMyMarketplaceListings(): Promise<MarketplaceListing[]> 
     const mine = MOCK_MARKETPLACE_LISTINGS.filter((l) => l.sellerId === user?.id);
     return mockDelay(mine);
   }
-  const { data } = await apiClient.get<MarketplaceListing[]>('/marketplace/listings/mine');
-  return data;
+  const { data } = await apiClient.get<any>('/marketplace/listings/mine');
+  return extractArray<MarketplaceListing>(data);
 }
 
 export async function createMarketplaceListing(

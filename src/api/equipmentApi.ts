@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { extractArray } from './axios';
 import {
   Equipment,
   CatalogueParams,
@@ -22,8 +22,8 @@ export async function searchEquipment(params: CatalogueParams): Promise<Equipmen
     });
     return mockDelay(filtered);
   }
-  const { data } = await apiClient.get<Equipment[]>('/equipment', { params });
-  return data;
+  const { data } = await apiClient.get<any>('/equipment', { params });
+  return extractArray<Equipment>(data);
 }
 
 export async function getEquipmentById(equipmentId: string): Promise<Equipment> {
@@ -42,8 +42,8 @@ export async function getMyListings(): Promise<Equipment[]> {
     const mine = MOCK_EQUIPMENT.filter((item) => item.ownerId === user?.id);
     return mockDelay(mine);
   }
-  const { data } = await apiClient.get<Equipment[]>('/equipment/my-listings');
-  return data;
+  const { data } = await apiClient.get<any>('/equipment/my-listings');
+  return extractArray<Equipment>(data);
 }
 
 export async function createEquipment(payload: CreateEquipmentPayload): Promise<Equipment> {

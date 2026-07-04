@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { extractArray } from './axios';
 import { Booking, CreateBookingPayload, ReviewPayload } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { MOCK_BOOKINGS, MOCK_EQUIPMENT } from '../mock/mockData';
@@ -40,8 +40,8 @@ export async function getMyBookings(): Promise<Booking[]> {
     const mine = MOCK_BOOKINGS.filter((b) => b.farmerId === user?.id);
     return mockDelay(mine);
   }
-  const { data } = await apiClient.get<Booking[]>('/bookings/mine');
-  return data;
+  const { data } = await apiClient.get<any>('/bookings/mine');
+  return extractArray<Booking>(data);
 }
 
 export async function getIncomingBookings(): Promise<Booking[]> {
@@ -50,8 +50,8 @@ export async function getIncomingBookings(): Promise<Booking[]> {
     const incoming = MOCK_BOOKINGS.filter((b) => b.ownerId === user?.id);
     return mockDelay(incoming);
   }
-  const { data } = await apiClient.get<Booking[]>('/bookings/incoming');
-  return data;
+  const { data } = await apiClient.get<any>('/bookings/incoming');
+  return extractArray<Booking>(data);
 }
 
 function updateBookingStatus(bookingId: string, status: Booking['status']): Booking {
