@@ -11,6 +11,7 @@ import {
   Animated,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +28,6 @@ import { formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import ProfileTabs from '../../components/ProfileTabs';
-import ProfileStatCard from '../../components/ProfileStatCard';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
@@ -63,6 +63,9 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [aboutText, setAboutText] = useState(BIO_TEXT);
+  const [aboutEditVisible, setAboutEditVisible] = useState(false);
+  const [aboutDraft, setAboutDraft] = useState('');
 
   const loadData = useCallback(async () => {
     const data = await getProduceCatalogue({});
@@ -187,12 +190,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
           </BlurView>
         </LinearGradient>
 
-        <View style={styles.statsOverlapRow}>
-          <ProfileStatCard icon="cart" iconColor="#1A6B2E" value="24" label="Purchases" />
-          <ProfileStatCard icon="star" iconColor="#FF8F00" value="4.9" label="Rating" />
-          <ProfileStatCard icon="people" iconColor="#1A6B2E" value={`${suppliers.length || 8}`} label="Suppliers" />
-        </View>
-
         <View style={styles.tabsWrap}>
           <View style={styles.tabsHandle} />
           <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
@@ -201,9 +198,17 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         {activeTab === 'About' && (
           <View style={styles.premiumCardWrap}>
             <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-              <Text style={styles.aboutHeading}>About {user.fullName}</Text>
+              <View style={styles.aboutHeadingRow}>
+                <Text style={styles.aboutHeading}>About {user.fullName}</Text>
+                <TouchableOpacity
+                  style={styles.aboutEditButton}
+                  onPress={() => { setAboutDraft(aboutText); setAboutEditVisible(true); }}
+                >
+                  <Ionicons name="add" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
-                {BIO_TEXT}
+                {aboutText}
               </Text>
               <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
                 <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
@@ -422,6 +427,41 @@ export default function BuyerProfileScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={aboutEditVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setAboutEditVisible(false)}
+      >
+        <View style={styles.infoModalOverlay}>
+          <View style={styles.infoModalCard}>
+            <View style={styles.infoModalHandle} />
+            <Text style={styles.infoModalTitle}>Edit About</Text>
+            <TextInput
+              style={styles.aboutTextInput}
+              value={aboutDraft}
+              onChangeText={setAboutDraft}
+              multiline
+              placeholder="Write something about yourself..."
+              placeholderTextColor={colors.secondaryText}
+              autoFocus
+            />
+            <View style={styles.aboutModalButtons}>
+              <Pressable style={styles.aboutModalCancelButton} onPress={() => setAboutEditVisible(false)}>
+                <Text style={styles.aboutModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.aboutModalSaveButton}
+                onPress={() => { setAboutText(aboutDraft.trim() || BIO_TEXT); setAboutEditVisible(false); }}
+              >
+                <Text style={styles.aboutModalSaveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -550,11 +590,24 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.accentAmber,
       marginBottom: 10,
     },
+    aboutHeadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    aboutEditButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     aboutHeading: {
       fontSize: 15,
       fontWeight: '700',
       color: colors.text,
-      marginBottom: 6,
     },
     aboutParagraph: {
       fontSize: 13,
@@ -885,6 +938,51 @@ function createStyles(colors: ThemeColors) {
     infoModalCloseButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
+      fontWeight: '700',
+    },
+    aboutTextInput: {
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 12,
+      fontSize: 14,
+      color: colors.text,
+      minHeight: 100,
+      maxHeight: 200,
+      textAlignVertical: 'top',
+      marginTop: 8,
+    },
+    aboutModalButtons: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 16,
+    },
+    aboutModalCancelButton: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aboutModalCancelText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.secondaryText,
+    },
+    aboutModalSaveButton: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#1A6B2E',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aboutModalSaveText: {
+      color: '#FFFFFF',
+      fontSize: 15,
       fontWeight: '700',
     },
   });
