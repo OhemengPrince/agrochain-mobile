@@ -1,8 +1,8 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Image, Alert, Modal, Animated,
-  Dimensions, ScrollView, StyleProp, ViewStyle,
+  KeyboardAvoidingView, Platform, Image, ImageBackground, Alert, Modal,
+  Animated, Dimensions, ScrollView, StyleProp, ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -261,13 +261,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   return (
     <View style={s.root}>
 
-      {/* ── LAYER 1: Wallpaper — always visible; theme change must NOT hide it ── */}
+      {/* ── LAYER 1: Wallpaper — explicit pixel dimensions so it ALWAYS fills on Android ── */}
       <Image
         source={wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER}
-        style={StyleSheet.absoluteFill}
+        style={{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
         resizeMode="cover"
         fadeDuration={0}
-        key={wallpaperUri ?? 'default'}
       />
 
       {/* ── LAYER 2: Header ── */}
@@ -419,6 +418,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onClose={() => setProfileVisible(false)}
         name={name} role={role} initial={initial}
         profileImageUri={profileImageUri}
+        wallpaperUri={wallpaperUri}
         onUpdatePhoto={handleUpdateProfilePicture}
         colors={colors} isDarkMode={isDarkMode}
       />
@@ -484,11 +484,12 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 // so Android never pauses the parent's rendering and the chat wallpaper stays alive.
 // ─────────────────────────────────────────────────────────────
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, onUpdatePhoto, colors, isDarkMode }: {
+function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, wallpaperUri, onUpdatePhoto, colors, isDarkMode }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
+  wallpaperUri: string | null;
   onUpdatePhoto: () => void; colors: ThemeColors; isDarkMode: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -527,13 +528,21 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
     { icon: 'shield-checkmark-outline', label: 'Status', value: 'Verified AgroChain Member' },
   ];
 
+  // Same wallpaper source as the parent chat screen
+  const wallpaperSource = wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER;
+
   return (
+    // backgroundColor is a solid opaque fallback — chat content can NEVER bleed through
     <Animated.View
-      style={[StyleSheet.absoluteFill, { zIndex: 200, elevation: 200, transform: [{ translateY: slideY }] }]}
+      style={[StyleSheet.absoluteFill, { zIndex: 200, elevation: 200, backgroundColor: '#04331A', transform: [{ translateY: slideY }] }]}
     >
-      <View style={{ flex: 1 }}>
-        {/* Own wallpaper copy — parent's wallpaper Image stays alive behind this overlay */}
-        <Image source={DEFAULT_WALLPAPER} style={StyleSheet.absoluteFill} resizeMode="cover" fadeDuration={0} />
+      {/* ImageBackground fills the Animated.View and renders the wallpaper reliably */}
+      <ImageBackground
+        source={wallpaperSource}
+        style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+        resizeMode="cover"
+        fadeDuration={0}
+      >
 
         {/* ── Header bar (glass, properly inset) ── */}
         <View style={{ paddingTop: insets.top, overflow: 'hidden' }}>
@@ -627,7 +636,7 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
         </ScrollView>
 
         <View style={{ height: insets.bottom }} />
-      </View>
+      </ImageBackground>
     </Animated.View>
   );
 }
