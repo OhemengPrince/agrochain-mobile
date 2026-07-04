@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,6 +147,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <LinearGradient colors={['#062B14', '#0F4C24', '#1A6B2E', '#2E8B4A', '#7ED957']} style={styles.hero}>
           <LinearGradient
@@ -199,23 +201,53 @@ export default function BuyerProfileScreen({ navigation }: Props) {
           <View style={styles.premiumCardWrap}>
             <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
               <Text style={styles.aboutHeading}>About {user.fullName}</Text>
-              <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
-                {aboutText}
-              </Text>
-              <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
-                <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
-              </Pressable>
-              <TouchableOpacity
-                style={styles.addDescriptionRow}
-                onPress={() => { setAboutDraft(aboutText === BIO_TEXT ? '' : aboutText); setAboutEditVisible(true); }}
-              >
-                <View style={styles.aboutEditButton}>
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
+              {!aboutEditVisible ? (
+                <>
+                  <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
+                    {aboutText}
+                  </Text>
+                  <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
+                    <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
+                  </Pressable>
+                  <TouchableOpacity
+                    style={styles.addDescriptionRow}
+                    onPress={() => { setAboutDraft(aboutText === BIO_TEXT ? '' : aboutText); setAboutEditVisible(true); }}
+                  >
+                    <View style={styles.aboutEditButton}>
+                      <Ionicons name="add" size={16} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.addDescriptionText}>
+                      {aboutText === BIO_TEXT ? 'Add a description about yourself' : 'Edit description'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.aboutEditorBox}>
+                  <Text style={styles.aboutEditorLabel}>Describe yourself in 1–2 sentences</Text>
+                  <TextInput
+                    style={styles.aboutTextInput}
+                    value={aboutDraft}
+                    onChangeText={setAboutDraft}
+                    multiline
+                    placeholder="e.g. Verified agri-buyer sourcing quality produce..."
+                    placeholderTextColor={colors.secondaryText}
+                    autoFocus
+                    maxLength={300}
+                  />
+                  <Text style={styles.aboutCharCount}>{aboutDraft.length}/300</Text>
+                  <View style={styles.aboutModalButtons}>
+                    <Pressable style={styles.aboutModalCancelButton} onPress={() => setAboutEditVisible(false)}>
+                      <Text style={styles.aboutModalCancelText}>Cancel</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.aboutModalSaveButton}
+                      onPress={() => { if (aboutDraft.trim()) setAboutText(aboutDraft.trim()); setAboutEditVisible(false); }}
+                    >
+                      <Text style={styles.aboutModalSaveText}>Done</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <Text style={styles.addDescriptionText}>
-                  {aboutText === BIO_TEXT ? 'Add a description about yourself' : 'Edit description'}
-                </Text>
-              </TouchableOpacity>
+              )}
 
               <View style={styles.contactRow}>
                 <View style={styles.contactAvatar}>
@@ -382,6 +414,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         )}
 
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <ProfileDropdownMenu
         visible={dropdownVisible}
@@ -431,40 +464,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      <Modal
-        visible={aboutEditVisible}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => setAboutEditVisible(false)}
-      >
-        <View style={styles.infoModalOverlay}>
-          <View style={styles.infoModalCard}>
-            <View style={styles.infoModalHandle} />
-            <Text style={styles.infoModalTitle}>Edit About</Text>
-            <TextInput
-              style={styles.aboutTextInput}
-              value={aboutDraft}
-              onChangeText={setAboutDraft}
-              multiline
-              placeholder="Write something about yourself..."
-              placeholderTextColor={colors.secondaryText}
-              autoFocus
-            />
-            <View style={styles.aboutModalButtons}>
-              <Pressable style={styles.aboutModalCancelButton} onPress={() => setAboutEditVisible(false)}>
-                <Text style={styles.aboutModalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={styles.aboutModalSaveButton}
-                onPress={() => { setAboutText(aboutDraft.trim() || BIO_TEXT); setAboutEditVisible(false); }}
-              >
-                <Text style={styles.aboutModalSaveText}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -623,6 +622,26 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       fontWeight: '600',
       flex: 1,
+    },
+    aboutEditorBox: {
+      marginTop: 8,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+    },
+    aboutEditorLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.secondaryText,
+      marginBottom: 8,
+    },
+    aboutCharCount: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      textAlign: 'right',
+      marginTop: 4,
     },
     aboutParagraph: {
       fontSize: 13,
