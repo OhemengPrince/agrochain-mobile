@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { getToken, clearAll } from '../utils/storage';
 
-const BASE_URL = 'http://192.168.x.x:8080/api';
+const BASE_URL = 'http://172.20.10.2:8080/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
