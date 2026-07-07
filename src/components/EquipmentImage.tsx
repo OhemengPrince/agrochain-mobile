@@ -6,19 +6,23 @@ import { getEquipmentImage } from '../constants/equipmentImages';
 
 interface EquipmentImageProps {
   category: EquipmentCategory;
+  imageUrl?: string;
   style?: StyleProp<ImageStyle>;
   resizeMode?: 'cover' | 'contain';
 }
 
-export default function EquipmentImage({ category, style, resizeMode = 'cover' }: EquipmentImageProps) {
+export default function EquipmentImage({ category, imageUrl, style, resizeMode = 'cover' }: EquipmentImageProps) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  const isRemote = imageUrl?.startsWith('http');
+  const source = isRemote ? { uri: imageUrl } : getEquipmentImage(category);
 
   return (
     <View style={[styles.container, style]}>
       {!failed ? (
         <Image
-          source={getEquipmentImage(category)}
+          source={source}
           style={StyleSheet.absoluteFill}
           resizeMode={resizeMode}
           onLoadEnd={() => setLoading(false)}

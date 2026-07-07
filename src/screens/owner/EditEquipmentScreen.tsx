@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Equipment } from '../../types';
 import { getEquipmentById, updateEquipment, deleteEquipment } from '../../api/equipmentApi';
+import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -45,6 +46,7 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
   const [isAvailable, setIsAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingText, setSavingText] = useState('Saving...');
   const [error, setError] = useState<string | null>(null);
 
   const saveAnim = usePressAnimation();
@@ -95,13 +97,26 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
       return;
     }
     setSaving(true);
+
+    let finalImageUrl: string | undefined = photoUri ?? undefined;
+    const isLocalPick = photoUri && (photoUri.startsWith('file://') || photoUri.startsWith('content://'));
+    if (isLocalPick) {
+      setSavingText('Uploading image...');
+      try {
+        finalImageUrl = await uploadImage(photoUri!);
+      } catch {
+        // Upload failed — keep original value
+      }
+    }
+
+    setSavingText('Saving...');
     try {
       await updateEquipment(equipmentId, {
         name,
         description,
         dailyRate: rate,
         isAvailable,
-        imageUrl: photoUri ?? undefined,
+        imageUrl: finalImageUrl,
       });
       navigation.navigate('OwnerEquipmentList');
     } catch (err: any) {
@@ -211,7 +226,7 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
             disabled={saving}
           >
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+              <Text style={styles.submitButtonText}>{saving ? savingText : 'Save Changes'}</Text>
             </LinearGradient>
           </Pressable>
         </Animated.View>

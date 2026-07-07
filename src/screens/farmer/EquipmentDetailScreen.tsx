@@ -296,7 +296,9 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const numDays = Math.max(daysBetween(startDate, endDate), 1);
   const total = equipment.dailyRate * numDays;
   const ownerInitial = equipment.ownerName?.charAt(0)?.toUpperCase() ?? '?';
-  const equipmentImageSource = equipment.image ?? getEquipmentImage(equipment.category);
+  const equipmentImageSource = equipment.imageUrl?.startsWith('http')
+    ? { uri: equipment.imageUrl }
+    : (equipment.image ?? getEquipmentImage(equipment.category));
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

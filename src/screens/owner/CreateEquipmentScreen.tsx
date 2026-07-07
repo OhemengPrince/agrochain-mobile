@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, EquipmentCategory } from '../../types';
 import { createEquipment } from '../../api/equipmentApi';
+import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -80,6 +81,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
   const [region, setRegion] = useState('');
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Listing...');
   const [error, setError] = useState<string | null>(null);
 
   const submitAnim = usePressAnimation();
@@ -109,6 +111,18 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
       return;
     }
     setLoading(true);
+
+    let remoteImageUrl: string | undefined;
+    if (photoUri) {
+      setLoadingText('Uploading image...');
+      try {
+        remoteImageUrl = await uploadImage(photoUri);
+      } catch {
+        // Upload failed — proceed without image
+      }
+    }
+
+    setLoadingText('Listing...');
     try {
       await createEquipment({
         name,
@@ -117,7 +131,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         dailyRate: rate,
         region,
         district,
-        imageUrl: photoUri ?? undefined,
+        imageUrl: remoteImageUrl,
       });
       navigation.navigate('OwnerEquipmentList');
     } catch (err: any) {
@@ -227,7 +241,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
             disabled={loading}
           >
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>{loading ? 'Listing...' : 'List Equipment'}</Text>
+              <Text style={styles.submitButtonText}>{loading ? loadingText : 'List Equipment'}</Text>
             </LinearGradient>
           </Pressable>
         </Animated.View>

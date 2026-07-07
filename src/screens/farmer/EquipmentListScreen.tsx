@@ -55,7 +55,7 @@ function EquipmentListCard({
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
           <Image
-            source={item.image ?? getEquipmentImage(item.category)}
+            source={item.imageUrl?.startsWith('http') ? { uri: item.imageUrl } : (item.image ?? getEquipmentImage(item.category))}
             resizeMode="cover"
             style={styles.image}
           />

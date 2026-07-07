@@ -23,6 +23,7 @@ import {
   MarketplaceContactPreference,
 } from '../../types';
 import { createMarketplaceListing } from '../../api/produceApi';
+import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -181,6 +182,7 @@ export default function CreateListingScreen({ navigation }: Props) {
   const [capturingLocation, setCapturingLocation] = useState(false);
   const [contactPreference, setContactPreference] = useState<MarketplaceContactPreference>('CALL');
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Posting...');
   const [error, setError] = useState<string | null>(null);
 
   const submitAnim = usePressAnimation();
@@ -241,6 +243,17 @@ export default function CreateListingScreen({ navigation }: Props) {
     }
 
     setLoading(true);
+
+    let uploadedUrls: string[] = [];
+    if (photos.length > 0) {
+      setLoadingText('Uploading photos...');
+      const results = await Promise.allSettled(photos.map((uri) => uploadImage(uri)));
+      uploadedUrls = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+        .map((r) => r.value);
+    }
+
+    setLoadingText('Posting...');
     try {
       await createMarketplaceListing({
         category,
@@ -249,7 +262,7 @@ export default function CreateListingScreen({ navigation }: Props) {
         priceType,
         price: hasValidPrice ? parsedPrice : 0,
         quantity: quantity.trim() ? quantity.trim() : undefined,
-        photoUrls: photos,
+        photoUrls: uploadedUrls,
         region,
         district,
         contactPreference,
@@ -421,7 +434,7 @@ export default function CreateListingScreen({ navigation }: Props) {
             disabled={loading}
           >
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>{loading ? 'Posting...' : 'Post Listing'}</Text>
+              <Text style={styles.submitButtonText}>{loading ? loadingText : 'Post Listing'}</Text>
             </LinearGradient>
           </Pressable>
         </Animated.View>

@@ -68,7 +68,7 @@ function MyEquipmentCard({
     <Animated.View style={[styles.card, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onEdit} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.imageWrap}>
-          <EquipmentImage category={equipment.category} style={styles.image} resizeMode="contain" />
+          <EquipmentImage category={equipment.category} imageUrl={equipment.imageUrl} style={styles.image} resizeMode="contain" />
           <View style={styles.priceBadge}>
             <Text style={styles.priceBadgeText}>{formatCurrency(equipment.dailyRate)}/day</Text>
           </View>
