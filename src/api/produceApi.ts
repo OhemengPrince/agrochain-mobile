@@ -43,8 +43,11 @@ export async function getMyBatches(): Promise<ProduceBatch[]> {
     const mine = MOCK_BATCHES.filter((b) => b.farmerId === user?.id);
     return mockDelay(mine);
   }
+  console.log('[API] GET /produce/batches/mine');
   const { data } = await apiClient.get<any>('/produce/batches/mine');
-  return extractArray<ProduceBatch>(data);
+  const result = extractArray<ProduceBatch>(data);
+  console.log('[API] /produce/batches/mine ->', result.length, 'batches');
+  return result;
 }
 
 export async function getBatchById(batchId: string): Promise<ProduceBatch> {
@@ -109,8 +112,11 @@ export async function getProduceCatalogue(params: CatalogueParams): Promise<Prod
     const limited = params.size ? filtered.slice(0, params.size) : filtered;
     return mockDelay(limited);
   }
+  console.log('[API] GET /produce/catalogue', params);
   const { data } = await apiClient.get<any>('/produce/catalogue', { params });
-  return extractArray<ProduceBatch>(data);
+  const result = extractArray<ProduceBatch>(data);
+  console.log('[API] /produce/catalogue ->', result.length, 'batches');
+  return result;
 }
 
 export async function scanQrCode(qrCodeValue: string): Promise<ProduceBatch> {
@@ -144,8 +150,11 @@ export async function getMarketplaceListings(
     });
     return mockDelay(filtered);
   }
+  console.log('[API] GET /marketplace/listings', params);
   const { data } = await apiClient.get<any>('/marketplace/listings', { params });
-  return extractArray<MarketplaceListing>(data);
+  const result = extractArray<MarketplaceListing>(data);
+  console.log('[API] /marketplace/listings ->', result.length, 'listings');
+  return result;
 }
 
 export async function getMarketplaceListingById(listingId: string): Promise<MarketplaceListing> {
@@ -165,8 +174,11 @@ export async function getMyMarketplaceListings(): Promise<MarketplaceListing[]> 
     const mine = MOCK_MARKETPLACE_LISTINGS.filter((l) => l.sellerId === user?.id);
     return mockDelay(mine);
   }
+  console.log('[API] GET /marketplace/listings/mine');
   const { data } = await apiClient.get<any>('/marketplace/listings/mine');
-  return extractArray<MarketplaceListing>(data);
+  const result = extractArray<MarketplaceListing>(data);
+  console.log('[API] /marketplace/listings/mine ->', result.length, 'listings');
+  return result;
 }
 
 export async function createMarketplaceListing(

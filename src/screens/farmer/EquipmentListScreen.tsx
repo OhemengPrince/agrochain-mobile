@@ -136,15 +136,13 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadEquipment(route.params?.query ?? '');
-      setLoading(false);
+      try { await loadEquipment(route.params?.query ?? ''); } finally { setLoading(false); }
     })();
   }, [loadEquipment]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadEquipment(query);
-    setRefreshing(false);
+    try { await loadEquipment(query); } finally { setRefreshing(false); }
   };
 
   const handleClearQuery = () => {

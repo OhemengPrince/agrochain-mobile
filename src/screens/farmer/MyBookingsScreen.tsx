@@ -274,15 +274,13 @@ export default function MyBookingsScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBookings();
-      setLoading(false);
+      try { await loadBookings(); } finally { setLoading(false); }
     })();
   }, [loadBookings]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadBookings();
-    setRefreshing(false);
+    try { await loadBookings(); } finally { setRefreshing(false); }
   };
 
   const goToEquipmentTab = useCallback(() => {

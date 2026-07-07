@@ -184,15 +184,13 @@ export default function MyBatchesScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBatches();
-      setLoading(false);
+      try { await loadBatches(); } finally { setLoading(false); }
     })();
   }, [loadBatches]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadBatches();
-    setRefreshing(false);
+    try { await loadBatches(); } finally { setRefreshing(false); }
   };
 
   const stats = useMemo(

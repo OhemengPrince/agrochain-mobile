@@ -126,8 +126,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBatch();
-      setLoading(false);
+      try { await loadBatch(); } finally { setLoading(false); }
     })();
   }, [batchId]);
 

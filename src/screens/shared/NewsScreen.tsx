@@ -53,13 +53,15 @@ export default function NewsScreen() {
   }, []);
 
   useEffect(() => {
-    (async () => { setLoading(true); await load(); setLoading(false); })();
+    (async () => {
+      setLoading(true);
+      try { await load(); } finally { setLoading(false); }
+    })();
   }, [load]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await load();
-    setRefreshing(false);
+    try { await load(); } finally { setRefreshing(false); }
   };
 
   // ── Filter logic: activeTopic === 'All' shows everything ──

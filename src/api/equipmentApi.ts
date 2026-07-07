@@ -22,8 +22,11 @@ export async function searchEquipment(params: CatalogueParams): Promise<Equipmen
     });
     return mockDelay(filtered);
   }
+  console.log('[API] GET /equipment', params);
   const { data } = await apiClient.get<any>('/equipment', { params });
-  return extractArray<Equipment>(data);
+  const result = extractArray<Equipment>(data);
+  console.log('[API] /equipment ->', result.length, 'items');
+  return result;
 }
 
 export async function getEquipmentById(equipmentId: string): Promise<Equipment> {
@@ -32,6 +35,7 @@ export async function getEquipmentById(equipmentId: string): Promise<Equipment> 
     if (!found) throw new Error('Equipment not found');
     return mockDelay(found);
   }
+  console.log('[API] GET /equipment/' + equipmentId);
   const { data } = await apiClient.get<Equipment>(`/equipment/${equipmentId}`);
   return data;
 }
@@ -42,8 +46,11 @@ export async function getMyListings(): Promise<Equipment[]> {
     const mine = MOCK_EQUIPMENT.filter((item) => item.ownerId === user?.id);
     return mockDelay(mine);
   }
+  console.log('[API] GET /equipment/my-listings');
   const { data } = await apiClient.get<any>('/equipment/my-listings');
-  return extractArray<Equipment>(data);
+  const result = extractArray<Equipment>(data);
+  console.log('[API] /equipment/my-listings ->', result.length, 'items');
+  return result;
 }
 
 export async function createEquipment(payload: CreateEquipmentPayload): Promise<Equipment> {

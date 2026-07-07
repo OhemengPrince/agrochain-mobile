@@ -146,15 +146,13 @@ export default function CatalogueScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBatches('');
-      setLoading(false);
+      try { await loadBatches(''); } finally { setLoading(false); }
     })();
   }, [loadBatches]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadBatches(query);
-    setRefreshing(false);
+    try { await loadBatches(query); } finally { setRefreshing(false); }
   };
 
   const filteredBatches = useMemo(() => {

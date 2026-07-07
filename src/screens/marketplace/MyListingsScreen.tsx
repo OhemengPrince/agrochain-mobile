@@ -208,15 +208,13 @@ export default function MarketplaceMyListingsScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadListings();
-      setLoading(false);
+      try { await loadListings(); } finally { setLoading(false); }
     })();
   }, [loadListings]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadListings();
-    setRefreshing(false);
+    try { await loadListings(); } finally { setRefreshing(false); }
   };
 
   const handleEdit = useCallback(() => {

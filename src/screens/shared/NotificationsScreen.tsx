@@ -178,15 +178,13 @@ export default function NotificationsScreen() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadNotifications();
-      setLoading(false);
+      try { await loadNotifications(); } finally { setLoading(false); }
     })();
   }, [loadNotifications]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadNotifications();
-    setRefreshing(false);
+    try { await loadNotifications(); } finally { setRefreshing(false); }
   };
 
   const handleMarkAllRead = async () => {

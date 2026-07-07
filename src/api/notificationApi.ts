@@ -8,8 +8,11 @@ export async function getNotifications(): Promise<AppNotification[]> {
   if (USE_MOCK_DATA) {
     return mockDelay([...MOCK_NOTIFICATIONS]);
   }
+  console.log('[API] GET /notifications');
   const { data } = await apiClient.get<any>('/notifications');
-  return extractArray<AppNotification>(data);
+  const result = extractArray<AppNotification>(data);
+  console.log('[API] /notifications ->', result.length, 'items');
+  return result;
 }
 
 export async function markAsRead(notificationId: string): Promise<void> {

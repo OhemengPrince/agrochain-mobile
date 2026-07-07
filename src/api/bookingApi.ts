@@ -40,8 +40,11 @@ export async function getMyBookings(): Promise<Booking[]> {
     const mine = MOCK_BOOKINGS.filter((b) => b.farmerId === user?.id);
     return mockDelay(mine);
   }
+  console.log('[API] GET /bookings/mine');
   const { data } = await apiClient.get<any>('/bookings/mine');
-  return extractArray<Booking>(data);
+  const result = extractArray<Booking>(data);
+  console.log('[API] /bookings/mine ->', result.length, 'bookings');
+  return result;
 }
 
 export async function getIncomingBookings(): Promise<Booking[]> {
@@ -50,8 +53,11 @@ export async function getIncomingBookings(): Promise<Booking[]> {
     const incoming = MOCK_BOOKINGS.filter((b) => b.ownerId === user?.id);
     return mockDelay(incoming);
   }
+  console.log('[API] GET /bookings/incoming');
   const { data } = await apiClient.get<any>('/bookings/incoming');
-  return extractArray<Booking>(data);
+  const result = extractArray<Booking>(data);
+  console.log('[API] /bookings/incoming ->', result.length, 'bookings');
+  return result;
 }
 
 function updateBookingStatus(bookingId: string, status: Booking['status']): Booking {

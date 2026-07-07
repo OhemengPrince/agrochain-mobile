@@ -177,8 +177,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBooking();
-      setLoading(false);
+      try { await loadBooking(); } finally { setLoading(false); }
     })();
   }, [bookingId]);
 
