@@ -186,30 +186,61 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [equipmentData, batchesData, bookingsData, notificationsData] = await Promise.all([
+    console.log('[FarmerHome] loading dashboard data...');
+    const [equipmentRes, batchesRes, bookingsRes, notificationsRes] = await Promise.allSettled([
       searchEquipment({}),
       getMyBatches(),
       getMyBookings(),
       getNotifications(),
     ]);
-    setEquipment(equipmentData);
-    setBatches(batchesData);
-    setBookings(bookingsData);
-    setNotifications(notificationsData);
+
+    if (equipmentRes.status === 'fulfilled') {
+      console.log('[FarmerHome] equipment OK:', equipmentRes.value.length, 'items');
+      setEquipment(equipmentRes.value);
+    } else {
+      console.log('[FarmerHome] equipment FAILED:', equipmentRes.reason?.message ?? equipmentRes.reason);
+    }
+
+    if (batchesRes.status === 'fulfilled') {
+      console.log('[FarmerHome] batches OK:', batchesRes.value.length, 'items');
+      setBatches(batchesRes.value);
+    } else {
+      console.log('[FarmerHome] batches FAILED:', batchesRes.reason?.message ?? batchesRes.reason);
+    }
+
+    if (bookingsRes.status === 'fulfilled') {
+      console.log('[FarmerHome] bookings OK:', bookingsRes.value.length, 'items');
+      setBookings(bookingsRes.value);
+    } else {
+      console.log('[FarmerHome] bookings FAILED:', bookingsRes.reason?.message ?? bookingsRes.reason);
+    }
+
+    if (notificationsRes.status === 'fulfilled') {
+      console.log('[FarmerHome] notifications OK:', notificationsRes.value.length, 'items');
+      setNotifications(notificationsRes.value);
+    } else {
+      console.log('[FarmerHome] notifications FAILED:', notificationsRes.reason?.message ?? notificationsRes.reason);
+    }
   }, []);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadData();
-      setLoading(false);
+      try {
+        await loadData();
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (loading) {

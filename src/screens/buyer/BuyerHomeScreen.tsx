@@ -123,10 +123,13 @@ export default function BuyerHomeScreen({ navigation }: Props) {
 
   const loadBatches = useCallback(async () => {
     setError(null);
+    console.log('[BuyerHome] loading produce catalogue...');
     try {
       const data = await getProduceCatalogue({ size: 20 });
+      console.log('[BuyerHome] produce OK:', data.length, 'items');
       setBatches(data);
     } catch (err: any) {
+      console.log('[BuyerHome] produce FAILED:', err?.message ?? err);
       setError(err?.response?.data?.message ?? 'Failed to load produce.');
     }
   }, []);
@@ -134,15 +137,21 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadBatches();
-      setLoading(false);
+      try {
+        await loadBatches();
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadBatches]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadBatches();
-    setRefreshing(false);
+    try {
+      await loadBatches();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const addRecentSearch = (term: string) => {

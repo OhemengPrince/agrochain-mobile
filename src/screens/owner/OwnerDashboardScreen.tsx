@@ -179,30 +179,53 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
   const loadData = useCallback(async () => {
     setError(null);
-    try {
-      const [listingsData, bookingsData] = await Promise.all([
-        getMyListings(),
-        getIncomingBookings(),
-      ]);
-      setListings(listingsData);
-      setBookings(bookingsData);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to load dashboard data.');
+    console.log('[OwnerDashboard] loading dashboard data...');
+    const [listingsRes, bookingsRes] = await Promise.allSettled([
+      getMyListings(),
+      getIncomingBookings(),
+    ]);
+
+    const errors: string[] = [];
+
+    if (listingsRes.status === 'fulfilled') {
+      console.log('[OwnerDashboard] listings OK:', listingsRes.value.length, 'items');
+      setListings(listingsRes.value);
+    } else {
+      console.log('[OwnerDashboard] listings FAILED:', listingsRes.reason?.message ?? listingsRes.reason);
+      errors.push('Could not load your equipment listings.');
+    }
+
+    if (bookingsRes.status === 'fulfilled') {
+      console.log('[OwnerDashboard] bookings OK:', bookingsRes.value.length, 'items');
+      setBookings(bookingsRes.value);
+    } else {
+      console.log('[OwnerDashboard] bookings FAILED:', bookingsRes.reason?.message ?? bookingsRes.reason);
+      errors.push('Could not load incoming bookings.');
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join(' '));
     }
   }, []);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await loadData();
-      setLoading(false);
+      try {
+        await loadData();
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAccept = useCallback(
