@@ -6,7 +6,6 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
-  Image,
   ImageBackground,
   RefreshControl,
   Animated,
@@ -28,20 +27,12 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import { formatCategory, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
+import EquipmentImage from '../../components/EquipmentImage';
 import StarRating from '../../components/StarRating';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
 import WeatherWidget from '../../components/WeatherWidget';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerHomeMain'>;
-
-const EQUIPMENT_IMAGES = [
-  require('../../assets/equipment/tractor.jpg'),
-  require('../../assets/equipment/harvester.jpg'),
-  require('../../assets/equipment/irrigation.jpg'),
-  require('../../assets/equipment/sprayer.jpg'),
-  require('../../assets/equipment/tiller.jpg'),
-  require('../../assets/equipment/sheller.jpg'),
-];
 
 const TRACTOR_IMAGE = require('../../assets/equipment/tractor.jpg');
 
@@ -115,13 +106,11 @@ function QuickActionButton({
 
 function EquipmentMiniCard({
   item,
-  image,
   onPress,
   styles,
   colors,
 }: {
   item: Equipment;
-  image: any;
   onPress: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -132,7 +121,7 @@ function EquipmentMiniCard({
     <Animated.View style={[styles.equipmentCard, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.equipmentImageWrap}>
-          <Image source={image} style={styles.equipmentImage} resizeMode="cover" />
+          <EquipmentImage category={item.category} imageUrl={item.imageUrl} style={styles.equipmentImage} resizeMode="cover" />
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>{formatCategory(item.category)}</Text>
           </View>
@@ -356,11 +345,10 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentRow}>
-            {equipment.slice(0, 6).map((item, index) => (
+            {equipment.slice(0, 6).map((item) => (
               <EquipmentMiniCard
                 key={item.id}
                 item={item}
-                image={EQUIPMENT_IMAGES[index % EQUIPMENT_IMAGES.length]}
                 onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
                 styles={styles}
                 colors={colors}

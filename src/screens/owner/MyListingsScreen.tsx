@@ -144,13 +144,19 @@ export default function MyListingsScreen({ navigation }: Props) {
 
   const handleToggleAvailability = useCallback(
     async (equipmentId: string, value: boolean) => {
+      console.log('[Toggle] equipment', equipmentId, 'setting isAvailable:', value);
       setTogglingId(equipmentId);
       setListings((prev) =>
         prev.map((item) => (item.id === equipmentId ? { ...item, isAvailable: value } : item))
       );
       try {
-        await updateEquipment(equipmentId, { isAvailable: value });
+        const updated = await updateEquipment(equipmentId, { isAvailable: value });
+        console.log('[Toggle] API success, server isAvailable:', updated.isAvailable);
+        setListings((prev) =>
+          prev.map((item) => (item.id === equipmentId ? updated : item))
+        );
       } catch (err: any) {
+        console.log('[Toggle] API FAILED:', err?.response?.status, err?.response?.data);
         setListings((prev) =>
           prev.map((item) => (item.id === equipmentId ? { ...item, isAvailable: !value } : item))
         );
