@@ -17,6 +17,7 @@ import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
 import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
+import ChatRoomsScreen from '../screens/shared/ChatRoomsScreen';
 import MapScreen from '../screens/shared/MapScreen';
 
 const Tab = createBottomTabNavigator<BuyerStackParamList>();
@@ -29,6 +30,7 @@ function HomeStack() {
       <Stack.Screen name="ProduceDetail" component={ProduceDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="BuyerQrScanner" component={QrScannerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

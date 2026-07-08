@@ -350,6 +350,9 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
           </View>
           <View style={styles.headerActions}>
+            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
+              <Ionicons name="chatbubbles-outline" size={22} color="#FFFFFF" />
+            </Pressable>
             <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
               <Ionicons name="notifications" size={22} color="#FFFFFF" />
             </Pressable>

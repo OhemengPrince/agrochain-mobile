@@ -13,8 +13,11 @@ const MOCK_MESSAGES: ChatMessage[] = [
 
 export async function getRooms(): Promise<ChatRoom[]> {
   if (USE_MOCK_DATA) return mockDelay([]);
+  console.log('[chatApi] GET /chat/rooms');
   const { data } = await apiClient.get<any>('/chat/rooms');
-  return extractArray<ChatRoom>(data);
+  const rooms = extractArray<ChatRoom>(data);
+  console.log('[chatApi] /chat/rooms ->', rooms.length, 'room(s)');
+  return rooms;
 }
 
 export async function getOrCreateRoom(otherUserId: string): Promise<ChatRoom> {
@@ -27,14 +30,19 @@ export async function getOrCreateRoom(otherUserId: string): Promise<ChatRoom> {
       unreadCount: 0,
     });
   }
+  console.log('[chatApi] POST /chat/rooms { otherUserId:', otherUserId, '}');
   const { data } = await apiClient.post<ChatRoom>('/chat/rooms', { otherUserId });
+  console.log('[chatApi] Room resolved, id:', data.id);
   return data;
 }
 
 export async function getMessages(roomId: string): Promise<ChatMessage[]> {
   if (USE_MOCK_DATA) return mockDelay(MOCK_MESSAGES);
+  console.log('[chatApi] GET /chat/rooms/' + roomId + '/messages');
   const { data } = await apiClient.get<any>(`/chat/rooms/${roomId}/messages`);
-  return extractArray<ChatMessage>(data);
+  const msgs = extractArray<ChatMessage>(data);
+  console.log('[chatApi] /messages ->', msgs.length, 'message(s)');
+  return msgs;
 }
 
 export async function markRead(roomId: string): Promise<void> {
@@ -42,5 +50,6 @@ export async function markRead(roomId: string): Promise<void> {
     await mockDelay(undefined);
     return;
   }
+  console.log('[chatApi] PATCH /chat/rooms/' + roomId + '/read');
   await apiClient.patch(`/chat/rooms/${roomId}/read`);
 }

@@ -183,6 +183,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         const room = await getOrCreateRoom(otherUserId);
         if (cancelled) return;
         const resolvedRoomId = String(room.id);
+        console.log('[ChatScreen] Room resolved:', resolvedRoomId);
 
         const history = await getMessages(resolvedRoomId);
         if (cancelled) return;
@@ -208,6 +209,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             read: m.isRead,
           });
         });
+        console.log('[ChatScreen] History loaded:', sorted.length, 'message(s)');
         lastDateKeyRef.current = dateKey;
         setMessages(ui);
         setRoomId(resolvedRoomId);
@@ -228,6 +230,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     if (!otherUserId || !roomId || !token) return;
 
     const handleIncoming = (payload: ChatSocketMessage) => {
+      console.log('[ChatScreen] Received message from', payload.senderName, ':', payload.content?.slice(0, 60));
       const d = new Date(payload.createdAt);
       const dk = d.toDateString();
       setMessages((prev) => {
@@ -250,6 +253,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     connectChatSocket(token, {
       onConnect: () => {
+        console.log('[ChatScreen] Socket connected, subscribing to room', roomId);
         setSocketConnected(true);
         subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
       },
@@ -356,6 +360,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     // Live mode — publish over the socket and wait for the broadcast to come
     // back before it appears in the list; the server is the source of truth.
     try {
+      console.log('[ChatScreen] Sending message to room', roomId, ':', text.slice(0, 60));
       sendSocketMessage(roomId, text);
       setInputText('');
       setSendError(null);
