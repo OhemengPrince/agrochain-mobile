@@ -12,7 +12,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthStackParamList } from '../../types';
-import { getHasSeenOnboarding } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -92,10 +91,9 @@ export default function SplashScreen({ navigation }: Props) {
     ).start();
 
     let cancelled = false;
-    const navTimer = setTimeout(async () => {
-      const hasSeenOnboarding = await getHasSeenOnboarding();
+    const navTimer = setTimeout(() => {
       if (cancelled) return;
-      navigation.replace(hasSeenOnboarding ? 'Login' : 'Onboarding');
+      navigation.replace('Onboarding');
     }, SPLASH_DURATION_MS);
 
     return () => {

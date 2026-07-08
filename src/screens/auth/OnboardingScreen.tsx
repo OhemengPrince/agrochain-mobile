@@ -16,7 +16,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
-import { setHasSeenOnboarding } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
@@ -135,7 +134,6 @@ export default function OnboardingScreen({ navigation }: Props) {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={async () => {
-              await setHasSeenOnboarding();
               navigation.replace('Login');
             }}
           >
@@ -149,7 +147,6 @@ export default function OnboardingScreen({ navigation }: Props) {
             style={styles.secondaryButton}
             activeOpacity={0.85}
             onPress={async () => {
-              await setHasSeenOnboarding();
               navigation.replace('Login');
             }}
           >
