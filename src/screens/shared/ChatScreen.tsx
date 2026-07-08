@@ -2,15 +2,26 @@ import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, ImageBackground, Alert, Modal,
-  Animated, Dimensions, ScrollView, StyleProp, ViewStyle,
+  Animated, Dimensions, ScrollView, StyleProp, ViewStyle, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
+import type { StompSubscription } from '@stomp/stompjs';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
+import { ChatSocketMessage } from '../../types';
+import { getOrCreateRoom, getMessages, markRead } from '../../api/chatApi';
+import {
+  connect as connectChatSocket,
+  subscribeToRoom,
+  sendMessage as sendSocketMessage,
+  disconnect as disconnectChatSocket,
+} from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
 
 // Bundled default wallpaper — always shown unless user picks a custom one
@@ -24,6 +35,7 @@ type ChatParams = {
   name: string;
   role?: string;
   wallpaperUri?: string | null;
+  otherUserId?: string;
 };
 
 type Message = {
@@ -54,6 +66,22 @@ const SEED: Message[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// Live chat helpers — convert backend messages into the UI shape above
+// ─────────────────────────────────────────────────────────────
+
+function formatMessageTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateSeparatorLabel(date: Date): string {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ─────────────────────────────────────────────────────────────
 // GlassBlur — iOS: real BlurView, Android: semi-transparent fallback
 // Keep opacity LOW so wallpaper remains visible in both themes
 // ─────────────────────────────────────────────────────────────
@@ -79,13 +107,25 @@ function GlassBlur({
 export default function ChatScreen({ route, navigation }: { route: { params: ChatParams }; navigation: any }) {
   const { colors, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-  const { name, role = 'AgroChain User' } = route.params;
+  const { user, token } = useAuth();
+  const { name, role = 'AgroChain User', otherUserId } = route.params;
 
   // null = show DEFAULT_WALLPAPER; string uri = custom picked image
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);
-  const [messages, setMessages] = useState<Message[]>(SEED);
+  // Without otherUserId (e.g. the "message yourself" preview button on a profile
+  // screen) there's no real room to connect to — keep the old static demo intact.
+  const [messages, setMessages] = useState<Message[]>(otherUserId ? [] : SEED);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+
+  // ── Live chat wiring ──────────────────────────────────────
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(!!otherUserId);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const subscriptionRef = useRef<StompSubscription | null>(null);
+  const lastDateKeyRef = useRef<string>('');
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -130,6 +170,109 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const idx = messages.findIndex((m) => m.id === targetId);
     if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
   }, [matchCursor, matchedList, messages]);
+
+  // ── Load / create room + message history ──────────────────
+  useEffect(() => {
+    if (!otherUserId) return;
+    let cancelled = false;
+
+    (async () => {
+      setInitialLoading(true);
+      setLoadError(null);
+      try {
+        const room = await getOrCreateRoom(otherUserId);
+        if (cancelled) return;
+        const resolvedRoomId = String(room.id);
+
+        const history = await getMessages(resolvedRoomId);
+        if (cancelled) return;
+
+        const sorted = [...history].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const ui: Message[] = [];
+        let dateKey = '';
+        sorted.forEach((m) => {
+          const d = new Date(m.createdAt);
+          const dk = d.toDateString();
+          if (dk !== dateKey) {
+            ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
+            dateKey = dk;
+          }
+          ui.push({
+            id: String(m.id),
+            type: 'text',
+            text: m.content,
+            sent: user != null && String(m.senderId) === String(user.id),
+            time: formatMessageTime(m.createdAt),
+            read: m.isRead,
+          });
+        });
+        lastDateKeyRef.current = dateKey;
+        setMessages(ui);
+        setRoomId(resolvedRoomId);
+      } catch (err: any) {
+        if (!cancelled) {
+          setLoadError(err?.response?.data?.message ?? 'Could not load this conversation.');
+        }
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [otherUserId, user?.id]);
+
+  // ── Live socket connection — subscribes once the room is known ──
+  useEffect(() => {
+    if (!otherUserId || !roomId || !token) return;
+
+    const handleIncoming = (payload: ChatSocketMessage) => {
+      const d = new Date(payload.createdAt);
+      const dk = d.toDateString();
+      setMessages((prev) => {
+        const next = [...prev];
+        if (dk !== lastDateKeyRef.current) {
+          next.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
+          lastDateKeyRef.current = dk;
+        }
+        next.push({
+          id: `${payload.senderId}-${payload.createdAt}`,
+          type: 'text',
+          text: payload.content,
+          sent: user != null && String(payload.senderId) === String(user.id),
+          time: formatMessageTime(payload.createdAt),
+          read: false,
+        });
+        return next;
+      });
+    };
+
+    connectChatSocket(token, {
+      onConnect: () => {
+        setSocketConnected(true);
+        subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
+      },
+      onDisconnect: () => setSocketConnected(false),
+      onError: () => setSocketConnected(false),
+    });
+
+    return () => {
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+      disconnectChatSocket();
+      setSocketConnected(false);
+    };
+  }, [otherUserId, roomId, token, user?.id]);
+
+  // ── Mark messages read whenever this chat gains focus ──────
+  useFocusEffect(
+    useCallback(() => {
+      if (otherUserId && roomId) {
+        markRead(roomId).catch(() => {});
+      }
+    }, [otherUserId, roomId])
+  );
 
   const openSearch = useCallback(() => {
     setOptionsVisible(false);
@@ -196,14 +339,29 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const sendMessage = () => {
     const text = inputText.trim();
     if (!text) return;
-    const msg: Message = {
-      id: Date.now().toString(), type: 'text', text, sent: true,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: false,
-    };
-    setMessages((prev) => [...prev, msg]);
-    setInputText('');
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+
+    // Demo mode (no real otherUserId) — keep the original local-only behavior.
+    if (!otherUserId || !roomId) {
+      const msg: Message = {
+        id: Date.now().toString(), type: 'text', text, sent: true,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+      };
+      setMessages((prev) => [...prev, msg]);
+      setInputText('');
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+      return;
+    }
+
+    // Live mode — publish over the socket and wait for the broadcast to come
+    // back before it appears in the list; the server is the source of truth.
+    try {
+      sendSocketMessage(roomId, text);
+      setInputText('');
+      setSendError(null);
+    } catch {
+      setSendError('Message not sent — check your connection and try again.');
+    }
   };
 
   // ── renderItem — stable reference so FlatList skips unnecessary re-renders ──
@@ -278,6 +436,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onContactPress={() => setOptionsVisible(true)}
         onDotsPress={() => setCallOptionsVisible(true)}
         colors={colors} s={s}
+        statusLabel={otherUserId && !socketConnected ? 'Connecting…' : undefined}
       />
 
       {/* ── LAYER 3: Search bar (below header, above messages) ── */}
@@ -327,17 +486,28 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             style={StyleSheet.absoluteFill}
             androidFallbackColor={isDarkMode ? 'rgba(4,10,5,0.48)' : 'rgba(255,255,255,0.38)'}
           />
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={s.list}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-            showsVerticalScrollIndicator={false}
-            style={s.flatList}
-            onScrollToIndexFailed={() => {}}
-          />
+          {initialLoading ? (
+            <View style={s.centerState}>
+              <ActivityIndicator color="#fff" size="large" />
+            </View>
+          ) : loadError ? (
+            <View style={s.centerState}>
+              <Ionicons name="alert-circle-outline" size={28} color="#fff" />
+              <Text style={s.centerStateText}>{loadError}</Text>
+            </View>
+          ) : (
+            <FlatList
+              ref={listRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={s.list}
+              onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+              showsVerticalScrollIndicator={false}
+              style={s.flatList}
+              onScrollToIndexFailed={() => {}}
+            />
+          )}
         </View>
 
         {/* Input bar + bottom safe area inside one BlurView container */}
@@ -349,6 +519,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           />
           <View style={[StyleSheet.absoluteFill, s.inputBarBlurOverlay]} />
           <View style={s.inputBarTopBorder} />
+
+          {sendError && (
+            <View style={s.sendErrorBanner}>
+              <Ionicons name="alert-circle" size={13} color="#EF4444" />
+              <Text style={s.sendErrorText}>{sendError}</Text>
+            </View>
+          )}
 
           <View style={s.inputBar}>
             <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
@@ -430,11 +607,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 // ChatHeader
 // ─────────────────────────────────────────────────────────────
 
-function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s }: {
+function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s, statusLabel }: {
   name: string; role: string; initial: string; profileImageUri: string | null;
   isDarkMode: boolean; onBack: () => void;
   onContactPress: () => void; onDotsPress: () => void;
-  colors: ThemeColors; s: any;
+  colors: ThemeColors; s: any; statusLabel?: string;
 }) {
   return (
     <View style={isDarkMode ? s.headerDark : s.headerLight}>
@@ -462,7 +639,7 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
               <Text style={s.headerName} numberOfLines={1}>{name}</Text>
               <View style={s.onlineRow}>
                 <ActiveIndicator size={6} />
-                <Text style={s.onlineSub}>Active now · {role}</Text>
+                <Text style={s.onlineSub}>{statusLabel ?? `Active now · ${role}`}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -963,6 +1140,17 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     messageArea: { flex: 1, overflow: 'hidden' },
     flatList: { backgroundColor: 'transparent' },
     list: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, gap: 4 },
+
+    // ── Loading / error state (live chat) ────────────────────
+    centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 10 },
+    centerStateText: { fontSize: 14, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 20 },
+
+    // ── Send error banner ────────────────────────────────────
+    sendErrorBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingTop: 8,
+    },
+    sendErrorText: { fontSize: 12, color: '#EF4444', fontWeight: '600', flexShrink: 1 },
 
     // ── Match highlight ──────────────────────────────────────
     rowHighlight: {

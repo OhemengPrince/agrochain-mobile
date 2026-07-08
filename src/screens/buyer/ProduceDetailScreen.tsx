@@ -62,7 +62,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
   const handleContact = () => {
     if (!batch) return;
-    navigation.navigate('Chat', { name: batch.farmerName, role: 'Farmer' });
+    navigation.navigate('Chat', { name: batch.farmerName, role: 'Farmer', otherUserId: batch.farmerId });
   };
 
   const handleDownloadReport = () => {

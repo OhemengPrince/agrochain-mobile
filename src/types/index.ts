@@ -205,6 +205,33 @@ export interface AddProcessingStagePayload {
   location?: string;
 }
 
+// ===== Chat =====
+
+export interface ChatRoom {
+  id: string;
+  participant1: User;
+  participant2: User;
+  lastMessageAt: string;
+  unreadCount: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface ChatSocketMessage {
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
 // ===== Notifications =====
 
 export type NotificationType =
@@ -300,7 +327,7 @@ export type MarketplaceStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   Map: MapRouteParams;
-  Chat: { name: string; role?: string };
+  Chat: { name: string; role?: string; otherUserId?: string };
 };
 
 export type FarmerStackParamList = {
@@ -325,7 +352,7 @@ export type FarmerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   FarmerNews: undefined;
-  Chat: { name: string; role?: string };
+  Chat: { name: string; role?: string; otherUserId?: string };
   Map: MapRouteParams;
 };
 
@@ -349,7 +376,7 @@ export type OwnerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   OwnerNews: undefined;
-  Chat: { name: string; role?: string };
+  Chat: { name: string; role?: string; otherUserId?: string };
   Map: MapRouteParams;
 };
 
@@ -371,7 +398,7 @@ export type BuyerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   BuyerNews: undefined;
-  Chat: { name: string; role?: string };
+  Chat: { name: string; role?: string; otherUserId?: string };
   Map: MapRouteParams;
 };
 
@@ -390,6 +417,6 @@ export type GeneralStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   GeneralNews: undefined;
-  Chat: { name: string; role?: string };
+  Chat: { name: string; role?: string; otherUserId?: string };
   Map: MapRouteParams;
 };

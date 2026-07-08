@@ -248,7 +248,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
   };
 
   const handleContact = (listing: MarketplaceListing) => {
-    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller' });
+    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller', otherUserId: listing.sellerId });
   };
 
   if (loading) {

@@ -139,7 +139,7 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
 
   const handleContactSeller = () => {
     if (!listing) return;
-    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller' });
+    navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller', otherUserId: listing.sellerId });
   };
 
   const handleMakeOffer = () => {

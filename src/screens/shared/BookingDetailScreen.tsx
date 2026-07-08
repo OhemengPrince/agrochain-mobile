@@ -405,6 +405,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
                   ? (booking?.farmerName ?? 'Farmer')
                   : (booking?.ownerName ?? 'Equipment Owner'),
                 role: isOwner ? 'Farmer' : 'Equipment Owner',
+                otherUserId: isOwner ? booking?.farmerId : booking?.ownerId,
               })
             }
           />
