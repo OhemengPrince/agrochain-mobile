@@ -36,8 +36,10 @@ export async function getEquipmentById(equipmentId: string): Promise<Equipment> 
     return mockDelay(found);
   }
   console.log('[API] GET /equipment/' + equipmentId);
-  const { data } = await apiClient.get<Equipment>(`/equipment/${equipmentId}`);
-  return data;
+  const { data } = await apiClient.get<any>(`/equipment/${equipmentId}`);
+  console.log('[API] /equipment/' + equipmentId + ' raw response keys:', Object.keys(data ?? {}));
+  console.log('[API] /equipment/' + equipmentId + ' ownerId:', (data as any)?.ownerId, '| owner:', JSON.stringify((data as any)?.owner));
+  return data as Equipment;
 }
 
 export async function getMyListings(): Promise<Equipment[]> {

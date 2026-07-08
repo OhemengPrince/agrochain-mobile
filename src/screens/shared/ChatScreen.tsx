@@ -109,6 +109,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const { name, role = 'AgroChain User', otherUserId } = route.params;
+  console.log('[ChatScreen] Mounted — name:', name, '| otherUserId:', otherUserId, '| typeof:', typeof otherUserId);
 
   // null = show DEFAULT_WALLPAPER; string uri = custom picked image
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);

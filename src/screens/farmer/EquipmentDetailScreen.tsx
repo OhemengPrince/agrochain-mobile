@@ -378,7 +378,10 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
               <OwnerActionButton
                 icon="chatbubble-outline"
                 colors={colors}
-                onPress={() => navigation.navigate('Chat', { name: equipment.ownerName, role: 'Equipment Owner', otherUserId: equipment.ownerId })}
+                onPress={() => {
+                  console.log('[EquipmentDetail] Chat pressed — ownerId:', equipment.ownerId, '| ownerName:', equipment.ownerName, '| full equipment keys:', Object.keys(equipment));
+                  navigation.navigate('Chat', { name: equipment.ownerName, role: 'Equipment Owner', otherUserId: equipment.ownerId });
+                }}
               />
             </View>
           </View>
