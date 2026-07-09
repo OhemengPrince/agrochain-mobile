@@ -21,27 +21,33 @@ export function connect(token: string, handlers: ChatSocketHandlers = {}): Clien
   console.log('[chatSocket] Connecting to', wsUrl);
 
   client = new Client({
-    // webSocketFactory is the correct path for React Native / Hermes —
-    // brokerURL relies on the STOMP client's internal WebSocket constructor
-    // which can fail silently in Hermes. Passing the factory explicitly is safe on all platforms.
     webSocketFactory: () => new WebSocket(wsUrl),
     reconnectDelay: 5000,
-    heartbeatIncoming: 10000,
-    heartbeatOutgoing: 10000,
+    // Heartbeats disabled — React Native timers can't sustain the ping interval
+    // reliably under Hermes, causing premature disconnects.
+    heartbeatIncoming: 0,
+    heartbeatOutgoing: 0,
+    // Hermes sometimes strips the STOMP NULL terminator from incoming frames.
+    // appendMissingNULLonIncoming re-adds it so the frame parser doesn't stall.
+    appendMissingNULLonIncoming: true,
+    // Keep binary frames off — Hermes WebSocket serialises TextEncoder output
+    // as Uint8Array which the Spring STOMP broker may not expect.
+    forceBinaryWSFrames: false,
+    debug: (msg: string) => console.log('[STOMP]', msg),
     onConnect: () => {
-      console.log('[chatSocket] Connected ✓');
+      console.log('[chatSocket] CONNECTED ✅');
       handlers.onConnect?.();
     },
     onWebSocketClose: (event: any) => {
-      console.log('[chatSocket] WebSocket closed', event?.code, event?.reason);
+      console.log('[chatSocket] WS CLOSED', event?.code, event?.reason);
       handlers.onDisconnect?.();
     },
     onStompError: (frame) => {
-      console.log('[chatSocket] STOMP error:', frame.headers?.message);
+      console.log('[chatSocket] STOMP ERROR:', frame.headers, frame.body);
       handlers.onError?.(frame.headers?.message ?? frame);
     },
     onWebSocketError: (event) => {
-      console.log('[chatSocket] WebSocket error', event);
+      console.log('[chatSocket] WS ERROR:', event);
       handlers.onError?.(event);
     },
   });
