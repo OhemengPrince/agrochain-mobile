@@ -379,7 +379,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
                 icon="chatbubble-outline"
                 colors={colors}
                 onPress={() => {
-                  console.log('[EquipmentDetail] Chat pressed — ownerId:', equipment.ownerId, '| ownerName:', equipment.ownerName, '| full equipment keys:', Object.keys(equipment));
+                  console.log('[EquipmentDetail] Chat pressed → otherUserId:', equipment.ownerId);
                   navigation.navigate('Chat', { name: equipment.ownerName, role: 'Equipment Owner', otherUserId: equipment.ownerId });
                 }}
               />

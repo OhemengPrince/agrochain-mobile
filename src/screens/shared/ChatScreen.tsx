@@ -23,6 +23,7 @@ import {
   disconnect as disconnectChatSocket,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
+import { USE_MOCK_DATA } from '../../config';
 
 // Bundled default wallpaper — always shown unless user picks a custom one
 const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
@@ -109,13 +110,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const { name, role = 'AgroChain User', otherUserId } = route.params;
-  console.log('[ChatScreen] Mounted — name:', name, '| otherUserId:', otherUserId, '| typeof:', typeof otherUserId);
+
+  // Runs exactly once on mount — not in the function body so it doesn't fire on every re-render
+  useEffect(() => {
+    console.log('[ChatScreen] Mounted — name:', name, '| otherUserId:', otherUserId, '| liveMode:', !USE_MOCK_DATA);
+  }, []);
 
   // null = show DEFAULT_WALLPAPER; string uri = custom picked image
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);
-  // Without otherUserId (e.g. the "message yourself" preview button on a profile
-  // screen) there's no real room to connect to — keep the old static demo intact.
-  const [messages, setMessages] = useState<Message[]>(otherUserId ? [] : SEED);
+  // SEED only in mock-data mode when there is no real contact (profile-screen demo buttons).
+  // In live mode with no otherUserId the screen immediately shows an error — silent fallbacks hide bugs.
+  const [messages, setMessages] = useState<Message[]>(!otherUserId && USE_MOCK_DATA ? SEED : []);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
 
@@ -123,7 +128,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const [roomId, setRoomId] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!otherUserId);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Pre-set an error immediately in live mode when otherUserId is missing — no async needed
+  const [loadError, setLoadError] = useState<string | null>(
+    !otherUserId && !USE_MOCK_DATA
+      ? 'Unable to open chat: contact ID is missing. This is a bug — please report it.'
+      : null
+  );
   const [sendError, setSendError] = useState<string | null>(null);
   const subscriptionRef = useRef<StompSubscription | null>(null);
   const lastDateKeyRef = useRef<string>('');
@@ -174,7 +184,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // ── Load / create room + message history ──────────────────
   useEffect(() => {
-    if (!otherUserId) return;
+    if (!otherUserId) {
+      if (!USE_MOCK_DATA) {
+        console.warn('[ChatScreen] otherUserId is undefined in live mode — upstream navigation bug');
+      }
+      return;
+    }
     let cancelled = false;
 
     (async () => {
