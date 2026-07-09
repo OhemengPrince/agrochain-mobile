@@ -21,6 +21,7 @@ import {
   subscribeToRoom,
   sendMessage as sendSocketMessage,
   disconnect as disconnectChatSocket,
+  isConnected,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import { USE_MOCK_DATA } from '../../config';
@@ -260,9 +261,25 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   useEffect(() => {
     if (!roomId) return;
     if (socketActiveRef.current) return;
+    if (!tokenRef.current) {
+      console.warn('[ChatScreen] Socket skipped — no auth token available');
+      setLoadError('Authentication error. Please sign out and sign in again.');
+      return;
+    }
 
     let active = true;
     socketActiveRef.current = true;
+
+    // If STOMP CONNECTED hasn't arrived after 12 s, surface an actionable error
+    // rather than leaving the user stuck on "Connecting…" forever.
+    const connectionTimeout = setTimeout(() => {
+      if (!active) return;
+      const isStillConnecting = !isConnected();
+      if (isStillConnecting) {
+        console.warn('[ChatScreen] Socket connection timed out after 12 s');
+        setSendError('Could not connect to chat — check your network and try again.');
+      }
+    }, 12000);
 
     const handleIncoming = (payload: ChatSocketMessage) => {
       if (!active) return;
@@ -287,10 +304,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       });
     };
 
-    connectChatSocket(tokenRef.current!, {
+    connectChatSocket(tokenRef.current, {
       onConnect: () => {
         if (!active) return;
+        clearTimeout(connectionTimeout);
         console.log('[ChatScreen] Socket connected, subscribing to room', roomId);
+        setSendError(null);
         setSocketConnected(true);
         subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
       },
@@ -306,6 +325,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     return () => {
       active = false;
+      clearTimeout(connectionTimeout);
       socketActiveRef.current = false;
       subscriptionRef.current?.unsubscribe();
       subscriptionRef.current = null;

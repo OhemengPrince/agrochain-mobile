@@ -17,11 +17,21 @@ export function connect(token: string, handlers: ChatSocketHandlers = {}): Clien
     disconnect();
   }
 
+  // Send token in both the URL query param AND the STOMP CONNECT headers.
+  // Spring Boot's AbstractSecurityWebSocketMessageBrokerConfigurer reads the
+  // token from the HTTP upgrade handshake (URL param) for the WebSocket,
+  // but the STOMP broker layer may also check Authorization headers sent in
+  // the STOMP CONNECT frame. Sending both maximises compatibility.
   const wsUrl = `${WS_BASE}?token=${encodeURIComponent(token)}`;
-  console.log('[chatSocket] Connecting to', wsUrl);
+  console.log('[chatSocket] Connecting to', WS_BASE, '— token length:', token.length);
 
   client = new Client({
     webSocketFactory: () => new WebSocket(wsUrl),
+    connectHeaders: {
+      Authorization: `Bearer ${token}`,
+      // Some Spring STOMP configs also read 'login'/'passcode' fields
+      login: token,
+    },
     reconnectDelay: 5000,
     // Heartbeats disabled — React Native timers can't sustain the ping interval
     // reliably under Hermes, causing premature disconnects.
