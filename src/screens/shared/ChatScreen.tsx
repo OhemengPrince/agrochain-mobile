@@ -241,49 +241,63 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     return () => { cancelled = true; };
   }, [otherUserId, user?.id]);
 
-  // ── Live socket connection — subscribes once the room is known ──
-  useEffect(() => {
-    if (!otherUserId || !roomId || !token) return;
+  // Ref so the socket callback can read the current user id without being a dep of the focus effect
+  const currentUserIdRef = useRef(user?.id);
+  useEffect(() => { currentUserIdRef.current = user?.id; });
 
-    const handleIncoming = (payload: ChatSocketMessage) => {
-      console.log('[ChatScreen] Received message from', payload.senderName, ':', payload.content?.slice(0, 60));
-      const d = new Date(payload.createdAt);
-      const dk = d.toDateString();
-      setMessages((prev) => {
-        const next = [...prev];
-        if (dk !== lastDateKeyRef.current) {
-          next.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
-          lastDateKeyRef.current = dk;
-        }
-        next.push({
-          id: `${payload.senderId}-${payload.createdAt}`,
-          type: 'text',
-          text: payload.content,
-          sent: user != null && String(payload.senderId) === String(user.id),
-          time: formatMessageTime(payload.createdAt),
-          read: false,
+  // ── Live socket connection — tied to FOCUS, not render cycle ──────────────
+  // Using useFocusEffect means: connect when screen is focused, disconnect when
+  // screen blurs. Re-renders (typing, state changes) NEVER touch the socket.
+  // The `active` flag guards against stale callbacks firing after blur/unmount.
+  useFocusEffect(
+    useCallback(() => {
+      if (!otherUserId || !roomId || !token) return;
+
+      let active = true;
+
+      const handleIncoming = (payload: ChatSocketMessage) => {
+        if (!active) return;
+        console.log('[ChatScreen] Broadcast received from', payload.senderName, ':', payload.content?.slice(0, 60));
+        const d = new Date(payload.createdAt);
+        const dk = d.toDateString();
+        setMessages((prev) => {
+          const next = [...prev];
+          if (dk !== lastDateKeyRef.current) {
+            next.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
+            lastDateKeyRef.current = dk;
+          }
+          next.push({
+            id: `${payload.senderId}-${payload.createdAt}`,
+            type: 'text',
+            text: payload.content,
+            sent: currentUserIdRef.current != null && String(payload.senderId) === String(currentUserIdRef.current),
+            time: formatMessageTime(payload.createdAt),
+            read: false,
+          });
+          return next;
         });
-        return next;
+      };
+
+      connectChatSocket(token, {
+        onConnect: () => {
+          if (!active) return;
+          console.log('[ChatScreen] Socket connected, subscribing to room', roomId);
+          setSocketConnected(true);
+          subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
+        },
+        onDisconnect: () => { if (active) setSocketConnected(false); },
+        onError: () => { if (active) setSocketConnected(false); },
       });
-    };
 
-    connectChatSocket(token, {
-      onConnect: () => {
-        console.log('[ChatScreen] Socket connected, subscribing to room', roomId);
-        setSocketConnected(true);
-        subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
-      },
-      onDisconnect: () => setSocketConnected(false),
-      onError: () => setSocketConnected(false),
-    });
-
-    return () => {
-      subscriptionRef.current?.unsubscribe();
-      subscriptionRef.current = null;
-      disconnectChatSocket();
-      setSocketConnected(false);
-    };
-  }, [otherUserId, roomId, token, user?.id]);
+      return () => {
+        active = false;
+        subscriptionRef.current?.unsubscribe();
+        subscriptionRef.current = null;
+        disconnectChatSocket();
+        setSocketConnected(false);
+      };
+    }, [otherUserId, roomId, token])
+  );
 
   // ── Mark messages read whenever this chat gains focus ──────
   useFocusEffect(
@@ -373,10 +387,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       return;
     }
 
+    // Guard: socketConnected is only true after the STOMP CONNECTED frame arrives,
+    // not just after the WebSocket opens. Reject sends in the handshake window.
+    if (!socketConnected) {
+      setSendError('Connecting… please wait a moment and try again.');
+      return;
+    }
+
     // Live mode — publish over the socket and wait for the broadcast to come
     // back before it appears in the list; the server is the source of truth.
     try {
-      console.log('[ChatScreen] Sending message to room', roomId, ':', text.slice(0, 60));
+      console.log('[ChatScreen] Sending to room', roomId, ':', text.slice(0, 60));
       sendSocketMessage(roomId, text);
       setInputText('');
       setSendError(null);
