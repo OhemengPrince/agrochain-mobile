@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
@@ -46,8 +46,8 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     }
   }, []);
 
-  useEffect(() => { loadRooms(); }, [loadRooms]);
-
+  // useFocusEffect already fires on first focus (= initial mount), so no separate
+  // useEffect is needed — the duplicate caused 2× GET /chat/rooms on every mount.
   useFocusEffect(
     useCallback(() => {
       loadRooms();
