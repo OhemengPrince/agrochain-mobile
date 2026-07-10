@@ -12,6 +12,7 @@ const ONBOARDING_KEY = '@agrochain/hasSeenOnboarding';
 const memoryStore: Record<string, string> = {};
 
 export async function saveToken(token: string): Promise<void> {
+  console.log('[storage] saveToken → key:', TOKEN_KEY, '| length:', token.length, '| first20:', token.slice(0, 20));
   if (USE_MOCK_DATA) {
     memoryStore[TOKEN_KEY] = token;
     return;
@@ -90,10 +91,12 @@ export async function setHasSeenOnboarding(): Promise<void> {
 }
 
 export async function clearAll(): Promise<void> {
+  console.log('[storage] clearAll → removing', TOKEN_KEY, 'and', USER_KEY, 'from AsyncStorage');
   if (USE_MOCK_DATA) {
     delete memoryStore[TOKEN_KEY];
     delete memoryStore[USER_KEY];
     return;
   }
   await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+  console.log('[storage] clearAll ✓ — storage keys removed');
 }

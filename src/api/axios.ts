@@ -11,6 +11,13 @@ export const apiClient = axios.create({
   },
 });
 
+// AuthContext registers this after mount so the interceptor can reset
+// in-memory auth state without a circular import (axios → AuthContext → axios).
+let _onAuthFailure: (() => void) | null = null;
+export function registerAuthFailureHandler(cb: () => void): void {
+  _onAuthFailure = cb;
+}
+
 apiClient.interceptors.request.use(async (config) => {
   const token = await getToken();
   if (token) {
@@ -23,8 +30,13 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    // Treat both 401 (expired/missing token) and 403 (backend secret rotation /
+    // invalid signature) as auth failures — clear storage then reset React state.
+    if (status === 401 || status === 403) {
+      console.log('[axios] HTTP', status, 'on', error.config?.url, '— clearing session');
       await clearAll();
+      _onAuthFailure?.();
     }
     return Promise.reject(error);
   }

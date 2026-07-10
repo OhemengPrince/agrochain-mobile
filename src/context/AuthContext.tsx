@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { User } from '../types';
 import { saveToken, saveUser, getToken, getUser, clearAll } from '../utils/storage';
+import { registerAuthFailureHandler } from '../api/axios';
 
 export interface AuthContextValue {
   user: User | null;
@@ -44,9 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await clearAll();
+    // State-first: UI navigates away immediately, storage clears in background.
+    // This makes logout work even when offline or when API calls are failing.
+    console.log('[Auth] logout() called — resetting state immediately');
     setToken(null);
     setUser(null);
+    clearAll().catch(() => {});
+  }, []);
+
+  // Wire the axios interceptor so 401/403 responses reset React auth state.
+  // Storage is already cleared by the interceptor before this callback fires.
+  useEffect(() => {
+    registerAuthFailureHandler(() => {
+      console.log('[Auth] Force-logout — interceptor cleared storage, resetting state now');
+      setToken(null);
+      setUser(null);
+    });
   }, []);
 
   return (
