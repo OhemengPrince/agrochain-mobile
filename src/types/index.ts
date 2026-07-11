@@ -225,6 +225,7 @@ export interface ChatMessage {
 }
 
 export interface ChatSocketMessage {
+  id?: string;
   roomId: string;
   senderId: string;
   senderName: string;

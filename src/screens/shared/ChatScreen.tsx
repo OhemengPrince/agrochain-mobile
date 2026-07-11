@@ -10,7 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
-import type { StompSubscription } from '@stomp/stompjs';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -18,10 +17,8 @@ import { ChatSocketMessage } from '../../types';
 import { getOrCreateRoom, getMessages, markRead } from '../../api/chatApi';
 import {
   connect as connectChatSocket,
-  subscribeToRoom,
   sendMessage as sendSocketMessage,
   disconnect as disconnectChatSocket,
-  isConnected,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import { USE_MOCK_DATA } from '../../config';
@@ -136,11 +133,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       : null
   );
   const [sendError, setSendError] = useState<string | null>(null);
-  const subscriptionRef = useRef<StompSubscription | null>(null);
   const lastDateKeyRef = useRef<string>('');
-  const tokenRef = useRef(token);
-  useEffect(() => { tokenRef.current = token; }, [token]);
-  const socketActiveRef = useRef(false);
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -245,94 +238,76 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     return () => { cancelled = true; };
   }, [otherUserId, user?.id]);
 
-  // Ref so the socket callback can read the current user id without being a dep of the focus effect
+  // Stable ref so the socket callback always reads the current user id
   const currentUserIdRef = useRef(user?.id);
   useEffect(() => { currentUserIdRef.current = user?.id; });
 
-  // ── Live socket connection — tied to roomId only, not render cycle ──────────────
-  // useEffect([roomId]) fires exactly twice in the lifetime of this screen:
-  //   1. roomId = null → early return, no socket
-  //   2. roomId = '<id>' → connect once, cleanup only on unmount or genuine roomId change
-  // Using useFocusEffect caused the cleanup to run every time the useCallback deps
-  // changed (including when roomId changed from null → id), disconnecting the socket
-  // mid-STOMP-handshake before CONNECTED arrived.
-  // tokenRef lets us read the current token without making it a dep.
-  // socketActiveRef guards against a second connect if React re-runs this effect.
+  // ── Socket.IO connection — connect when roomId resolves, disconnect on unmount ──
   useEffect(() => {
-    if (!roomId) return;
-    if (socketActiveRef.current) return;
-    if (!tokenRef.current) {
-      console.warn('[ChatScreen] Socket skipped — no auth token available');
-      setLoadError('Authentication error. Please sign out and sign in again.');
-      return;
-    }
+    if (!roomId || !token) return;
 
-    let active = true;
-    socketActiveRef.current = true;
-
-    // If STOMP CONNECTED hasn't arrived after 12 s, surface an actionable error
-    // rather than leaving the user stuck on "Connecting…" forever.
-    const connectionTimeout = setTimeout(() => {
-      if (!active) return;
-      const isStillConnecting = !isConnected();
-      if (isStillConnecting) {
-        console.warn('[ChatScreen] Socket connection timed out after 12 s');
-        setSendError('Could not connect to chat — check your network and try again.');
-      }
-    }, 12000);
-
-    const handleIncoming = (payload: ChatSocketMessage) => {
-      if (!active) return;
-      console.log('[ChatScreen] Broadcast received from', payload.senderName, ':', payload.content?.slice(0, 60));
-      const d = new Date(payload.createdAt);
-      const dk = d.toDateString();
-      setMessages((prev) => {
-        const next = [...prev];
-        if (dk !== lastDateKeyRef.current) {
-          next.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
-          lastDateKeyRef.current = dk;
-        }
-        next.push({
-          id: `${payload.senderId}-${payload.createdAt}`,
-          type: 'text',
-          text: payload.content,
-          sent: currentUserIdRef.current != null && String(payload.senderId) === String(currentUserIdRef.current),
-          time: formatMessageTime(payload.createdAt),
-          read: false,
-        });
-        return next;
-      });
-    };
-
-    connectChatSocket(tokenRef.current, {
+    connectChatSocket(token, roomId, {
       onConnect: () => {
-        if (!active) return;
-        clearTimeout(connectionTimeout);
-        console.log('[ChatScreen] Socket connected, subscribing to room', roomId);
-        setSendError(null);
+        console.log('[ChatScreen] Socket connected — room', roomId);
         setSocketConnected(true);
-        subscriptionRef.current = subscribeToRoom(roomId, handleIncoming);
+        setSendError(null);
       },
-      onDisconnect: () => {
-        socketActiveRef.current = false;
-        if (active) setSocketConnected(false);
+      onMessage: (payload: ChatSocketMessage) => {
+        const msgId = payload.id ?? `${payload.senderId}-${payload.createdAt}`;
+        const isMine = currentUserIdRef.current != null &&
+          String(payload.senderId) === String(currentUserIdRef.current);
+
+        setMessages((prev) => {
+          // Replace optimistic message (sent-by-me, same content) if present;
+          // otherwise dedup by id so the server echo doesn't double-render.
+          if (isMine) {
+            const optIdx = prev.findIndex(
+              (m) => m.id.startsWith('opt-') && m.text === payload.content
+            );
+            if (optIdx !== -1) {
+              const next = [...prev];
+              next[optIdx] = {
+                id: msgId,
+                type: 'text',
+                text: payload.content,
+                sent: true,
+                time: formatMessageTime(payload.createdAt),
+                read: false,
+              };
+              return next;
+            }
+          }
+          if (prev.some((m) => m.id === msgId)) return prev;
+
+          const d = new Date(payload.createdAt);
+          const dk = d.toDateString();
+          const next = [...prev];
+          if (dk !== lastDateKeyRef.current) {
+            next.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
+            lastDateKeyRef.current = dk;
+          }
+          next.push({
+            id: msgId,
+            type: 'text',
+            text: payload.content,
+            sent: isMine,
+            time: formatMessageTime(payload.createdAt),
+            read: false,
+          });
+          return next;
+        });
       },
-      onError: () => {
-        socketActiveRef.current = false;
-        if (active) setSocketConnected(false);
+      onError: (err) => {
+        console.log('[ChatScreen] Socket error:', err);
+        setSocketConnected(false);
       },
     });
 
     return () => {
-      active = false;
-      clearTimeout(connectionTimeout);
-      socketActiveRef.current = false;
-      subscriptionRef.current?.unsubscribe();
-      subscriptionRef.current = null;
       disconnectChatSocket();
       setSocketConnected(false);
     };
-  }, [roomId]);
+  }, [roomId, token]);
 
   // ── Mark messages read whenever this chat gains focus ──────
   useFocusEffect(
@@ -409,7 +384,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const text = inputText.trim();
     if (!text) return;
 
-    // Demo mode (no real otherUserId) — keep the original local-only behavior.
+    // Demo mode (no real otherUserId) — local-only behavior.
     if (!otherUserId || !roomId) {
       const msg: Message = {
         id: Date.now().toString(), type: 'text', text, sent: true,
@@ -422,22 +397,29 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       return;
     }
 
-    // Guard: socketConnected is only true after the STOMP CONNECTED frame arrives,
-    // not just after the WebSocket opens. Reject sends in the handshake window.
-    if (!socketConnected) {
-      setSendError('Connecting… please wait a moment and try again.');
-      return;
-    }
+    // Optimistic append — message appears immediately in the UI.
+    // When the server echoes it back via 'new_message', the optimistic entry is
+    // replaced by the server-authoritative one (matched by content).
+    const optimisticId = `opt-${Date.now()}`;
+    const optimistic: Message = {
+      id: optimisticId, type: 'text', text, sent: true,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: false,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setInputText('');
+    setSendError(null);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
-    // Live mode — publish over the socket and wait for the broadcast to come
-    // back before it appears in the list; the server is the source of truth.
     try {
-      console.log('[ChatScreen] Sending to room', roomId, ':', text.slice(0, 60));
+      console.log('[ChatScreen] send_message → room', roomId, ':', text.slice(0, 60));
       sendSocketMessage(roomId, text);
-      setInputText('');
-      setSendError(null);
-    } catch {
-      setSendError('Message not sent — check your connection and try again.');
+    } catch (err) {
+      console.log('[ChatScreen] send failed:', err);
+      setSendError('Not connected — reconnecting, please try again shortly.');
+      // Remove the optimistic message so the user can retry
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setInputText(text);
     }
   };
 

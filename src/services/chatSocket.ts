@@ -1,114 +1,92 @@
-import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
+import { io, Socket } from 'socket.io-client';
 import { ChatSocketMessage } from '../types';
 
-const WS_BASE = 'ws://172.20.10.2:8080/api/ws';
+// Derive Socket.IO URL from the REST API base URL — same host, port 9092.
+// 'http://172.20.10.2:8080/api' → 'http://172.20.10.2:9092'
+function getSocketIOUrl(apiBaseUrl: string): string {
+  try {
+    const u = new URL(apiBaseUrl);
+    u.port = '9092';
+    u.pathname = '/';
+    return u.origin;
+  } catch {
+    return apiBaseUrl.replace(/:\d+\/.*$/, ':9092');
+  }
+}
 
-let client: Client | null = null;
+const BASE_URL = 'http://172.20.10.2:8080/api';
+export const SOCKET_URL = getSocketIOUrl(BASE_URL); // 'http://172.20.10.2:9092'
+
+let socket: Socket | null = null;
 
 export interface ChatSocketHandlers {
+  onMessage: (message: ChatSocketMessage) => void;
   onConnect?: () => void;
-  onDisconnect?: () => void;
   onError?: (error: unknown) => void;
 }
 
-export function connect(token: string, handlers: ChatSocketHandlers = {}): Client {
-  if (client) {
-    console.log('[chatSocket] Disconnecting existing client before reconnect');
-    disconnect();
+export function connect(
+  token: string,
+  roomId: string,
+  handlers: ChatSocketHandlers,
+): void {
+  if (socket) {
+    console.log('[SocketIO] Disconnecting stale socket before reconnect');
+    socket.disconnect();
+    socket = null;
   }
 
-  // Send token in both the URL query param AND the STOMP CONNECT headers.
-  // Spring Boot's AbstractSecurityWebSocketMessageBrokerConfigurer reads the
-  // token from the HTTP upgrade handshake (URL param) for the WebSocket,
-  // but the STOMP broker layer may also check Authorization headers sent in
-  // the STOMP CONNECT frame. Sending both maximises compatibility.
-  const wsUrl = `${WS_BASE}?token=${encodeURIComponent(token)}`;
-  console.log('[chatSocket] Connecting to', WS_BASE, '— token length:', token.length);
+  console.log('[SocketIO] Connecting to', SOCKET_URL, '— room:', roomId);
 
-  client = new Client({
-    webSocketFactory: () => new WebSocket(wsUrl),
-    connectHeaders: {
-      Authorization: `Bearer ${token}`,
-      // Some Spring STOMP configs also read 'login'/'passcode' fields
-      login: token,
-    },
-    reconnectDelay: 5000,
-    // Heartbeats disabled — React Native timers can't sustain the ping interval
-    // reliably under Hermes, causing premature disconnects.
-    heartbeatIncoming: 0,
-    heartbeatOutgoing: 0,
-    // Hermes sometimes strips the STOMP NULL terminator from incoming frames.
-    // appendMissingNULLonIncoming re-adds it so the frame parser doesn't stall.
-    appendMissingNULLonIncoming: true,
-    // Keep binary frames off — Hermes WebSocket serialises TextEncoder output
-    // as Uint8Array which the Spring STOMP broker may not expect.
-    forceBinaryWSFrames: false,
-    debug: (msg: string) => console.log('[STOMP]', msg),
-    onConnect: () => {
-      console.log('[chatSocket] CONNECTED ✅');
-      handlers.onConnect?.();
-    },
-    onWebSocketClose: (event: any) => {
-      console.log('[chatSocket] WS CLOSED', event?.code, event?.reason);
-      handlers.onDisconnect?.();
-    },
-    onStompError: (frame) => {
-      console.log('[chatSocket] STOMP ERROR:', frame.headers, frame.body);
-      handlers.onError?.(frame.headers?.message ?? frame);
-    },
-    onWebSocketError: (event) => {
-      console.log('[chatSocket] WS ERROR:', event);
-      handlers.onError?.(event);
-    },
+  socket = io(SOCKET_URL, {
+    // 'polling' first: long-polling works through carrier-grade NAT and hotspots
+    // that drop raw WebSocket frames. The client auto-upgrades to WebSocket if
+    // the connection stays stable.
+    transports: ['polling', 'websocket'],
+    auth: { token },
+    query: { token },
+    reconnection: true,
+    reconnectionDelay: 3000,
+    timeout: 10000,
   });
 
-  client.activate();
-  return client;
-}
+  socket.on('connect', () => {
+    console.log('[SocketIO] connected — id:', socket?.id);
+    socket?.emit('join_room', { roomId });
+    console.log('[SocketIO] joined room', roomId);
+    handlers.onConnect?.();
+  });
 
-export function subscribeToRoom(
-  roomId: string,
-  onMessage: (message: ChatSocketMessage) => void
-): StompSubscription | null {
-  if (!client || !client.connected) {
-    console.log('[chatSocket] subscribeToRoom called but not connected');
-    return null;
-  }
+  socket.on('new_message', (message: ChatSocketMessage) => {
+    console.log('[SocketIO] message received from', message.senderName, ':', message.content?.slice(0, 60));
+    handlers.onMessage(message);
+  });
 
-  const dest = `/topic/chat/${roomId}`;
-  console.log('[chatSocket] Subscribing to', dest);
+  socket.on('connect_error', (error: Error) => {
+    console.log('[SocketIO] connect_error:', error.message);
+    handlers.onError?.(error);
+  });
 
-  return client.subscribe(dest, (frame: IMessage) => {
-    try {
-      const payload = JSON.parse(frame.body) as ChatSocketMessage;
-      console.log('[chatSocket] Received from', payload.senderName, '—', payload.content?.slice(0, 60));
-      onMessage(payload);
-    } catch (e) {
-      console.warn('[chatSocket] Failed to parse incoming message', e);
-    }
+  socket.on('disconnect', (reason: string) => {
+    console.log('[SocketIO] disconnected:', reason);
+  });
+
+  socket.on('error', (error: unknown) => {
+    console.log('[SocketIO] error:', error);
+    handlers.onError?.(error);
   });
 }
 
 export function sendMessage(roomId: string, content: string): void {
-  if (!client || !client.connected) {
-    throw new Error('Chat socket is not connected');
-  }
-  const dest = `/app/chat/${roomId}`;
-  console.log('[chatSocket] Sending to', dest, '—', content.slice(0, 60));
-  client.publish({
-    destination: dest,
-    body: JSON.stringify({ content }),
-  });
-}
-
-export function isConnected(): boolean {
-  return client?.connected ?? false;
+  if (!socket) throw new Error('[SocketIO] No socket — call connect() first');
+  console.log('[SocketIO] send_message → room:', roomId, '|', content.slice(0, 60));
+  socket.emit('send_message', { roomId, content });
 }
 
 export function disconnect(): void {
-  if (client) {
-    console.log('[chatSocket] Disconnecting');
-    client.deactivate();
-    client = null;
+  if (socket) {
+    console.log('[SocketIO] disconnecting');
+    socket.disconnect();
+    socket = null;
   }
 }
