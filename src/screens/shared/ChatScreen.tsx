@@ -232,10 +232,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
             dateKey = dk;
           }
+          const isAudioMsg = (m as any).messageType === 'audio' || !!(m as any).audioUrl;
           ui.push({
             id: String(m.id),
-            type: 'text',
-            text: m.content,
+            type: isAudioMsg ? 'voice' : 'text',
+            text: isAudioMsg ? undefined : m.content,
+            audioUrl: (m as any).audioUrl,
+            audioDuration: (m as any).audioDuration,
             sent: user != null && String(m.senderId) === String(user.id),
             time: formatMessageTime(m.createdAt),
             read: m.isRead,
@@ -460,6 +463,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         Alert.alert('Microphone Permission', 'Please allow microphone access to send voice messages.');
         return;
       }
+      // BUG 1 fix: unload any stale recording object before creating a new one;
+      // expo-av throws if two Recording objects are prepared simultaneously.
+      if (recordingRef.current) {
+        try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
+        recordingRef.current = null;
+      }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
@@ -622,6 +631,35 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                     ))}
                   </View>
                   <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>0:22</Text>
+                </>
+              )}
+            </View>
+            <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
+          </View>
+        </View>
+      );
+    }
+
+    // BUG 4 fix: if audioUrl is present or the content is the audio fallback text,
+    // always render as a voice bubble regardless of the 'type' field.
+    if (item.audioUrl || item.text === '[Voice message]') {
+      return (
+        <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
+          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
+          <View>
+            <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
+              {item.audioUrl ? (
+                <AudioPlayer
+                  audioUrl={item.audioUrl}
+                  durationSec={item.audioDuration ?? 0}
+                  sent={item.sent}
+                  colors={colors}
+                  s={s}
+                />
+              ) : (
+                <>
+                  <ActivityIndicator size="small" color={item.sent ? '#fff' : '#0B6E36'} style={{ marginRight: 8 }} />
+                  <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>Processing…</Text>
                 </>
               )}
             </View>
@@ -1258,6 +1296,8 @@ function ChatOptionsPanel({
 
 // ─────────────────────────────────────────────────────────────
 // AudioPlayer — plays a voice message; enforces global single-play
+// Note: uses expo-av (deprecated in SDK 54+). Migration to expo-audio
+// is planned; expo-av still works correctly for this SDK version.
 // ─────────────────────────────────────────────────────────────
 
 const AudioPlayer = React.memo(function AudioPlayer({
@@ -1270,16 +1310,22 @@ const AudioPlayer = React.memo(function AudioPlayer({
   const [duration, setDuration] = useState((durationSec || 0) * 1000);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  const stopSelf = useCallback(async () => {
+  const unloadSound = useCallback(async () => {
     if (soundRef.current) {
-      try { await soundRef.current.stopAsync(); } catch {}
+      try { await soundRef.current.unloadAsync(); } catch {}
+      soundRef.current = null;
     }
+  }, []);
+
+  const stopSelf = useCallback(async () => {
+    await unloadSound();
     setIsPlaying(false);
     setPosition(0);
-  }, []);
+  }, [unloadSound]);
 
   const togglePlay = useCallback(async () => {
     if (isPlaying) {
+      // Pause only — keep Sound loaded so resume is cheap
       await soundRef.current?.pauseAsync();
       setIsPlaying(false);
       return;
@@ -1291,11 +1337,10 @@ const AudioPlayer = React.memo(function AudioPlayer({
     }
     _globalStopFn = stopSelf;
 
-    if (soundRef.current) {
-      await soundRef.current.playAsync();
-      setIsPlaying(true);
-      return;
-    }
+    // BUG 2 fix: always unload then recreate the Sound object so playback
+    // works on the second and subsequent taps (reusing a finished Sound fails).
+    await unloadSound();
+    setPosition(0);
 
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
@@ -1309,7 +1354,7 @@ const AudioPlayer = React.memo(function AudioPlayer({
           if (status.didJustFinish) {
             setIsPlaying(false);
             setPosition(0);
-            _globalStopFn = null;
+            if (_globalStopFn === stopSelf) _globalStopFn = null;
           }
         }
       );
@@ -1318,12 +1363,12 @@ const AudioPlayer = React.memo(function AudioPlayer({
     } catch (err) {
       console.log('[AudioPlayer] error:', err);
     }
-  }, [isPlaying, audioUrl, stopSelf]);
+  }, [isPlaying, audioUrl, stopSelf, unloadSound]);
 
   useEffect(() => () => {
-    soundRef.current?.unloadAsync().catch(() => {});
+    unloadSound();
     if (_globalStopFn === stopSelf) _globalStopFn = null;
-  }, [stopSelf]);
+  }, [unloadSound, stopSelf]);
 
   const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
   const elapsed = Math.floor(position / 1000);
