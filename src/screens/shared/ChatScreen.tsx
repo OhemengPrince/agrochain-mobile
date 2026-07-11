@@ -50,7 +50,8 @@ type Message = {
   label?: string;
   sent: boolean;
   time: string;
-  read?: boolean;
+  delivered?: boolean; // true once server has confirmed (echo received or loaded from history)
+  read?: boolean;      // true when the other person has read it
   audioUrl?: string;
   audioDuration?: number;
   uploading?: boolean;
@@ -65,12 +66,12 @@ const WAVE_HEIGHTS = [5, 13, 8, 18, 11, 22, 7, 16, 10, 20, 6, 14, 19, 9, 15, 12,
 const SEED: Message[] = [
   { id: 'sep1', type: 'sep', label: 'Today', sent: false, time: '' },
   { id: '1', type: 'text', text: 'Hello! I am interested in your equipment listing on AgroChain.', sent: false, time: '10:02 AM' },
-  { id: '2', type: 'text', text: 'Welcome! Thank you for reaching out. The equipment is available.', sent: true, time: '10:05 AM', read: true },
-  { id: '3', type: 'text', text: 'Which region are you farming in? And how many days do you need it?', sent: true, time: '10:06 AM', read: true },
+  { id: '2', type: 'text', text: 'Welcome! Thank you for reaching out. The equipment is available.', sent: true, time: '10:05 AM', delivered: true, read: true },
+  { id: '3', type: 'text', text: 'Which region are you farming in? And how many days do you need it?', sent: true, time: '10:06 AM', delivered: true, read: true },
   { id: '4', type: 'text', text: 'I am in the Ashanti region, around Kumasi. I need it for 3 days starting next Monday.', sent: false, time: '10:09 AM' },
-  { id: '5', type: 'voice', sent: true, time: '10:12 AM', read: true },
+  { id: '5', type: 'voice', sent: true, time: '10:12 AM', delivered: true, read: true },
   { id: '6', type: 'text', text: 'Perfect. The rate is GHS 450/day. I can confirm Monday–Wednesday. Shall I send the booking summary?', sent: false, time: '10:15 AM' },
-  { id: '7', type: 'text', text: 'Yes please! That works perfectly for me. Thank you!', sent: true, time: '10:17 AM', read: false },
+  { id: '7', type: 'text', text: 'Yes please! That works perfectly for me. Thank you!', sent: true, time: '10:17 AM', delivered: true, read: false },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -153,6 +154,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const waveAnim = useRef(new Animated.Value(0)).current;
   const startRecordingFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
   const stopRecordingFnRef = useRef<((cancelled: boolean) => Promise<void>) | undefined>(undefined);
+  // Session counter: incremented by stop to let an in-flight startRecording detect it was cancelled
+  const recordingSessionRef = useRef(0);
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -232,7 +235,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
             dateKey = dk;
           }
-          const isAudioMsg = (m as any).messageType === 'audio' || !!(m as any).audioUrl;
+          const isAudioMsg = (m as any).messageType === 'audio' || !!(m as any).audioUrl
+            || m.content === '[Voice message]';
           ui.push({
             id: String(m.id),
             type: isAudioMsg ? 'voice' : 'text',
@@ -241,6 +245,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             audioDuration: (m as any).audioDuration,
             sent: user != null && String(m.senderId) === String(user.id),
             time: formatMessageTime(m.createdAt),
+            delivered: true, // messages from history are always server-confirmed
             read: m.isRead,
           });
         });
@@ -303,6 +308,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                 audioUrl: payload.audioUrl,
                 audioDuration: payload.audioDuration,
                 sent: true,
+                delivered: true, // server echo = delivered
                 time: formatMessageTime(payload.createdAt),
                 read: false,
               };
@@ -325,6 +331,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             audioUrl: payload.audioUrl,
             audioDuration: payload.audioDuration,
             sent: isMine,
+            delivered: true,
             time: formatMessageTime(payload.createdAt),
             read: false,
           });
@@ -438,7 +445,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const optimistic: Message = {
       id: optimisticId, type: 'text', text, sent: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: false,
+      delivered: false, read: false,
     };
     setMessages((prev) => [...prev, optimistic]);
     setInputText('');
@@ -459,26 +466,40 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // ── Voice recording ────────────────────────────────────
   const startRecording = useCallback(async () => {
+    // Claim a session slot. If stopAndSendRecording fires before createAsync resolves,
+    // it will increment this counter and we detect it was cancelled mid-start.
+    const session = ++recordingSessionRef.current;
+
     try {
       const { status } = await Audio.requestPermissionsAsync();
+      if (session !== recordingSessionRef.current) return; // cancelled during permission request
       if (status !== 'granted') {
         Alert.alert('Microphone Permission', 'Please allow microphone access to send voice messages.');
         return;
       }
-      // BUG 1 fix: unload any stale recording object before creating a new one;
-      // expo-av throws if two Recording objects are prepared simultaneously.
+      // Unload any stale recording left from a previous session
       if (recordingRef.current) {
         try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
         recordingRef.current = null;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      if (session !== recordingSessionRef.current) {
+        // stop was called while we were setting up — reset audio mode and bail
+        try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+        return;
+      }
       const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      if (session !== recordingSessionRef.current) {
+        // stop called while createAsync was in flight — clean up the new recording
+        try { await recording.stopAndUnloadAsync(); } catch {}
+        try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+        return;
+      }
       recordingRef.current = recording;
       setIsRecording(true);
       setCancelMode(false);
       setRecordingDuration(0);
 
-      // Pulse waveform animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(waveAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -490,20 +511,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       recordingTimerRef.current = setInterval(() => {
         elapsed += 1;
         setRecordingDuration(elapsed);
-        if (elapsed >= 120) {
-          // Auto-send at 2 minutes
-          stopRecordingFnRef.current?.(false);
-        }
+        if (elapsed >= 120) stopRecordingFnRef.current?.(false);
       }, 1000);
     } catch (err) {
       console.log('[Voice] startRecording error:', err);
+      // Always reset audio mode on any failure so next attempt works
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+      recordingRef.current = null;
     }
   }, [waveAnim]);
 
   const stopAndSendRecording = useCallback(async (cancelled: boolean) => {
-    if (!recordingRef.current) return;
+    // Invalidate any in-flight startRecording so it aborts after its next await
+    recordingSessionRef.current++;
 
-    // Stop timer and animation
+    // Stop timer and animation regardless of whether recording started
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
@@ -513,12 +535,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setIsRecording(false);
     setCancelMode(false);
 
+    if (!recordingRef.current) {
+      // startRecording was still in flight and will clean up itself via session check
+      setRecordingDuration(0);
+      return;
+    }
+
     if (cancelled) {
-      try {
-        await recordingRef.current.stopAndUnloadAsync();
-      } catch {}
+      try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
       recordingRef.current = null;
       setRecordingDuration(0);
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
       return;
     }
 
@@ -532,7 +559,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     }
     recordingRef.current = null;
     setRecordingDuration(0);
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+    // Always reset audio mode so playback and future recordings work
+    try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
 
     if (!uri) return;
     if (!otherUserId || !roomId) {
@@ -548,7 +576,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const optimisticId = `opt-voice-${Date.now()}`;
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, {
-      id: optimisticId, type: 'voice', sent: true, time: now, read: false,
+      id: optimisticId, type: 'voice', sent: true, time: now,
+      delivered: false, read: false,
       audioUrl: uri!, audioDuration: durationSec, uploading: true,
     }]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
@@ -601,18 +630,23 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       );
     }
 
-    if (item.type === 'voice') {
+    // Voice bubble — also catches type='text' messages with audioUrl or '[Voice message]' content
+    if (item.type === 'voice' || item.audioUrl || item.text === '[Voice message]') {
+      const voiceColor = (opacity: number) =>
+        item.sent ? `rgba(255,255,255,${opacity})` : colors.secondaryText;
       return (
         <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
           {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
           <View>
             <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
               {item.uploading ? (
+                // Still uploading — show spinner
                 <>
                   <ActivityIndicator size="small" color={item.sent ? '#fff' : '#0B6E36'} style={{ marginRight: 8 }} />
-                  <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>Uploading…</Text>
+                  <Text style={[s.voiceDur, { color: voiceColor(0.80) }]}>Uploading…</Text>
                 </>
               ) : item.audioUrl ? (
+                // Audio URL available — fully playable
                 <AudioPlayer
                   audioUrl={item.audioUrl}
                   durationSec={item.audioDuration ?? 0}
@@ -621,51 +655,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                   s={s}
                 />
               ) : (
+                // No audioUrl — backend didn't persist the URL (show static indicator)
                 <>
-                  <TouchableOpacity style={s.playBtn} activeOpacity={0.8}>
-                    <Ionicons name="play" size={15} color="#fff" />
-                  </TouchableOpacity>
-                  <View style={s.waveform}>
-                    {WAVE_HEIGHTS.map((h, i) => (
-                      <View key={i} style={[s.waveBar, { height: h },
-                        item.sent ? { backgroundColor: 'rgba(255,255,255,0.85)' } : { backgroundColor: 'rgba(0,0,0,0.35)' },
-                        i >= 9 && { opacity: 0.38 }]} />
-                    ))}
+                  <View style={[s.playBtn, { opacity: 0.5 }]}>
+                    <Ionicons name="mic" size={15} color="#fff" />
                   </View>
-                  <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>0:22</Text>
+                  <Text style={[s.voiceDur, { color: voiceColor(0.65) }]}>Voice message</Text>
                 </>
               )}
             </View>
-            <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
-          </View>
-        </View>
-      );
-    }
-
-    // BUG 4 fix: if audioUrl is present or the content is the audio fallback text,
-    // always render as a voice bubble regardless of the 'type' field.
-    if (item.audioUrl || item.text === '[Voice message]') {
-      return (
-        <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
-          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
-          <View>
-            <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-              {item.audioUrl ? (
-                <AudioPlayer
-                  audioUrl={item.audioUrl}
-                  durationSec={item.audioDuration ?? 0}
-                  sent={item.sent}
-                  colors={colors}
-                  s={s}
-                />
-              ) : (
-                <>
-                  <ActivityIndicator size="small" color={item.sent ? '#fff' : '#0B6E36'} style={{ marginRight: 8 }} />
-                  <Text style={[s.voiceDur, { color: item.sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText }]}>Processing…</Text>
-                </>
-              )}
-            </View>
-            <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
+            <TimeMeta sent={item.sent} time={item.time} delivered={item.delivered} read={item.read} s={s} colors={colors} />
           </View>
         </View>
       );
@@ -678,7 +677,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
             <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
           </View>
-          <TimeMeta sent={item.sent} time={item.time} read={item.read} s={s} colors={colors} />
+          <TimeMeta sent={item.sent} time={item.time} delivered={item.delivered} read={item.read} s={s} colors={colors} />
         </View>
       </View>
     );
@@ -1437,13 +1436,21 @@ const SmallAvatar = React.memo(function SmallAvatar({ initial, profileUri, s }: 
   );
 });
 
-const TimeMeta = React.memo(function TimeMeta({ sent, time, read, s, colors }: {
-  sent: boolean; time: string; read?: boolean; s: any; colors: ThemeColors;
+const TimeMeta = React.memo(function TimeMeta({ sent, time, delivered, read, s, colors }: {
+  sent: boolean; time: string; delivered?: boolean; read?: boolean; s: any; colors: ThemeColors;
 }) {
+  // 1 grey tick  = sent optimistically (not yet echoed by server)
+  // 2 grey ticks = server confirmed (delivered)
+  // 2 blue ticks = recipient has read it
+  const tickColor = read ? '#4ade80' : 'rgba(255,255,255,0.55)';
   return (
     <View style={[s.timeMeta, sent ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: 4 }]}>
       <Text style={[s.timeText, sent ? s.timeSent : s.timeRecv]}>{time}</Text>
-      {sent && <Ionicons name="checkmark-done" size={13} color={read ? '#4ade80' : 'rgba(255,255,255,0.45)'} style={{ marginLeft: 2 }} />}
+      {sent && (
+        delivered
+          ? <Ionicons name="checkmark-done" size={13} color={tickColor} style={{ marginLeft: 2 }} />
+          : <Ionicons name="checkmark" size={13} color="rgba(255,255,255,0.55)" style={{ marginLeft: 2 }} />
+      )}
     </View>
   );
 });
