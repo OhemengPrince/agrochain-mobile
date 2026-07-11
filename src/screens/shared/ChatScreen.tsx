@@ -194,7 +194,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const next = (matchCursor + direction + matchedList.length) % matchedList.length;
     setMatchCursor(next);
     const targetId = matchedList[next].id;
-    const idx = messages.findIndex((m) => m.id === targetId);
+    const idx = messages.findIndex((m) => String(m.id) === String(targetId));
     if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
   }, [matchCursor, matchedList, messages]);
 
@@ -275,7 +275,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         setSendError(null);
       },
       onMessage: (payload: ChatSocketMessage) => {
-        const msgId = payload.id ?? `${payload.senderId}-${payload.createdAt}`;
+        const msgId = String(payload.id ?? `${payload.senderId}-${payload.createdAt}`);
         const isMine = currentUserIdRef.current != null &&
           String(payload.senderId) === String(currentUserIdRef.current);
 
@@ -283,10 +283,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           // Replace optimistic message (sent-by-me, same content) if present;
           // otherwise dedup by id so the server echo doesn't double-render.
           const isAudio = payload.messageType === 'audio' || !!payload.audioUrl;
+          // Backend IDs are Long (number) at runtime — always use String() before .startsWith()
+          const isOptimistic = (id: any) => String(id).startsWith('opt-');
 
           if (isMine) {
             const optIdx = prev.findIndex(
-              (m) => m.id.startsWith('opt-') && (
+              (m) => isOptimistic(m.id) && (
                 isAudio
                   ? m.type === 'voice' && m.audioUrl === payload.audioUrl
                   : m.text === payload.content
@@ -307,7 +309,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               return next;
             }
           }
-          if (prev.some((m) => m.id === msgId)) return prev;
+          if (prev.some((m) => String(m.id) === msgId)) return prev;
 
           const d = new Date(payload.createdAt);
           const dk = d.toDateString();
@@ -450,7 +452,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       console.log('[ChatScreen] send failed:', err);
       setSendError('Not connected — reconnecting, please try again shortly.');
       // Remove the optimistic message so the user can retry
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setMessages((prev) => prev.filter((m) => String(m.id) !== optimisticId));
       setInputText(text);
     }
   };
@@ -559,13 +561,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         audioDuration: durationSec,
       });
       setMessages((prev) => prev.map((m) =>
-        m.id === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false } : m
+        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false } : m
       ));
     } catch (err) {
       console.log('[Voice] upload error:', err);
       // Keep bubble visible but mark upload failed
       setMessages((prev) => prev.map((m) =>
-        m.id === optimisticId ? { ...m, uploading: false } : m
+        String(m.id) === optimisticId ? { ...m, uploading: false } : m
       ));
     }
   }, [recordingDuration, roomId, otherUserId, waveAnim]);
