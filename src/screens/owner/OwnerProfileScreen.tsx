@@ -395,7 +395,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentScroll}>
                     {listings.map((item) => (
                       <PressableScale
-                        key={item.id}
+                        key={String(item.id)}
                         style={styles.miniEquipmentCard}
                         onPress={() => handleEditEquipment(item.id)}
                       >

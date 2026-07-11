@@ -238,7 +238,7 @@ export default function NotificationsScreen() {
 
       <SectionList
         sections={sections}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title.toUpperCase()}</Text>
         )}

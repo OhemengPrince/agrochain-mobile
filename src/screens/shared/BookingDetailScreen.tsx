@@ -143,7 +143,7 @@ function deriveStatus(booking: Booking): DerivedStatus {
 }
 
 function getBookingRef(booking: Booking): string {
-  return `#BK-${booking.id.slice(-6).toUpperCase()}`;
+  return `#BK-${String(booking.id).slice(-6).toUpperCase()}`;
 }
 
 export default function BookingDetailScreen({ route, navigation }: Props) {

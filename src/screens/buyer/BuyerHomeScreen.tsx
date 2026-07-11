@@ -324,7 +324,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 initialNumToRender={5}
                 data={featuredBatches}
                 horizontal
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => String(item.id)}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.featuredList}
                 renderItem={({ item }) => (

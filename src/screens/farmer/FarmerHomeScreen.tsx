@@ -350,7 +350,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.equipmentRow}>
             {equipment.slice(0, 6).map((item) => (
               <EquipmentMiniCard
-                key={item.id}
+                key={String(item.id)}
                 item={item}
                 onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
                 styles={styles}
@@ -373,7 +373,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             recentActivity.map((item) => {
               const color = notificationColor(item.type, colors);
               return (
-                <View key={item.id} style={styles.activityRow}>
+                <View key={String(item.id)} style={styles.activityRow}>
                   <View style={[styles.activityIconWrap, { backgroundColor: `${color}1A` }]}>
                     <Ionicons name={NOTIFICATION_ICON[item.type]} size={18} color={color} />
                   </View>

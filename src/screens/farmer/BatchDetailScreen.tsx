@@ -193,7 +193,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   }
 
   const cropMeta = getCropMeta(batch.cropName);
-  const shortRef = batch.id.slice(-6).toUpperCase();
+  const shortRef = String(batch.id).slice(-6).toUpperCase();
   const showPendingStage =
     (batch.status === 'PROCESSING' || batch.status === 'GROWING' || batch.status === 'HARVESTED') &&
     batch.processingStages.length > 0;

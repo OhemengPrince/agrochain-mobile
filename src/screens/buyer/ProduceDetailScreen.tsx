@@ -81,7 +81,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const batchRef = batch.id.slice(-6).toUpperCase();
+  const batchRef = String(batch.id).slice(-6).toUpperCase();
   const farmerInitial = batch.farmerName.charAt(0).toUpperCase();
 
   return (
