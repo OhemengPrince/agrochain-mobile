@@ -231,6 +231,9 @@ export interface ChatSocketMessage {
   senderName: string;
   content: string;
   createdAt: string;
+  audioUrl?: string;
+  audioDuration?: number;
+  messageType?: string;
 }
 
 // ===== Notifications =====

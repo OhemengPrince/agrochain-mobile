@@ -77,10 +77,14 @@ export function connect(
   });
 }
 
-export function sendMessage(roomId: string, content: string): void {
+export function sendMessage(
+  roomId: string,
+  content: string,
+  extra?: Record<string, unknown>,
+): void {
   if (!socket) throw new Error('[SocketIO] No socket — call connect() first');
   console.log('[SocketIO] send_message → room:', roomId, '|', content.slice(0, 60));
-  socket.emit('send_message', { roomId, content });
+  socket.emit('send_message', { roomId, content, ...extra });
 }
 
 export function disconnect(): void {

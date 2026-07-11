@@ -19,3 +19,17 @@ export async function uploadImage(localUri: string): Promise<string> {
 
   return `${BASE_ORIGIN}${data.url}`;
 }
+
+export async function uploadAudio(localUri: string): Promise<string> {
+  if (USE_MOCK_DATA) return localUri;
+
+  const filename = `voice-${Date.now()}.m4a`;
+  const formData = new FormData();
+  formData.append('file', { uri: localUri, name: filename, type: 'audio/m4a' } as any);
+
+  const { data } = await apiClient.post<{ url: string }>('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return `${BASE_ORIGIN}${data.url}`;
+}
