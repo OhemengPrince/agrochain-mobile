@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
-import { getTopRatedUsers, TopRatedUser } from '../api/userApi';
+import { getTopRatedUsers, getRecentUsers, TopRatedUser } from '../api/userApi';
 
 const CARD_WIDTH = 140;
 const CARD_H_MARGIN = 8;
@@ -102,11 +102,17 @@ function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: The
       </View>
 
       {/* Rating */}
-      <View style={c.ratingRow}>
-        <Ionicons name="star" size={11} color={colors.accentAmber} />
-        <Text style={[c.ratingNum, { color: colors.text }]}>{user.averageRating.toFixed(1)}</Text>
-        <Text style={[c.reviewCount, { color: colors.secondaryText }]}>({user.totalReviews})</Text>
-      </View>
+      {user.totalReviews > 0 ? (
+        <View style={c.ratingRow}>
+          <Ionicons name="star" size={11} color={colors.accentAmber} />
+          <Text style={[c.ratingNum, { color: colors.text }]}>{user.averageRating.toFixed(1)}</Text>
+          <Text style={[c.reviewCount, { color: colors.secondaryText }]}>({user.totalReviews})</Text>
+        </View>
+      ) : (
+        <View style={[c.rolePill, { backgroundColor: '#E8F5E9', marginBottom: 6 }]}>
+          <Text style={[c.roleText, { color: '#1A6B2E' }]}>New Member</Text>
+        </View>
+      )}
 
       {/* Region */}
       {!!user.region && (
@@ -202,12 +208,22 @@ export default function TopRatedCarousel({ navigation }: Props) {
     return () => loop.stop();
   }, [loading, shimmer]);
 
-  // Fetch from backend (or mock)
+  // Fetch from backend (or mock); fall back to recent verified users if no rated users yet
   useEffect(() => {
-    getTopRatedUsers(10)
-      .then((data) => setUsers(data))
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        let data = await getTopRatedUsers(10);
+        if (data.length === 0) {
+          data = await getRecentUsers(10);
+        }
+        console.log(`[TopRated] showing ${data.length} users`);
+        setUsers(data);
+      } catch {
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   // Auto-slide every 3 s, skip while user is touching

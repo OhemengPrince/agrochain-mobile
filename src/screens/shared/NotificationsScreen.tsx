@@ -214,10 +214,7 @@ export default function NotificationsScreen() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  if (loading) {
-    return <LoadingOverlay message="Loading notifications..." />;
-  }
-
+  // All hooks must appear before any early return
   const displayedNotifications = useMemo(() => {
     if (!searchQuery.trim()) return notifications;
     const q = searchQuery.toLowerCase();
@@ -228,6 +225,10 @@ export default function NotificationsScreen() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const sections = groupNotifications(displayedNotifications);
+
+  if (loading) {
+    return <LoadingOverlay message="Loading notifications..." />;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

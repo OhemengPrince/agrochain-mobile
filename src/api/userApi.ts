@@ -27,6 +27,51 @@ const MOCK_SYNTHETIC_RATINGS: Record<string, { rating: number; reviews: number }
   g1:  { rating: 3.7, reviews: 3  },
 };
 
+export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
+  if (USE_MOCK_DATA) {
+    return mockDelay(
+      MOCK_USERS.slice(0, limit).map((user) => ({
+        id: user.id,
+        fullName: user.fullName,
+        role: user.role,
+        region: user.region,
+        averageRating: 0,
+        totalReviews: 0,
+        profilePhotoUrl: user.profileImageUrl,
+        isVerified: user.isVerified,
+      }))
+    );
+  }
+
+  try {
+    const { data } = await apiClient.get<any>('/users/recent', { params: { limit } });
+    return extractArray<TopRatedUser>(data).slice(0, limit);
+  } catch {
+    // /users/recent not available — derive unique owners from equipment listings
+    const { data } = await apiClient.get<any>('/equipment', { params: { page: 0, size: 20 } });
+    const equipment = extractArray<any>(data);
+    const seen = new Set<string>();
+    const users: TopRatedUser[] = [];
+    for (const eq of equipment) {
+      const ownerId = String(eq.ownerId ?? eq.owner?.id ?? '');
+      if (!ownerId || seen.has(ownerId)) continue;
+      seen.add(ownerId);
+      users.push({
+        id: ownerId,
+        fullName: eq.ownerName ?? eq.owner?.fullName ?? 'Equipment Owner',
+        role: 'EQUIPMENT_OWNER' as const,
+        region: eq.location ?? eq.region,
+        averageRating: 0,
+        totalReviews: 0,
+        profilePhotoUrl: eq.owner?.profileImageUrl,
+        isVerified: false,
+      });
+      if (users.length >= limit) break;
+    }
+    return users;
+  }
+}
+
 export async function updatePhotoUrl(photoUrl: string): Promise<void> {
   if (USE_MOCK_DATA) return;
   await apiClient.put('/users/me/photo-url', { photoUrl });
