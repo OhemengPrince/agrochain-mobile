@@ -68,6 +68,11 @@ const sk = StyleSheet.create({
 function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: ThemeColors; onPress: () => void }) {
   const roleConf = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.GENERAL;
   const hasPhoto = isValidPhotoUrl(user.profilePhotoUrl);
+  const imgOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleImageLoad = useCallback(() => {
+    Animated.timing(imgOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+  }, [imgOpacity]);
 
   return (
     <TouchableOpacity
@@ -78,10 +83,18 @@ function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: The
       {/* Avatar */}
       <View style={c.avatarWrap}>
         {hasPhoto ? (
-          <Image source={{ uri: user.profilePhotoUrl }} style={c.avatarImg} />
+          <View style={[c.avatarImgWrap, user.isVerified ? c.avatarBorderVerified : c.avatarBorderDefault]}>
+            <View style={c.avatarPlaceholder} />
+            <Animated.Image
+              source={{ uri: user.profilePhotoUrl! }}
+              style={[c.avatarImgInner, { opacity: imgOpacity }]}
+              resizeMode="cover"
+              onLoad={handleImageLoad}
+            />
+          </View>
         ) : (
-          <View style={c.avatarCircle}>
-            <Text style={c.initials}>{getInitials(user.fullName)}</Text>
+          <View style={[c.avatarCircle, user.isVerified ? c.avatarBorderVerified : c.avatarBorderDefault]}>
+            <Text style={c.initials}>{user.fullName?.charAt(0).toUpperCase()}</Text>
           </View>
         )}
         {user.isVerified && (
@@ -141,9 +154,13 @@ const c = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  avatarWrap:    { position: 'relative', marginBottom: 8 },
-  avatarCircle:  { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1A6B2E', alignItems: 'center', justifyContent: 'center' },
-  avatarImg:     { width: 56, height: 56, borderRadius: 28 },
+  avatarWrap:           { position: 'relative', marginBottom: 8 },
+  avatarImgWrap:        { width: 56, height: 56, borderRadius: 28, overflow: 'hidden' },
+  avatarPlaceholder:    { position: 'absolute', width: 56, height: 56, backgroundColor: '#D1D5DB' },
+  avatarImgInner:       { width: 56, height: 56 },
+  avatarCircle:         { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1A6B2E', alignItems: 'center', justifyContent: 'center' },
+  avatarBorderVerified: { borderWidth: 2, borderColor: '#1A6B2E' },
+  avatarBorderDefault:  { borderWidth: 1, borderColor: '#E5E7EB' },
   initials:      { fontSize: 20, fontWeight: '700', color: '#fff' },
   verifiedBadge: {
     position: 'absolute',
