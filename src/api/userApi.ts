@@ -75,9 +75,14 @@ export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
 export async function getMe(): Promise<User | null> {
   if (USE_MOCK_DATA) return null;
   try {
-    const { data } = await apiClient.get<User>('/users/me');
-    return data ?? null;
-  } catch {
+    const { data } = await apiClient.get<any>('/users/me');
+    console.log('[API] GET /users/me raw response keys:', data ? Object.keys(data) : 'null');
+    console.log('[API] GET /users/me profileImageUrl:', data?.profileImageUrl);
+    console.log('[API] GET /users/me profilePhotoUrl:', data?.profilePhotoUrl);
+    console.log('[API] GET /users/me full:', JSON.stringify(data));
+    return (data as User) ?? null;
+  } catch (e: any) {
+    console.log('[API] GET /users/me error:', e?.message, e?.response?.status);
     return null;
   }
 }

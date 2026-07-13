@@ -21,6 +21,7 @@ export default function UserAvatar({
 }: Props) {
   const initial = user?.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const hasPhoto = !!user?.profileImageUrl?.startsWith('http');
+  console.log('[Avatar] user:', user?.fullName, '| profileImageUrl:', user?.profileImageUrl, '| hasPhoto:', hasPhoto);
   const radius = size / 2;
 
   const circle: ViewStyle = {
