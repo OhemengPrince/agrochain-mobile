@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
   Pressable,
   Animated,
@@ -30,6 +29,10 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import ProfileTabs from '../../components/ProfileTabs';
 import ActiveIndicator from '../../components/ActiveIndicator';
+import UserAvatar from '../../components/UserAvatar';
+import FloatToast from '../../components/FloatToast';
+import { uploadImage } from '../../api/fileApi';
+import { updatePhotoUrl } from '../../api/userApi';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
@@ -52,13 +55,22 @@ interface Supplier {
 }
 
 export default function BuyerProfileScreen({ navigation }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { colors } = useTheme();
   const [batches, setBatches] = useState<ProduceBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastKey, setToastKey] = useState(0);
+
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToastMsg(msg);
+    setToastType(type);
+    setToastKey((k) => k + 1);
+  };
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
@@ -97,8 +109,18 @@ export default function BuyerProfileScreen({ navigation }: Props) {
       aspect: [1, 1],
       quality: 0.7,
     });
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
+    if (result.canceled || !result.assets[0]) return;
+    const localUri = result.assets[0].uri;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadImage(localUri);
+      await updatePhotoUrl(url);
+      await updateUser({ profileImageUrl: url });
+      showToast('Profile photo updated!', 'success');
+    } catch {
+      showToast('Failed to update photo. Try again.', 'error');
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -132,7 +154,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const initial = user.fullName.charAt(0).toUpperCase();
   const locationLabel = user.district && user.region ? `${user.district}, ${user.region} Region` : 'Ghana';
   const memberSince = formatDate(user.createdAt);
-  const avatarSource = avatarUri ?? user.profileImageUrl;
 
   const suppliers: Supplier[] = [];
   const seenFarmers = new Set<string>();
@@ -165,14 +186,8 @@ export default function BuyerProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.avatarWrap}>
-            {avatarSource ? (
-              <Image source={{ uri: avatarSource }} style={styles.avatar} resizeMode="cover" />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial}>{initial}</Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
+            <UserAvatar user={user} size={130} uploading={avatarUploading} borderWidth={3} borderColor="#fff" />
+            <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar} disabled={avatarUploading}>
               <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -415,6 +430,8 @@ export default function BuyerProfileScreen({ navigation }: Props) {
 
       </ScrollView>
       </KeyboardAvoidingView>
+
+      <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />
 
       <ProfileDropdownMenu
         visible={dropdownVisible}

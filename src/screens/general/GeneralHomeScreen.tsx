@@ -21,6 +21,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
 import WeatherWidget from '../../components/WeatherWidget';
+import UserAvatar from '../../components/UserAvatar';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralHomeMain'>;
 
@@ -139,7 +140,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <Ionicons name="person" size={20} color={colors.white} />
+                <UserAvatar user={user} size={28} />
               </TouchableOpacity>
             </View>
           </View>

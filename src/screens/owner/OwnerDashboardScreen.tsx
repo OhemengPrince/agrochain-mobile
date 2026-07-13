@@ -25,6 +25,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
 import WeatherWidget from '../../components/WeatherWidget';
+import UserAvatar from '../../components/UserAvatar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerDashboardMain'>;
@@ -357,7 +358,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
               <Ionicons name="notifications" size={22} color="#FFFFFF" />
             </Pressable>
             <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
-              <Ionicons name="person" size={22} color="#FFFFFF" />
+              <UserAvatar user={user} size={28} />
             </Pressable>
           </View>
         </View>

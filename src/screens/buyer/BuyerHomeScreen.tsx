@@ -14,6 +14,8 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
 import WeatherWidget from '../../components/WeatherWidget';
+import UserAvatar from '../../components/UserAvatar';
+import { useAuth } from '../../hooks/useAuth';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerHomeMain'>;
 
@@ -111,6 +113,7 @@ function FeaturedBatchCard({
 }
 
 export default function BuyerHomeScreen({ navigation }: Props) {
+  const { user } = useAuth();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [batches, setBatches] = useState<ProduceBatch[]>([]);
@@ -232,7 +235,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                     <Ionicons name="notifications" size={20} color={colors.white} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
-                    <Ionicons name="person" size={20} color={colors.white} />
+                    <UserAvatar user={user} size={28} />
                   </TouchableOpacity>
                 </View>
               </View>

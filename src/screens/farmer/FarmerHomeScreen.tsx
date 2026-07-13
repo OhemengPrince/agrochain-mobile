@@ -31,6 +31,7 @@ import EquipmentImage from '../../components/EquipmentImage';
 import StarRating from '../../components/StarRating';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
 import WeatherWidget from '../../components/WeatherWidget';
+import UserAvatar from '../../components/UserAvatar';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerHomeMain'>;
 
@@ -281,7 +282,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
                 <Ionicons name="notifications" size={20} color={colors.white} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
-                <Ionicons name="person" size={20} color={colors.white} />
+                <UserAvatar user={user} size={28} />
               </TouchableOpacity>
             </View>
           </View>
