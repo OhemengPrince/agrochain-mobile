@@ -31,6 +31,10 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import ProfileTabs from '../../components/ProfileTabs';
 import ActiveIndicator from '../../components/ActiveIndicator';
+import UserAvatar from '../../components/UserAvatar';
+import FloatToast from '../../components/FloatToast';
+import { uploadImage } from '../../api/fileApi';
+import { updatePhotoUrl } from '../../api/userApi';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
@@ -111,14 +115,17 @@ function isBookingActive(booking: Booking): boolean {
 }
 
 export default function OwnerProfileScreen({ navigation }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { colors } = useTheme();
   const [listings, setListings] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastKey, setToastKey] = useState(0);
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
@@ -146,9 +153,15 @@ export default function OwnerProfileScreen({ navigation }: Props) {
     Alert.alert(feature, `${feature} is coming soon.`);
   };
 
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToastMsg(msg);
+    setToastType(type);
+    setToastKey((k) => k + 1);
+  };
+
   const handlePickAvatar = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
       Alert.alert('Permission needed', 'Allow photo library access to update your profile picture.');
       return;
     }
@@ -158,8 +171,17 @@ export default function OwnerProfileScreen({ navigation }: Props) {
       aspect: [1, 1],
       quality: 0.7,
     });
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
+    if (result.canceled || !result.assets[0]) return;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadImage(result.assets[0].uri);
+      await updatePhotoUrl(url);
+      await updateUser({ profileImageUrl: url });
+      showToast('Profile photo updated!', 'success');
+    } catch {
+      showToast('Failed to update photo. Try again.', 'error');
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -208,7 +230,6 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const initial = user.fullName.charAt(0).toUpperCase();
   const locationLabel = user.district && user.region ? `${user.district}, ${user.region} Region` : 'Ghana';
   const memberSince = formatDate(user.createdAt);
-  const avatarSource = avatarUri ?? user.profileImageUrl;
 
   const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
   const pendingBookings = bookings.filter((b) => b.status === 'PENDING');
@@ -249,14 +270,8 @@ export default function OwnerProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.avatarWrap}>
-            {avatarSource ? (
-              <Image source={{ uri: avatarSource }} style={styles.avatar} resizeMode="cover" />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial}>{initial}</Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
+            <UserAvatar user={user} size={130} uploading={avatarUploading} borderWidth={3} borderColor="#fff" />
+            <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar} disabled={avatarUploading}>
               <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -521,6 +536,8 @@ export default function OwnerProfileScreen({ navigation }: Props) {
 
       </ScrollView>
       </KeyboardAvoidingView>
+
+      <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />
 
       <ProfileDropdownMenu
         visible={dropdownVisible}

@@ -27,6 +27,11 @@ const MOCK_SYNTHETIC_RATINGS: Record<string, { rating: number; reviews: number }
   g1:  { rating: 3.7, reviews: 3  },
 };
 
+export async function updatePhotoUrl(photoUrl: string): Promise<void> {
+  if (USE_MOCK_DATA) return;
+  await apiClient.put('/users/me/photo-url', { photoUrl });
+}
+
 export async function getTopRatedUsers(limit = 10): Promise<TopRatedUser[]> {
   if (USE_MOCK_DATA) {
     // Aggregate equipment ratings per owner
