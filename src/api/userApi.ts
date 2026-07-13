@@ -1,5 +1,5 @@
 import apiClient, { extractArray } from './axios';
-import { UserRole } from '../types';
+import { User, UserRole } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { MOCK_USERS, MOCK_EQUIPMENT } from '../mock/mockData';
 import { mockDelay } from '../mock/mockHelpers';
@@ -69,6 +69,16 @@ export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
       if (users.length >= limit) break;
     }
     return users;
+  }
+}
+
+export async function getMe(): Promise<User | null> {
+  if (USE_MOCK_DATA) return null;
+  try {
+    const { data } = await apiClient.get<User>('/users/me');
+    return data ?? null;
+  } catch {
+    return null;
   }
 }
 

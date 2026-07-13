@@ -8,6 +8,7 @@ import React, {
 import { User } from '../types';
 import { saveToken, saveUser, getToken, getUser, clearAll } from '../utils/storage';
 import { registerAuthFailureHandler } from '../api/axios';
+import { getMe } from '../api/userApi';
 
 export interface AuthContextValue {
   user: User | null;
@@ -31,7 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const [storedToken, storedUser] = await Promise.all([getToken(), getUser()]);
         if (storedToken && storedUser) {
           setToken(storedToken);
-          setUser(storedUser);
+          setUser(storedUser); // show cached data immediately
+          // Refresh from backend in background so profileImageUrl and other
+          // server-side fields are always up to date after a cold start.
+          getMe().then((fresh) => {
+            if (!fresh) return;
+            const merged = { ...storedUser, ...fresh };
+            setUser(merged);
+            saveUser(merged).catch(() => {});
+          }).catch(() => {});
         }
       } finally {
         setIsLoading(false);
@@ -43,15 +52,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await Promise.all([saveToken(newToken), saveUser(newUser)]);
     setToken(newToken);
     setUser(newUser);
+    // Login response may not include profileImageUrl — fetch the full profile
+    // from the backend immediately after token is saved so the photo appears
+    // without the user having to re-upload it.
+    getMe().then((fresh) => {
+      if (!fresh) return;
+      const merged = { ...newUser, ...fresh };
+      setUser(merged);
+      saveUser(merged).catch(() => {});
+    }).catch(() => {});
   }, []);
 
   const updateUser = useCallback(async (patch: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, ...patch };
-      saveUser(updated).catch(() => {});
-      return updated;
+      return { ...prev, ...patch };
     });
+    // Persist outside the setter so we're not calling async inside a sync callback.
+    // We read the latest merged value by passing a functional update above, then
+    // do the save here using the patch values we already have.
+    getUser().then((stored) => {
+      if (!stored) return;
+      saveUser({ ...stored, ...patch }).catch(() => {});
+    }).catch(() => {});
   }, []);
 
   const logout = useCallback(async () => {
