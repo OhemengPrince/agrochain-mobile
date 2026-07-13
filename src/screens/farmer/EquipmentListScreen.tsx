@@ -1,5 +1,20 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, ScrollView, StyleSheet, TextInput, Text, RefreshControl, TouchableOpacity, Pressable, Animated, Image } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  RefreshControl,
+  TouchableOpacity,
+  Pressable,
+  Animated,
+  Image,
+  Modal,
+  Platform,
+  KeyboardAvoidingView,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,10 +26,18 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
 const CATEGORIES = ['All', 'Tractor', 'Harvester', 'Irrigation', 'Sprayer', 'Tiller', 'Sheller'];
+
+type AppliedFilters = {
+  region: string;
+  district: string;
+  minPrice: string;
+  maxPrice: string;
+};
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -123,6 +146,17 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Filter modal state
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [pendingRegion, setPendingRegion] = useState('');
+  const [pendingDistrict, setPendingDistrict] = useState('');
+  const [pendingCategory, setPendingCategory] = useState('All');
+  const [pendingMinPrice, setPendingMinPrice] = useState('');
+  const [pendingMaxPrice, setPendingMaxPrice] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>({
+    region: '', district: '', minPrice: '', maxPrice: '',
+  });
+
   const loadEquipment = useCallback(async (searchQuery: string) => {
     setError(null);
     try {
@@ -145,50 +179,113 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     try { await loadEquipment(query); } finally { setRefreshing(false); }
   };
 
-  const handleClearQuery = () => {
-    setQuery('');
-    loadEquipment('');
+  // Unique regions/districts from loaded data for quick-select chips in modal
+  const uniqueRegions = useMemo(
+    () => [...new Set(allEquipment.map((e) => e.region).filter(Boolean))].sort(),
+    [allEquipment]
+  );
+
+  const uniqueDistricts = useMemo(() => {
+    const base = pendingRegion
+      ? allEquipment.filter((e) => e.region.toLowerCase().includes(pendingRegion.toLowerCase()))
+      : allEquipment;
+    return [...new Set(base.map((e) => e.district).filter(Boolean))].sort().slice(0, 10);
+  }, [allEquipment, pendingRegion]);
+
+  // Combined client-side filter (category chip + modal filters)
+  const equipment = useMemo(() => {
+    let list =
+      activeCategory === 'All'
+        ? allEquipment
+        : allEquipment.filter((item) => item.category.toLowerCase() === activeCategory.toLowerCase());
+
+    if (appliedFilters.region) {
+      list = list.filter((item) =>
+        item.region.toLowerCase().includes(appliedFilters.region.toLowerCase())
+      );
+    }
+    if (appliedFilters.district) {
+      list = list.filter((item) =>
+        item.district.toLowerCase().includes(appliedFilters.district.toLowerCase())
+      );
+    }
+    const min = parseFloat(appliedFilters.minPrice);
+    const max = parseFloat(appliedFilters.maxPrice);
+    if (!isNaN(min)) list = list.filter((item) => item.dailyRate >= min);
+    if (!isNaN(max)) list = list.filter((item) => item.dailyRate <= max);
+
+    return list;
+  }, [allEquipment, activeCategory, appliedFilters]);
+
+  const hasActiveFilters =
+    appliedFilters.region !== '' ||
+    appliedFilters.district !== '' ||
+    appliedFilters.minPrice !== '' ||
+    appliedFilters.maxPrice !== '' ||
+    activeCategory !== 'All';
+
+  const openFilterModal = () => {
+    // Sync pending state with current applied state
+    setPendingRegion(appliedFilters.region);
+    setPendingDistrict(appliedFilters.district);
+    setPendingCategory(activeCategory);
+    setPendingMinPrice(appliedFilters.minPrice);
+    setPendingMaxPrice(appliedFilters.maxPrice);
+    setFilterVisible(true);
+  };
+
+  const handleApplyFilters = () => {
+    setActiveCategory(pendingCategory);
+    setAppliedFilters({
+      region: pendingRegion,
+      district: pendingDistrict,
+      minPrice: pendingMinPrice,
+      maxPrice: pendingMaxPrice,
+    });
+    setFilterVisible(false);
+  };
+
+  const handleResetFilters = () => {
+    setPendingRegion('');
+    setPendingDistrict('');
+    setPendingCategory('All');
+    setPendingMinPrice('');
+    setPendingMaxPrice('');
+    setActiveCategory('All');
+    setAppliedFilters({ region: '', district: '', minPrice: '', maxPrice: '' });
+    setFilterVisible(false);
   };
 
   if (loading) {
     return <LoadingOverlay message="Loading equipment..." />;
   }
 
-  const equipment =
-    activeCategory === 'All'
-      ? allEquipment
-      : allEquipment.filter((item) => item.category.toLowerCase() === activeCategory.toLowerCase());
-
-  const region = equipment[0]?.region ?? 'Ashanti Region';
+  const region = equipment[0]?.region ?? 'Ghana';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.header}>
+      <View style={[styles.header, { zIndex: 10 }]}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>Find Equipment</Text>
-          <TouchableOpacity style={styles.filterButton} onPress={() => loadEquipment(query)}>
+          <TouchableOpacity style={styles.filterButton} onPress={openFilterModal}>
             <Ionicons name="options-outline" size={18} color={colors.white} />
+            {hasActiveFilters && <View style={styles.filterDot} />}
           </TouchableOpacity>
         </View>
         <Text style={styles.headerSubtitle}>{region} • {equipment.length} available</Text>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => loadEquipment(query)}
-            placeholder="Search tractors, harvesters..."
-            placeholderTextColor={colors.secondaryText}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={handleClearQuery}>
-              <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchWithSuggestions
+          data={allEquipment}
+          keys={['name', 'category', 'region', 'district', 'ownerName']}
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={() => loadEquipment(query)}
+          onSelectSuggestion={(item) => loadEquipment(item.name)}
+          placeholder="Search tractors, harvesters..."
+          colors={colors}
+          containerStyle={styles.searchBarWrapper}
+          barHeight={52}
+        />
       </View>
 
       <ScrollView
@@ -239,272 +336,541 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No equipment found.</Text>}
       />
+
+      {/* Filter Modal */}
+      <Modal
+        visible={filterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            onPress={() => setFilterVisible(false)}
+            activeOpacity={1}
+          >
+            <View
+              style={[styles.modalSheet, { backgroundColor: colors.card }]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>Filter Equipment</Text>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetScroll}>
+                {/* Category */}
+                <Text style={[styles.filterLabel, { color: colors.secondaryText }]}>Category</Text>
+                <View style={styles.filterChipsWrap}>
+                  {CATEGORIES.map((cat) => (
+                    <Pressable
+                      key={cat}
+                      style={[
+                        styles.filterChip,
+                        { borderColor: colors.border, backgroundColor: colors.background },
+                        pendingCategory === cat && { backgroundColor: colors.primaryGreen, borderColor: colors.primaryGreen },
+                      ]}
+                      onPress={() => setPendingCategory(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          { color: colors.secondaryText },
+                          pendingCategory === cat && { color: colors.white },
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {/* Region */}
+                <Text style={[styles.filterLabel, { color: colors.secondaryText, marginTop: 16 }]}>Region</Text>
+                <TextInput
+                  style={[styles.filterInput, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+                  value={pendingRegion}
+                  onChangeText={setPendingRegion}
+                  placeholder="e.g. Ashanti"
+                  placeholderTextColor={colors.secondaryText}
+                />
+                {uniqueRegions.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                    {uniqueRegions.map((r) => (
+                      <Pressable
+                        key={r}
+                        style={[
+                          styles.smallChip,
+                          { borderColor: colors.border, backgroundColor: colors.background },
+                          pendingRegion === r && { backgroundColor: colors.primaryGreen, borderColor: colors.primaryGreen },
+                        ]}
+                        onPress={() => setPendingRegion(pendingRegion === r ? '' : r)}
+                      >
+                        <Text
+                          style={[
+                            styles.smallChipText,
+                            { color: colors.secondaryText },
+                            pendingRegion === r && { color: colors.white },
+                          ]}
+                        >
+                          {r}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                )}
+
+                {/* District */}
+                <Text style={[styles.filterLabel, { color: colors.secondaryText, marginTop: 16 }]}>District</Text>
+                <TextInput
+                  style={[styles.filterInput, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+                  value={pendingDistrict}
+                  onChangeText={setPendingDistrict}
+                  placeholder="e.g. Kumasi Metropolitan"
+                  placeholderTextColor={colors.secondaryText}
+                />
+                {uniqueDistricts.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                    {uniqueDistricts.map((d) => (
+                      <Pressable
+                        key={d}
+                        style={[
+                          styles.smallChip,
+                          { borderColor: colors.border, backgroundColor: colors.background },
+                          pendingDistrict === d && { backgroundColor: colors.primaryGreen, borderColor: colors.primaryGreen },
+                        ]}
+                        onPress={() => setPendingDistrict(pendingDistrict === d ? '' : d)}
+                      >
+                        <Text
+                          style={[
+                            styles.smallChipText,
+                            { color: colors.secondaryText },
+                            pendingDistrict === d && { color: colors.white },
+                          ]}
+                        >
+                          {d}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                )}
+
+                {/* Price Range */}
+                <Text style={[styles.filterLabel, { color: colors.secondaryText, marginTop: 16 }]}>
+                  Price Range (GHS/day)
+                </Text>
+                <View style={styles.priceRow}>
+                  <TextInput
+                    style={[styles.filterInput, { flex: 1, color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+                    value={pendingMinPrice}
+                    onChangeText={setPendingMinPrice}
+                    placeholder="Min"
+                    placeholderTextColor={colors.secondaryText}
+                    keyboardType="numeric"
+                  />
+                  <Text style={[styles.priceDash, { color: colors.secondaryText }]}>—</Text>
+                  <TextInput
+                    style={[styles.filterInput, { flex: 1, color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+                    value={pendingMaxPrice}
+                    onChangeText={setPendingMaxPrice}
+                    placeholder="Max"
+                    placeholderTextColor={colors.secondaryText}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </ScrollView>
+
+              <View style={[styles.sheetButtons, { borderTopColor: colors.border }]}>
+                <Pressable
+                  style={[styles.resetBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  onPress={handleResetFilters}
+                >
+                  <Text style={[styles.resetBtnText, { color: colors.text }]}>Reset</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.applyBtn, { backgroundColor: colors.primaryGreen }]}
+                  onPress={handleApplyFilters}
+                >
+                  <Text style={styles.applyBtnText}>Apply Filters</Text>
+                </Pressable>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    backgroundColor: colors.card,
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  filterButton: {
-    backgroundColor: colors.primaryGreen,
-    borderRadius: 12,
-    padding: 10,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: colors.secondaryText,
-    marginTop: 4,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.inputBackground,
-    borderRadius: 16,
-    height: 52,
-    paddingHorizontal: 16,
-    marginTop: 14,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-  },
-  chipsList: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 26,
-    alignItems: 'flex-start',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 64,
-    paddingHorizontal: 18,
-    height: 40,
-    borderRadius: 25,
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  chipActive: {
-    backgroundColor: '#1A6B2E',
-    borderColor: '#1A6B2E',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.secondaryText,
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-  },
-  list: {
-    paddingBottom: 120,
-  },
-  resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  resultsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  resultsCount: {
-    fontSize: 13,
-    color: colors.secondaryText,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  imageWrap: {
-    position: 'relative',
-    width: '100%',
-    height: 180,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#F0F7F2',
-  },
-  image: {
-    width: '100%',
-    height: 180,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    backgroundColor: '#F0F7F2',
-  },
-  categoryBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: colors.accentAmber,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  categoryBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  availabilityBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#16A34A',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  unavailableBadge: {
-    backgroundColor: '#DC2626',
-  },
-  availabilityBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  priceBadge: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  priceBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  body: {
-    padding: 14,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  ownerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-  },
-  ownerAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primaryGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownerAvatarText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  ownerName: {
-    fontSize: 13,
-    color: colors.secondaryText,
-    flexShrink: 1,
-  },
-  detailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginTop: 8,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  detailText: {
-    fontSize: 12,
-    color: colors.secondaryText,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 14,
-    marginTop: 14,
-  },
-  viewDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  viewDetailsText: {
-    fontSize: 13,
-    color: colors.primaryGreen,
-    textDecorationLine: 'underline',
-  },
-  bookNowButton: {
-    backgroundColor: colors.primaryGreen,
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  bookNowText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.secondaryText,
-    marginTop: 40,
-  },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.card,
+      paddingTop: 50,
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+    },
+    headerTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    filterButton: {
+      backgroundColor: colors.primaryGreen,
+      borderRadius: 12,
+      padding: 10,
+    },
+    filterDot: {
+      position: 'absolute',
+      top: -2,
+      right: -2,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.accentAmber,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+    searchBarWrapper: {
+      marginTop: 14,
+    },
+    chipsList: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 26,
+      alignItems: 'flex-start',
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 64,
+      paddingHorizontal: 18,
+      height: 40,
+      borderRadius: 25,
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      marginRight: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    chipActive: {
+      backgroundColor: '#1A6B2E',
+      borderColor: '#1A6B2E',
+    },
+    chipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.secondaryText,
+    },
+    chipTextActive: {
+      color: '#FFFFFF',
+    },
+    list: {
+      paddingBottom: 120,
+    },
+    resultsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 12,
+    },
+    resultsTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    resultsCount: {
+      fontSize: 13,
+      color: colors.secondaryText,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    imageWrap: {
+      position: 'relative',
+      width: '100%',
+      height: 180,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: '#F0F7F2',
+    },
+    image: {
+      width: '100%',
+      height: 180,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      backgroundColor: '#F0F7F2',
+    },
+    categoryBadge: {
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      backgroundColor: colors.accentAmber,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    categoryBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    availabilityBadge: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: '#16A34A',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    unavailableBadge: {
+      backgroundColor: '#DC2626',
+    },
+    availabilityBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    priceBadge: {
+      position: 'absolute',
+      bottom: 12,
+      left: 12,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    priceBadgeText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    body: {
+      padding: 14,
+    },
+    name: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    ownerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 8,
+    },
+    ownerAvatar: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    ownerAvatarText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    ownerName: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      flexShrink: 1,
+    },
+    detailsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      marginTop: 8,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    detailText: {
+      fontSize: 12,
+      color: colors.secondaryText,
+    },
+    bottomRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: 14,
+      marginTop: 14,
+    },
+    viewDetailsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    viewDetailsText: {
+      fontSize: 13,
+      color: colors.primaryGreen,
+      textDecorationLine: 'underline',
+    },
+    bookNowButton: {
+      backgroundColor: colors.primaryGreen,
+      borderRadius: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    bookNowText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.white,
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: colors.secondaryText,
+      marginTop: 40,
+    },
+    // Modal styles
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalSheet: {
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: '85%',
+      paddingBottom: Platform.OS === 'ios' ? 32 : 20,
+    },
+    sheetHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginTop: 12,
+      marginBottom: 16,
+    },
+    sheetTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    sheetScroll: {
+      paddingHorizontal: 20,
+      paddingBottom: 8,
+    },
+    filterLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+    },
+    filterChipsWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    filterChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1.5,
+    },
+    filterChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    smallChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      marginRight: 8,
+    },
+    smallChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    filterInput: {
+      height: 44,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      fontSize: 14,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    priceDash: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    sheetButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    resetBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    resetBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    applyBtn: {
+      flex: 2,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    applyBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
   });
 }

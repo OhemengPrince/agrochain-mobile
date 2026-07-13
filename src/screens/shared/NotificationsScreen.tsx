@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,6 +18,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 const TYPE_ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   BOOKING: 'calendar',
@@ -164,6 +165,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadNotifications = useCallback(async () => {
     setError(null);
@@ -216,16 +218,37 @@ export default function NotificationsScreen() {
     return <LoadingOverlay message="Loading notifications..." />;
   }
 
+  const displayedNotifications = useMemo(() => {
+    if (!searchQuery.trim()) return notifications;
+    const q = searchQuery.toLowerCase();
+    return notifications.filter(
+      (n) => n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q)
+    );
+  }, [notifications, searchQuery]);
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const sections = groupNotifications(notifications);
+  const sections = groupNotifications(displayedNotifications);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity onPress={handleMarkAllRead}>
-          <Text style={styles.markAllText}>Mark all read</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          <TouchableOpacity onPress={handleMarkAllRead}>
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </TouchableOpacity>
+        </View>
+        <SearchWithSuggestions
+          data={notifications}
+          keys={['title', 'message']}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search notifications..."
+          icon="search-outline"
+          colors={colors}
+          containerStyle={styles.notifSearchWrapper}
+          barHeight={44}
+        />
       </LinearGradient>
 
       <ErrorMessage message={error} />
@@ -271,12 +294,18 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     header: {
+      paddingTop: 50,
+      paddingBottom: 14,
+      paddingHorizontal: 18,
+    },
+    headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingTop: 50,
-      paddingBottom: 18,
-      paddingHorizontal: 18,
+      marginBottom: 12,
+    },
+    notifSearchWrapper: {
+      zIndex: 100,
     },
     headerTitle: {
       fontSize: 20,

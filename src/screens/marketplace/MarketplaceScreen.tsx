@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Pressable,
   Animated,
@@ -28,6 +27,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
@@ -251,15 +251,25 @@ export default function MarketplaceScreen({ navigation }: Props) {
     navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller', otherUserId: listing.sellerId });
   };
 
+  const filtered = useMemo(() => {
+    return listings.filter((listing) => {
+      if (category && listing.category !== category) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        return (
+          listing.name.toLowerCase().includes(q) ||
+          listing.sellerName.toLowerCase().includes(q) ||
+          listing.region.toLowerCase().includes(q) ||
+          listing.category.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [listings, category, query]);
+
   if (loading) {
     return <LoadingOverlay message="Loading marketplace..." />;
   }
-
-  const filtered = listings.filter((listing) => {
-    if (category && listing.category !== category) return false;
-    if (query && !listing.name.toLowerCase().includes(query.toLowerCase())) return false;
-    return true;
-  });
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -270,22 +280,16 @@ export default function MarketplaceScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search listings..."
-              placeholderTextColor={colors.secondaryText}
-              returnKeyType="search"
-            />
-            {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery('')}>
-                <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
-              </TouchableOpacity>
-            )}
-          </View>
+          <SearchWithSuggestions
+            data={listings}
+            keys={['name', 'category', 'region', 'sellerName']}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search listings..."
+            colors={colors}
+            containerStyle={styles.searchBarFlex}
+            barHeight={48}
+          />
           <TouchableOpacity style={styles.filterButton} onPress={handleFilterPress}>
             <Ionicons name="options-outline" size={18} color={colors.white} />
           </TouchableOpacity>
@@ -402,22 +406,8 @@ function createStyles(colors: ThemeColors) {
       gap: 10,
       marginTop: 14,
     },
-    searchBar: {
+    searchBarFlex: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 16,
-      height: 48,
-      paddingHorizontal: 14,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.text,
     },
     filterButton: {
       width: 48,

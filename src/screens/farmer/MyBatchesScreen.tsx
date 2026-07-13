@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, TextInput, Alert, Platform } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerBatchesList'>;
 
@@ -215,7 +216,13 @@ export default function MyBatchesScreen({ navigation }: Props) {
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      result = result.filter((b) => b.cropName.toLowerCase().includes(q));
+      result = result.filter(
+        (b) =>
+          b.cropName.toLowerCase().includes(q) ||
+          (b.variety ?? '').toLowerCase().includes(q) ||
+          b.status.toLowerCase().includes(q) ||
+          b.region.toLowerCase().includes(q)
+      );
     }
     return result;
   }, [batches, activeTab, search]);
@@ -250,16 +257,16 @@ export default function MyBatchesScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.primaryGreen} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search crops..."
-            placeholderTextColor={colors.secondaryText}
-          />
-        </View>
+        <SearchWithSuggestions
+          data={batches}
+          keys={['cropName', 'variety', 'status', 'region']}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search crops, status, region..."
+          colors={colors}
+          containerStyle={styles.searchBarWrapper}
+          barHeight={48}
+        />
       </LinearGradient>
 
       <View style={styles.tabsRow}>
@@ -351,22 +358,8 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       fontWeight: '700',
     },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 14,
-      height: 48,
-      paddingHorizontal: 14,
+    searchBarWrapper: {
       marginTop: 16,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: colors.text,
     },
     tabsRow: {
       flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, TextInput, Text, RefreshControl, Pressable, Animated } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +12,7 @@ import { cardShadow } from '../../constants/shadows';
 import { formatDate, getBatchStatusMeta, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerCatalogueList'>;
 
@@ -179,21 +180,18 @@ export default function CatalogueScreen({ navigation }: Props) {
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <Text style={styles.headerTitle}>Produce Catalogue</Text>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => loadBatches(query)}
-            placeholder="Search crops, varieties..."
-            placeholderTextColor={colors.secondaryText}
-            returnKeyType="search"
-          />
-          <Pressable onPress={() => loadBatches(query)} style={styles.filterIconButton}>
-            <Ionicons name="options-outline" size={18} color={colors.primaryGreen} />
-          </Pressable>
-        </View>
+        <SearchWithSuggestions
+          data={batches}
+          keys={['cropName', 'variety', 'region', 'farmerName']}
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={() => loadBatches(query)}
+          onSelectSuggestion={(item) => loadBatches(item.cropName)}
+          placeholder="Search crops, varieties..."
+          colors={colors}
+          containerStyle={styles.searchBarWrapper}
+          barHeight={48}
+        />
       </LinearGradient>
 
       <View style={styles.filterBar}>
@@ -281,25 +279,8 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '800',
       color: colors.white,
     },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      height: 48,
-      paddingHorizontal: 14,
+    searchBarWrapper: {
       marginTop: 14,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: colors.text,
-    },
-    filterIconButton: {
-      paddingLeft: 8,
     },
     filterBar: {
       paddingTop: 10,

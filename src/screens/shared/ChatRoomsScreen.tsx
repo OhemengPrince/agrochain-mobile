@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
@@ -10,6 +10,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { getRooms } from '../../api/chatApi';
 import { ChatRoom } from '../../types';
+import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -28,6 +29,7 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [roomSearch, setRoomSearch] = useState('');
 
   const loadRooms = useCallback(async () => {
     try {
@@ -58,6 +60,30 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     setRefreshing(true);
     loadRooms();
   }, [loadRooms]);
+
+  const enrichedRooms = useMemo(
+    () =>
+      rooms.map((room) => {
+        const other =
+          user && String(room.participant1.id) === String(user.id)
+            ? room.participant2
+            : room.participant1;
+        return { ...room, participantName: other.fullName ?? other.email ?? '' };
+      }),
+    [rooms, user]
+  );
+
+  const filteredRooms = useMemo(() => {
+    if (!roomSearch.trim()) return rooms;
+    const q = roomSearch.toLowerCase();
+    return rooms.filter((room) => {
+      const other =
+        user && String(room.participant1.id) === String(user.id)
+          ? room.participant2
+          : room.participant1;
+      return (other.fullName ?? other.email ?? '').toLowerCase().includes(q);
+    });
+  }, [rooms, roomSearch, user]);
 
   function getOtherParticipant(room: ChatRoom) {
     if (!user) return room.participant1;
@@ -121,6 +147,31 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
         <View style={{ width: 38 }} />
       </View>
 
+      {/* Search */}
+      <View style={s.searchWrap}>
+        <SearchWithSuggestions
+          data={enrichedRooms}
+          keys={['participantName']}
+          value={roomSearch}
+          onChangeText={setRoomSearch}
+          onSelectSuggestion={(item) => {
+            const other =
+              user && String(item.participant1.id) === String(user.id)
+                ? item.participant2
+                : item.participant1;
+            navigation.navigate('Chat', {
+              name: other.fullName ?? other.email ?? 'User',
+              role: other.role ?? 'AgroChain User',
+              otherUserId: String(other.id),
+            });
+          }}
+          placeholder="Search conversations..."
+          icon="search-outline"
+          colors={colors}
+          barHeight={44}
+        />
+      </View>
+
       {loading ? (
         <View style={s.center}>
           <ActivityIndicator color={colors.primaryGreen} size="large" />
@@ -141,7 +192,7 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
         </View>
       ) : (
         <FlatList
-          data={rooms}
+          data={filteredRooms}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderRoom}
           contentContainerStyle={s.list}
@@ -166,6 +217,12 @@ function createStyles(colors: any, isDarkMode: boolean) {
     },
     backBtn: { padding: 8, borderRadius: 20 },
     title: { fontSize: 18, fontWeight: '700', color: colors.white, letterSpacing: 0.2 },
+    searchWrap: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.card,
+      zIndex: 100,
+    },
     list: { paddingVertical: 4 },
     row: {
       flexDirection: 'row',
