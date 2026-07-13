@@ -28,6 +28,7 @@ import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
+import TopRatedCarousel from '../../components/TopRatedCarousel';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
@@ -300,6 +301,8 @@ export default function MarketplaceScreen({ navigation }: Props) {
         <ListItemBanner onPress={() => navigation.navigate('CreateListing')} styles={styles} />
       </View>
 
+      <TopRatedCarousel navigation={navigation} />
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -422,7 +425,7 @@ function createStyles(colors: ThemeColors) {
     },
     chipsList: {
       paddingHorizontal: 16,
-      paddingTop: 10,
+      paddingTop: 12,
       paddingBottom: 26,
       alignItems: 'flex-start',
     },
