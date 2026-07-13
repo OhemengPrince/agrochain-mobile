@@ -14,6 +14,7 @@ import BookingDetailScreen from '../screens/shared/BookingDetailScreen';
 import OwnerProfileScreen from '../screens/owner/OwnerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
+import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -77,6 +78,15 @@ function ProfileStack() {
   );
 }
 
+function NewsStack() {
+  return (
+    <Stack.Navigator screenOptions={stackHeaderOptions}>
+      <Stack.Screen name="NewsMain" component={NewsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="NewsArticle" component={NewsArticleScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+}
+
 export default function OwnerNavigator() {
   const { colors } = useTheme();
   const tabBarOptions = getTabBarOptions(colors);
@@ -121,7 +131,7 @@ export default function OwnerNavigator() {
       />
       <Tab.Screen
         name="OwnerNews"
-        component={NewsScreen}
+        component={NewsStack}
         options={{
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),

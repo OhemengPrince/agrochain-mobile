@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
-  Linking, ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,7 +32,7 @@ const TOPIC_CHIPS: NewsTopicChip[] = ['All', 'Farming', 'Harvest', 'Fertilizers'
 
 const FALLBACK_EMOJIS = ['🌾', '🌽', '🍠', '🍅', '🐄', '🚜', '🌱', '🥬', '🥜', '🍚', '🧪', '🌿'];
 
-export default function NewsScreen() {
+export default function NewsScreen({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
@@ -80,7 +80,9 @@ export default function NewsScreen() {
     return counts;
   }, [allNews]);
 
-  const openArticle = (url: string) => { if (url) Linking.openURL(url); };
+  const openArticle = (url: string, title: string) => {
+    if (url) navigation.navigate('NewsArticle', { url, title });
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -166,7 +168,7 @@ export default function NewsScreen() {
             <TouchableOpacity
               key={item.id}
               style={styles.card}
-              onPress={() => openArticle(item.url)}
+              onPress={() => openArticle(item.url, item.headline)}
               activeOpacity={item.url ? 0.75 : 1}
             >
               {item.imageUrl ? (
@@ -202,7 +204,7 @@ export default function NewsScreen() {
                   <Text style={styles.cardTime}>{item.time}</Text>
                   {item.url ? (
                     <Ionicons
-                      name="open-outline"
+                      name="chevron-forward-outline"
                       size={12}
                       color={colors.secondaryText}
                       style={{ marginLeft: 4 }}

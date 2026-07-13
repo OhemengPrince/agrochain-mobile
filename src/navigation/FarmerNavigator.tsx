@@ -16,6 +16,7 @@ import BatchDetailScreen from '../screens/farmer/BatchDetailScreen';
 import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
+import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -94,6 +95,15 @@ function ProfileStack() {
   );
 }
 
+function NewsStack() {
+  return (
+    <Stack.Navigator screenOptions={stackHeaderOptions}>
+      <Stack.Screen name="NewsMain" component={NewsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="NewsArticle" component={NewsArticleScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+}
+
 export default function FarmerNavigator() {
   const { colors } = useTheme();
   const tabBarOptions = getTabBarOptions(colors);
@@ -151,7 +161,7 @@ export default function FarmerNavigator() {
       />
       <Tab.Screen
         name="FarmerNews"
-        component={NewsScreen}
+        component={NewsStack}
         options={{
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),

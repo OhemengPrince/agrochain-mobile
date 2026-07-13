@@ -356,6 +356,8 @@ export type FarmerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   FarmerNews: undefined;
+  NewsMain: undefined;
+  NewsArticle: { url: string; title: string };
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
@@ -381,6 +383,8 @@ export type OwnerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   OwnerNews: undefined;
+  NewsMain: undefined;
+  NewsArticle: { url: string; title: string };
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
@@ -404,6 +408,8 @@ export type BuyerStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   BuyerNews: undefined;
+  NewsMain: undefined;
+  NewsArticle: { url: string; title: string };
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
@@ -424,6 +430,8 @@ export type GeneralStackParamList = {
   CreateListing: undefined;
   MyMarketplaceListings: undefined;
   GeneralNews: undefined;
+  NewsMain: undefined;
+  NewsArticle: { url: string; title: string };
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;

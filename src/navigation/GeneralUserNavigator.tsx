@@ -8,6 +8,7 @@ import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
+import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
 import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
@@ -71,6 +72,15 @@ function ProfileStack() {
   );
 }
 
+function NewsStack() {
+  return (
+    <Stack.Navigator screenOptions={stackHeaderOptions}>
+      <Stack.Screen name="NewsMain" component={NewsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="NewsArticle" component={NewsArticleScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+}
+
 export default function GeneralUserNavigator() {
   const { colors } = useTheme();
   const tabBarOptions = getTabBarOptions(colors);
@@ -119,7 +129,7 @@ export default function GeneralUserNavigator() {
       />
       <Tab.Screen
         name="GeneralNews"
-        component={NewsScreen}
+        component={NewsStack}
         options={{
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),
