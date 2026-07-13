@@ -6,87 +6,35 @@ import {
   FlatList,
   TouchableOpacity,
   Animated,
+  Image,
   ViewToken,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
-import { UserRole } from '../types';
-import { searchEquipment } from '../api/equipmentApi';
-import { USE_MOCK_DATA } from '../config';
+import { getTopRatedUsers, TopRatedUser } from '../api/userApi';
 
 const CARD_WIDTH = 140;
 const CARD_H_MARGIN = 8;
 const AUTO_SLIDE_MS = 3000;
 
-interface TopRatedSeller {
-  id: string;
-  name: string;
-  role: UserRole;
-  region: string;
-  rating: number;
-  reviewCount: number;
-  isVerified: boolean;
-}
-
-const MOCK_SELLERS: TopRatedSeller[] = [
-  { id: 'o1', name: 'Nana Yeboah', role: 'EQUIPMENT_OWNER', region: 'Ashanti', rating: 4.8, reviewCount: 29, isVerified: true },
-  { id: 'f2', name: 'Akosua Mensah', role: 'FARMER', region: 'Eastern', rating: 4.7, reviewCount: 15, isVerified: true },
-  { id: 'o3', name: 'Kofi Adjei', role: 'EQUIPMENT_OWNER', region: 'Western', rating: 4.5, reviewCount: 12, isVerified: true },
-  { id: 'f1', name: 'Kwame Asante', role: 'FARMER', region: 'Ashanti', rating: 4.4, reviewCount: 22, isVerified: true },
-  { id: 'by1', name: 'Kofi Agyemang', role: 'BUYER', region: 'Greater Accra', rating: 4.3, reviewCount: 8, isVerified: true },
-  { id: 'f3', name: 'Yaw Boateng', role: 'FARMER', region: 'Brong-Ahafo', rating: 4.2, reviewCount: 10, isVerified: true },
-  { id: 'o2', name: 'Efua Darko', role: 'EQUIPMENT_OWNER', region: 'Greater Accra', rating: 4.1, reviewCount: 6, isVerified: true },
-  { id: 'f4', name: 'Abena Owusu', role: 'FARMER', region: 'Central', rating: 4.0, reviewCount: 5, isVerified: true },
-  { id: 'g1', name: 'Ama Boateng', role: 'GENERAL', region: 'Greater Accra', rating: 3.9, reviewCount: 3, isVerified: true },
-  { id: 'f5', name: 'Kojo Appiah', role: 'FARMER', region: 'Northern', rating: 3.8, reviewCount: 7, isVerified: true },
-];
-
 const ROLE_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  FARMER:         { bg: '#E8F5E9', text: '#1A6B2E', label: '🌾 Farmer' },
-  EQUIPMENT_OWNER:{ bg: '#E3F2FD', text: '#1565C0', label: '🚜 Owner' },
-  BUYER:          { bg: '#FFF3E0', text: '#FF8F00', label: '🛒 Buyer' },
-  GENERAL:        { bg: '#F3E5F5', text: '#7B1FA2', label: '👤 General' },
-  ADMIN:          { bg: '#F3E5F5', text: '#7B1FA2', label: '⚙️ Admin' },
+  FARMER:          { bg: '#E8F5E9', text: '#1A6B2E', label: '🌾 Farmer' },
+  EQUIPMENT_OWNER: { bg: '#E3F2FD', text: '#1565C0', label: '🚜 Owner' },
+  BUYER:           { bg: '#FFF3E0', text: '#FF8F00', label: '🛒 Buyer' },
+  GENERAL:         { bg: '#F3E5F5', text: '#7B1FA2', label: '👤 General' },
+  ADMIN:           { bg: '#F3E5F5', text: '#7B1FA2', label: '⚙️ Admin' },
 };
-
-async function loadTopSellers(): Promise<TopRatedSeller[]> {
-  if (USE_MOCK_DATA) return MOCK_SELLERS;
-  try {
-    const equipment = await searchEquipment({});
-    const map = new Map<string, { name: string; ratings: number[]; reviews: number[]; region: string }>();
-    for (const eq of equipment) {
-      if (!eq.averageRating) continue;
-      const entry = map.get(eq.ownerId);
-      if (entry) {
-        entry.ratings.push(eq.averageRating);
-        entry.reviews.push(eq.totalReviews ?? 0);
-      } else {
-        map.set(eq.ownerId, { name: eq.ownerName, ratings: [eq.averageRating], reviews: [eq.totalReviews ?? 0], region: eq.region });
-      }
-    }
-    if (map.size === 0) return MOCK_SELLERS;
-    const sellers: TopRatedSeller[] = Array.from(map.entries()).map(([id, d]) => ({
-      id,
-      name: d.name,
-      role: 'EQUIPMENT_OWNER' as UserRole,
-      region: d.region,
-      rating: Math.round((d.ratings.reduce((s, r) => s + r, 0) / d.ratings.length) * 10) / 10,
-      reviewCount: d.reviews.reduce((s, r) => s + r, 0),
-      isVerified: true,
-    }));
-    sellers.sort((a, b) => b.rating - a.rating);
-    return sellers.slice(0, 10);
-  } catch {
-    return MOCK_SELLERS;
-  }
-}
 
 function getInitials(name: string): string {
   return name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 }
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
+function isValidPhotoUrl(url?: string): boolean {
+  return !!url && (url.startsWith('http://') || url.startsWith('https://'));
+}
+
+// ── Skeleton card ──────────────────────────────────────────────────────────────
 
 function SkeletonCard({ shimmer, colors }: { shimmer: Animated.Value; colors: ThemeColors }) {
   return (
@@ -94,7 +42,7 @@ function SkeletonCard({ shimmer, colors }: { shimmer: Animated.Value; colors: Th
       <View style={[sk.avatar, { backgroundColor: colors.border }]} />
       <View style={[sk.line, { backgroundColor: colors.border, width: 88 }]} />
       <View style={[sk.line, { backgroundColor: colors.border, width: 60, marginTop: 7 }]} />
-      <View style={[sk.line, { backgroundColor: colors.border, width: 70, marginTop: 7 }]} />
+      <View style={[sk.line, { backgroundColor: colors.border, width: 72, marginTop: 7 }]} />
     </Animated.View>
   );
 }
@@ -112,13 +60,14 @@ const sk = StyleSheet.create({
     elevation: 4,
   },
   avatar: { width: 56, height: 56, borderRadius: 28, marginBottom: 12 },
-  line: { height: 10, borderRadius: 5 },
+  line:   { height: 10, borderRadius: 5 },
 });
 
-// ── Seller card ───────────────────────────────────────────────────────────────
+// ── Seller card ────────────────────────────────────────────────────────────────
 
-function SellerCard({ seller, colors, onPress }: { seller: TopRatedSeller; colors: ThemeColors; onPress: () => void }) {
-  const roleConf = ROLE_CONFIG[seller.role] ?? ROLE_CONFIG.GENERAL;
+function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: ThemeColors; onPress: () => void }) {
+  const roleConf = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.GENERAL;
+  const hasPhoto = isValidPhotoUrl(user.profilePhotoUrl);
 
   return (
     <TouchableOpacity
@@ -126,13 +75,17 @@ function SellerCard({ seller, colors, onPress }: { seller: TopRatedSeller; color
       onPress={onPress}
       activeOpacity={0.85}
     >
-      {/* Avatar + verified badge */}
+      {/* Avatar */}
       <View style={c.avatarWrap}>
-        <View style={c.avatar}>
-          <Text style={c.initials}>{getInitials(seller.name)}</Text>
-        </View>
-        {seller.isVerified && (
-          <View style={c.badge}>
+        {hasPhoto ? (
+          <Image source={{ uri: user.profilePhotoUrl }} style={c.avatarImg} />
+        ) : (
+          <View style={c.avatarCircle}>
+            <Text style={c.initials}>{getInitials(user.fullName)}</Text>
+          </View>
+        )}
+        {user.isVerified && (
+          <View style={c.verifiedBadge}>
             <Ionicons name="checkmark" size={9} color="#fff" />
           </View>
         )}
@@ -140,7 +93,7 @@ function SellerCard({ seller, colors, onPress }: { seller: TopRatedSeller; color
 
       {/* Name */}
       <Text style={[c.name, { color: colors.text }]} numberOfLines={2}>
-        {seller.name}
+        {user.fullName}
       </Text>
 
       {/* Role pill */}
@@ -151,17 +104,19 @@ function SellerCard({ seller, colors, onPress }: { seller: TopRatedSeller; color
       {/* Rating */}
       <View style={c.ratingRow}>
         <Ionicons name="star" size={11} color={colors.accentAmber} />
-        <Text style={[c.ratingNum, { color: colors.text }]}>{seller.rating.toFixed(1)}</Text>
-        <Text style={[c.reviewCount, { color: colors.secondaryText }]}>({seller.reviewCount})</Text>
+        <Text style={[c.ratingNum, { color: colors.text }]}>{user.averageRating.toFixed(1)}</Text>
+        <Text style={[c.reviewCount, { color: colors.secondaryText }]}>({user.totalReviews})</Text>
       </View>
 
       {/* Region */}
-      <View style={c.regionRow}>
-        <Ionicons name="location-outline" size={10} color={colors.secondaryText} />
-        <Text style={[c.regionText, { color: colors.secondaryText }]} numberOfLines={1}>
-          {seller.region}
-        </Text>
-      </View>
+      {!!user.region && (
+        <View style={c.regionRow}>
+          <Ionicons name="location-outline" size={10} color={colors.secondaryText} />
+          <Text style={[c.regionText, { color: colors.secondaryText }]} numberOfLines={1}>
+            {user.region}
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -180,17 +135,11 @@ const c = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  avatarWrap: { position: 'relative', marginBottom: 8 },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#1A6B2E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  badge: {
+  avatarWrap:    { position: 'relative', marginBottom: 8 },
+  avatarCircle:  { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1A6B2E', alignItems: 'center', justifyContent: 'center' },
+  avatarImg:     { width: 56, height: 56, borderRadius: 28 },
+  initials:      { fontSize: 20, fontWeight: '700', color: '#fff' },
+  verifiedBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
@@ -203,17 +152,28 @@ const c = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: { fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 18, marginBottom: 5 },
-  rolePill: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
-  roleText: { fontSize: 10, fontWeight: '600' },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 },
-  ratingNum: { fontSize: 11, fontWeight: '700' },
+  name:        { fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 18, marginBottom: 5 },
+  rolePill:    { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
+  roleText:    { fontSize: 10, fontWeight: '600' },
+  ratingRow:   { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 },
+  ratingNum:   { fontSize: 11, fontWeight: '700' },
   reviewCount: { fontSize: 10 },
-  regionRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  regionText: { fontSize: 10, flexShrink: 1 },
+  regionRow:   { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  regionText:  { fontSize: 10, flexShrink: 1 },
 });
 
-// ── Main carousel ─────────────────────────────────────────────────────────────
+// ── Navigation helper ──────────────────────────────────────────────────────────
+
+function navigateForRole(navigation: any, user: TopRatedUser) {
+  // All marketplace stacks have Chat — use it as the universal contact route
+  navigation.navigate('Chat', {
+    name: user.fullName,
+    role: user.role,
+    otherUserId: user.id,
+  });
+}
+
+// ── Main carousel ──────────────────────────────────────────────────────────────
 
 interface Props {
   navigation: any;
@@ -221,10 +181,10 @@ interface Props {
 
 export default function TopRatedCarousel({ navigation }: Props) {
   const { colors } = useTheme();
-  const [sellers, setSellers] = useState<TopRatedSeller[]>([]);
+  const [users, setUsers] = useState<TopRatedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList<TopRatedSeller>>(null);
+  const flatListRef = useRef<FlatList<TopRatedUser>>(null);
   const currentIndexRef = useRef(0);
   const isScrollingRef = useRef(false);
   const shimmer = useRef(new Animated.Value(0.4)).current;
@@ -242,26 +202,26 @@ export default function TopRatedCarousel({ navigation }: Props) {
     return () => loop.stop();
   }, [loading, shimmer]);
 
-  // Fetch data
+  // Fetch from backend (or mock)
   useEffect(() => {
-    loadTopSellers().then((data) => {
-      setSellers(data);
-      setLoading(false);
-    });
+    getTopRatedUsers(10)
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Auto-slide every 3 s, pause while user is touching
+  // Auto-slide every 3 s, skip while user is touching
   useEffect(() => {
-    if (sellers.length < 2) return;
+    if (users.length < 2) return;
     const id = setInterval(() => {
       if (isScrollingRef.current) return;
-      const next = (currentIndexRef.current + 1) % sellers.length;
+      const next = (currentIndexRef.current + 1) % users.length;
       currentIndexRef.current = next;
       setCurrentIndex(next);
       flatListRef.current?.scrollToIndex({ index: next, animated: true });
     }, AUTO_SLIDE_MS);
     return () => clearInterval(id);
-  }, [sellers.length]);
+  }, [users.length]);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -281,7 +241,8 @@ export default function TopRatedCarousel({ navigation }: Props) {
     },
   ]);
 
-  if (!loading && sellers.length === 0) return null;
+  // Hide section entirely if no data after loading
+  if (!loading && users.length === 0) return null;
 
   return (
     <View style={t.wrapper}>
@@ -311,7 +272,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={sellers}
+          data={users}
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -325,20 +286,18 @@ export default function TopRatedCarousel({ navigation }: Props) {
           onScrollToIndexFailed={() => {}}
           renderItem={({ item }) => (
             <SellerCard
-              seller={item}
+              user={item}
               colors={colors}
-              onPress={() =>
-                navigation.navigate('Chat', { name: item.name, role: item.role, otherUserId: item.id })
-              }
+              onPress={() => navigateForRole(navigation, item)}
             />
           )}
         />
       )}
 
       {/* Pagination dots */}
-      {!loading && sellers.length > 1 && (
+      {!loading && users.length > 1 && (
         <View style={t.dots}>
-          {sellers.map((_, i) => (
+          {users.map((_, i) => (
             <View
               key={i}
               style={[
@@ -357,27 +316,14 @@ export default function TopRatedCarousel({ navigation }: Props) {
 }
 
 const t = StyleSheet.create({
-  wrapper: { paddingTop: 16, paddingBottom: 4 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  title: { fontSize: 15, fontWeight: '700' },
-  subtitle: { fontSize: 11, marginTop: 2 },
-  seeAll: { fontSize: 12, fontWeight: '600', marginTop: 3 },
-  skRow: { flexDirection: 'row', paddingHorizontal: 8 },
+  wrapper:     { paddingTop: 16, paddingBottom: 4 },
+  header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
+  headerLeft:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  title:       { fontSize: 15, fontWeight: '700' },
+  subtitle:    { fontSize: 11, marginTop: 2 },
+  seeAll:      { fontSize: 12, fontWeight: '600', marginTop: 3 },
+  skRow:       { flexDirection: 'row', paddingHorizontal: 8 },
   listContent: { paddingHorizontal: 8, paddingBottom: 4 },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 10,
-    marginBottom: 2,
-  },
-  dot: { height: 6, borderRadius: 3 },
+  dots:        { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 10, marginBottom: 2 },
+  dot:         { height: 6, borderRadius: 3 },
 });
