@@ -24,16 +24,14 @@ export default function NewsArticleScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const { url, title } = route.params;
 
-  const [progress, setProgress] = useState(0);
   const [loadDone, setLoadDone] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const handleProgress = (p: number) => {
-    setProgress(p);
     Animated.timing(progressAnim, {
       toValue: p,
-      duration: 200,
+      duration: 180,
       useNativeDriver: false,
     }).start();
   };
@@ -58,55 +56,72 @@ export default function NewsArticleScreen({ navigation, route }: Props) {
   });
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.primaryGreen }]} edges={['top']}>
-      {/* Header */}
+    <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Premium header */}
       <LinearGradient
-        colors={[colors.primaryGreen, colors.primaryGreenLight]}
+        colors={['#0D3B1A', '#1A6B2E', '#2E8B45']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.header}
       >
+        {/* Back button — frosted glass pill */}
         <TouchableOpacity
-          style={styles.headerBtn}
+          style={styles.glassBtn}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.75}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons
+            name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+            size={20}
+            color="#fff"
+          />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          AgroChain News
-        </Text>
+        {/* Center branding */}
+        <View style={styles.headerCenter}>
+          <View style={styles.brandRow}>
+            <View style={styles.brandDot} />
+            <Text style={styles.brandName}>AGROCHAIN</Text>
+            <View style={styles.brandDot} />
+          </View>
+          <Text style={styles.brandSub}>News Feed</Text>
+        </View>
 
-        <View style={styles.headerRight}>
+        {/* Right actions */}
+        <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.headerBtn}
+            style={styles.glassBtn}
             onPress={handleShare}
+            activeOpacity={0.75}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
-            <Ionicons name="share-social-outline" size={20} color="#fff" />
+            <Ionicons name="share-social-outline" size={18} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerBtn}
+            style={[styles.glassBtn, { marginLeft: 8 }]}
             onPress={openInBrowser}
+            activeOpacity={0.75}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
           >
-            <Ionicons name="open-outline" size={20} color="#fff" />
+            <Ionicons name="open-outline" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
-      {/* Progress bar */}
+      {/* Animated progress bar */}
       {!loadDone && !loadError && (
         <View style={styles.progressTrack}>
-          <Animated.View
-            style={[styles.progressBar, { width: progressWidth, backgroundColor: colors.primaryGreen }]}
-          />
+          <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
         </View>
       )}
 
       {/* Error state */}
       {loadError ? (
         <View style={[styles.errorBox, { backgroundColor: colors.background }]}>
-          <Ionicons name="wifi-off-outline" size={56} color={colors.secondaryText} />
+          <View style={[styles.errorIconWrap, { backgroundColor: colors.card }]}>
+            <Ionicons name="wifi-off-outline" size={40} color={colors.secondaryText} />
+          </View>
           <Text style={[styles.errorTitle, { color: colors.text }]}>Could not load article</Text>
           <Text style={[styles.errorSub, { color: colors.secondaryText }]}>
             Check your internet connection and try again.
@@ -114,9 +129,9 @@ export default function NewsArticleScreen({ navigation, route }: Props) {
           <TouchableOpacity
             style={[styles.openBrowserBtn, { backgroundColor: colors.primaryGreen }]}
             onPress={openInBrowser}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <Ionicons name="open-outline" size={16} color="#fff" />
+            <Ionicons name="open-outline" size={15} color="#fff" />
             <Text style={styles.openBrowserText}>Open in Browser</Text>
           </TouchableOpacity>
         </View>
@@ -145,39 +160,69 @@ export default function NewsArticleScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#0D3B1A',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 54,
-    paddingHorizontal: 4,
+    height: 62,
+    paddingHorizontal: 12,
   },
-  headerBtn: {
+  glassBtn: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
   },
-  headerTitle: {
+  headerCenter: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    marginHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 8,
   },
-  headerRight: {
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  brandDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  brandName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 2.8,
+  },
+  brandSub: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 2,
+    letterSpacing: 0.8,
+    fontWeight: '500',
+  },
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   progressTrack: {
-    height: 3,
-    backgroundColor: 'rgba(26,107,46,0.15)',
-    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.06)',
   },
-  progressBar: {
-    height: 3,
+  progressFill: {
+    height: 4,
+    backgroundColor: '#4ADE80',
+    shadowColor: '#4ADE80',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
   },
   webview: {
     flex: 1,
@@ -186,8 +231,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
+    paddingHorizontal: 36,
+    gap: 14,
+  },
+  errorIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   errorTitle: {
     fontSize: 18,
@@ -204,9 +257,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderRadius: 14,
-    marginTop: 8,
+    marginTop: 6,
   },
   openBrowserText: {
     fontSize: 15,

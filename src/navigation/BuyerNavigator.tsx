@@ -135,10 +135,11 @@ export default function BuyerNavigator() {
       <Tab.Screen
         name="BuyerNews"
         component={NewsStack}
-        options={{
+        options={({ route }) => ({
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="BuyerNotifications"

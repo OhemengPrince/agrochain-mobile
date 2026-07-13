@@ -162,10 +162,11 @@ export default function FarmerNavigator() {
       <Tab.Screen
         name="FarmerNews"
         component={NewsStack}
-        options={{
+        options={({ route }) => ({
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       {/* Profile is hidden from tab bar — accessed via header button on home screen */}
       <Tab.Screen

@@ -132,10 +132,11 @@ export default function OwnerNavigator() {
       <Tab.Screen
         name="OwnerNews"
         component={NewsStack}
-        options={{
+        options={({ route }) => ({
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       <Tab.Screen
         name="OwnerNotifications"

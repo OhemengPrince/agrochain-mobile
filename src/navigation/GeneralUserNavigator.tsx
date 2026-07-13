@@ -130,10 +130,11 @@ export default function GeneralUserNavigator() {
       <Tab.Screen
         name="GeneralNews"
         component={NewsStack}
-        options={{
+        options={({ route }) => ({
           title: 'News',
           tabBarIcon: tabBarIcon('newspaper'),
-        }}
+          tabBarStyle: getTabBarStyleForRoute(route),
+        })}
       />
       {/* Profile hidden from tab bar — accessed via header button */}
       <Tab.Screen
