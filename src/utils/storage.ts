@@ -36,7 +36,7 @@ export async function removeToken(): Promise<void> {
 }
 
 export async function saveUser(user: User): Promise<void> {
-  console.log('[Storage] saveUser — profileImageUrl:', user?.profileImageUrl, '| profilePhotoUrl:', (user as any)?.profilePhotoUrl);
+  console.log('[Storage] saveUser — profilePhotoUrl:', user?.profilePhotoUrl);
   if (USE_MOCK_DATA) {
     memoryStore[USER_KEY] = JSON.stringify(user);
     return;

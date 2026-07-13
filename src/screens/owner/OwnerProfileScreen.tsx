@@ -176,7 +176,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
     try {
       const url = await uploadImage(result.assets[0].uri);
       await updatePhotoUrl(url);
-      await updateUser({ profileImageUrl: url });
+      await updateUser({ profilePhotoUrl: url });
       showToast('Profile photo updated!', 'success');
     } catch {
       showToast('Failed to update photo. Try again.', 'error');

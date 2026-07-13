@@ -30,20 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const [storedToken, storedUser] = await Promise.all([getToken(), getUser()]);
-        console.log('[Auth] startup — storedUser:', JSON.stringify(storedUser));
-        console.log('[Auth] startup — profileImageUrl in storage:', storedUser?.profileImageUrl);
+        console.log('[Auth] startup — profilePhotoUrl in storage:', storedUser?.profilePhotoUrl);
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(storedUser); // show cached data immediately
-          // Refresh from backend in background so profileImageUrl and other
+          // Refresh from backend in background so profilePhotoUrl and other
           // server-side fields are always up to date after a cold start.
           getMe().then((fresh) => {
-            console.log('[Auth] startup getMe raw response:', JSON.stringify(fresh));
-            console.log('[Auth] startup getMe profileImageUrl:', (fresh as any)?.profileImageUrl);
-            console.log('[Auth] startup getMe profilePhotoUrl:', (fresh as any)?.profilePhotoUrl);
+            console.log('[Auth] startup getMe profilePhotoUrl:', fresh?.profilePhotoUrl);
             if (!fresh) return;
             const merged = { ...storedUser, ...fresh };
-            console.log('[Auth] startup merged profileImageUrl:', merged?.profileImageUrl);
+            console.log('[Auth] startup merged profilePhotoUrl:', merged?.profilePhotoUrl);
             setUser(merged);
             saveUser(merged).catch(() => {});
           }).catch((e) => console.log('[Auth] startup getMe error:', e?.message));
@@ -55,22 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (newToken: string, newUser: User) => {
-    console.log('[Auth] login — response user:', JSON.stringify(newUser));
-    console.log('[Auth] login — profileImageUrl from login response:', newUser?.profileImageUrl);
-    console.log('[Auth] login — profilePhotoUrl from login response:', (newUser as any)?.profilePhotoUrl);
+    console.log('[Auth] login — profilePhotoUrl from login response:', newUser?.profilePhotoUrl);
     await Promise.all([saveToken(newToken), saveUser(newUser)]);
     setToken(newToken);
     setUser(newUser);
-    // Login response may not include profileImageUrl — fetch the full profile
+    // Login response may not include profilePhotoUrl — fetch the full profile
     // from the backend immediately after token is saved so the photo appears
     // without the user having to re-upload it.
     getMe().then((fresh) => {
-      console.log('[Auth] login getMe raw response:', JSON.stringify(fresh));
-      console.log('[Auth] login getMe profileImageUrl:', (fresh as any)?.profileImageUrl);
-      console.log('[Auth] login getMe profilePhotoUrl:', (fresh as any)?.profilePhotoUrl);
+      console.log('[Auth] login getMe profilePhotoUrl:', fresh?.profilePhotoUrl);
       if (!fresh) return;
       const merged = { ...newUser, ...fresh };
-      console.log('[Auth] login merged final profileImageUrl:', merged?.profileImageUrl);
+      console.log('[Auth] login merged final profilePhotoUrl:', merged?.profilePhotoUrl);
       setUser(merged);
       saveUser(merged).catch(() => {});
     }).catch((e) => console.log('[Auth] login getMe error:', e?.message));
@@ -88,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getUser().then((stored) => {
       if (!stored) return;
       const toSave = { ...stored, ...patch };
-      console.log('[Auth] updateUser saving to storage profileImageUrl:', toSave?.profileImageUrl);
+      console.log('[Auth] updateUser saving to storage profilePhotoUrl:', toSave?.profilePhotoUrl);
       saveUser(toSave).catch(() => {});
     }).catch(() => {});
   }, []);

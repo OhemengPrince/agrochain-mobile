@@ -37,7 +37,7 @@ export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
         region: user.region,
         averageRating: 0,
         totalReviews: 0,
-        profilePhotoUrl: user.profileImageUrl,
+        profilePhotoUrl: user.profilePhotoUrl,
         isVerified: user.isVerified,
       }))
     );
@@ -63,7 +63,7 @@ export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
         region: eq.location ?? eq.region,
         averageRating: 0,
         totalReviews: 0,
-        profilePhotoUrl: eq.owner?.profileImageUrl,
+        profilePhotoUrl: eq.owner?.profilePhotoUrl,
         isVerified: false,
       });
       if (users.length >= limit) break;
@@ -77,9 +77,7 @@ export async function getMe(): Promise<User | null> {
   try {
     const { data } = await apiClient.get<any>('/users/me');
     console.log('[API] GET /users/me raw response keys:', data ? Object.keys(data) : 'null');
-    console.log('[API] GET /users/me profileImageUrl:', data?.profileImageUrl);
     console.log('[API] GET /users/me profilePhotoUrl:', data?.profilePhotoUrl);
-    console.log('[API] GET /users/me full:', JSON.stringify(data));
     return (data as User) ?? null;
   } catch (e: any) {
     console.log('[API] GET /users/me error:', e?.message, e?.response?.status);
@@ -115,7 +113,7 @@ export async function getTopRatedUsers(limit = 10): Promise<TopRatedUser[]> {
           region: user.region,
           averageRating: Math.round(avg * 10) / 10,
           totalReviews: d.reviews.reduce((s, r) => s + r, 0),
-          profilePhotoUrl: user.profileImageUrl,
+          profilePhotoUrl: user.profilePhotoUrl,
           isVerified: user.isVerified,
         }];
       }
@@ -128,7 +126,7 @@ export async function getTopRatedUsers(limit = 10): Promise<TopRatedUser[]> {
         region: user.region,
         averageRating: syn.rating,
         totalReviews: syn.reviews,
-        profilePhotoUrl: user.profileImageUrl,
+        profilePhotoUrl: user.profilePhotoUrl,
         isVerified: user.isVerified,
       }];
     });

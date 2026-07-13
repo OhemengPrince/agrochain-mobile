@@ -115,7 +115,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
     try {
       const url = await uploadImage(localUri);
       await updatePhotoUrl(url);
-      await updateUser({ profileImageUrl: url });
+      await updateUser({ profilePhotoUrl: url });
       showToast('Profile photo updated!', 'success');
     } catch {
       showToast('Failed to update photo. Try again.', 'error');

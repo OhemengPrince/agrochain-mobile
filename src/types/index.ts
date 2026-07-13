@@ -10,7 +10,7 @@ export interface User {
   role: UserRole;
   region?: string;
   district?: string;
-  profileImageUrl?: string;
+  profilePhotoUrl?: string;
   isVerified: boolean;
   createdAt: string;
 }

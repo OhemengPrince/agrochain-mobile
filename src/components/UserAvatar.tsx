@@ -20,8 +20,8 @@ export default function UserAvatar({
   borderWidth = 0,
 }: Props) {
   const initial = user?.fullName?.charAt(0)?.toUpperCase() ?? '?';
-  const hasPhoto = !!user?.profileImageUrl?.startsWith('http');
-  console.log('[Avatar] user:', user?.fullName, '| profileImageUrl:', user?.profileImageUrl, '| hasPhoto:', hasPhoto);
+  const hasPhoto = !!user?.profilePhotoUrl?.startsWith('http');
+  console.log('[Avatar] profilePhotoUrl:', user?.profilePhotoUrl, '| hasPhoto:', hasPhoto);
   const radius = size / 2;
 
   const circle: ViewStyle = {
@@ -35,7 +35,7 @@ export default function UserAvatar({
     <View style={[circle, style]}>
       {hasPhoto ? (
         <Image
-          source={{ uri: user!.profileImageUrl! }}
+          source={{ uri: user!.profilePhotoUrl! }}
           style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
           resizeMode="cover"
         />
