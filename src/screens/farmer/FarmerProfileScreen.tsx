@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -215,41 +214,61 @@ export default function FarmerProfileScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#062B14', '#0F4C24', '#1A6B2E', '#2E8B4A', '#7ED957']} style={styles.hero}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0.7 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
+        <LinearGradient colors={['#071A0D', '#0D3318', '#1A6B2E']} style={styles.hero}>
+          <View style={styles.heroBubble1} pointerEvents="none" />
+          <View style={styles.heroBubble2} pointerEvents="none" />
+
           <View style={styles.headerTopRow}>
-            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={styles.headerTitle}>My Profile</Text>
             <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
-              <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.avatarWrap}>
-            <UserAvatar user={user} size={130} uploading={avatarUploading} borderWidth={3} borderColor="#fff" />
+            <UserAvatar user={user} size={114} uploading={avatarUploading} borderWidth={4} borderColor="rgba(255,255,255,0.9)" />
             <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar} disabled={avatarUploading}>
-              <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <BlurView intensity={45} tint="light" style={styles.glassCard}>
+          <View style={styles.nameBlock}>
             <Text style={styles.name}>{user.fullName}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>FARMER</Text>
+            {user.isVerified && (
+              <View style={styles.verifiedPill}>
+                <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            )}
+            <View style={styles.rolePill}>
+              <Text style={styles.rolePillText}>🌾 FARMER</Text>
             </View>
+          </View>
 
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.locationText}>{locationLabel}</Text>
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.metaText}>{locationLabel}</Text>
+            <Text style={styles.metaDot}>·</Text>
+            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.metaText}>Since {memberSince}</Text>
+          </View>
+
+          <View style={styles.statsStrip}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{bookings.length}</Text>
+              <Text style={styles.statLabel}>Rentals</Text>
             </View>
-
-            <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
-          </BlurView>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{batches.length}</Text>
+              <Text style={styles.statLabel}>Batches</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>4.8 ⭐</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+            </View>
+          </View>
         </LinearGradient>
 
         <View style={styles.tabsWrap}>
@@ -521,109 +540,160 @@ function createStyles(colors: ThemeColors) {
     },
     hero: {
       paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 36,
+      paddingTop: Platform.OS === 'ios' ? 56 : 36,
+      paddingBottom: 28,
       alignItems: 'center',
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      overflow: 'hidden',
+    },
+    heroBubble1: {
+      position: 'absolute',
+      width: 240,
+      height: 240,
+      borderRadius: 120,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      top: -80,
+      right: -70,
+    },
+    heroBubble2: {
+      position: 'absolute',
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      bottom: 10,
+      left: -55,
     },
     headerTopRow: {
       width: '100%',
       flexDirection: 'row',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       alignItems: 'center',
+      marginBottom: 20,
     },
     headerTitle: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '700',
       color: '#FFFFFF',
     },
     settingsIconButton: {
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
-    avatarWrap: {
-      marginTop: 8,
-      position: 'relative',
-    },
-    avatar: {
-      width: 130,
-      height: 130,
-      borderRadius: 65,
-      borderWidth: 3,
-      borderColor: '#FFFFFF',
-    },
-    avatarPlaceholder: {
-      backgroundColor: '#1A6B2E',
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: 'rgba(255,255,255,0.15)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    avatarInitial: {
-      fontSize: 44,
-      fontWeight: '800',
-      color: '#FFFFFF',
+    avatarWrap: {
+      position: 'relative',
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 12,
     },
     cameraButton: {
       position: 'absolute',
-      bottom: -2,
+      bottom: 0,
       right: -2,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.primaryGreen,
-      borderWidth: 2,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: '#1A6B2E',
+      borderWidth: 2.5,
       borderColor: '#FFFFFF',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    glassCard: {
-      marginTop: 16,
-      width: '100%',
-      borderRadius: 24,
-      paddingVertical: 18,
-      paddingHorizontal: 20,
+    nameBlock: {
       alignItems: 'center',
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.35)',
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      marginBottom: 10,
     },
     name: {
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: '800',
       color: '#FFFFFF',
+      letterSpacing: 0.3,
+      textAlign: 'center',
+      marginBottom: 8,
     },
-    roleBadge: {
-      backgroundColor: 'rgba(255,255,255,0.25)',
-      borderRadius: 20,
-      paddingHorizontal: 16,
-      paddingVertical: 3,
-      marginTop: 8,
-    },
-    roleBadgeText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#FFFFFF',
-    },
-    locationRow: {
+    verifiedPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      marginTop: 10,
+      backgroundColor: 'rgba(74,222,128,0.15)',
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      marginBottom: 8,
     },
-    locationText: {
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.9)',
+    verifiedText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#4ADE80',
     },
-    memberSinceText: {
-      fontSize: 12,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 6,
+    rolePill: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)',
     },
-    statsOverlapRow: {
+    rolePillText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      letterSpacing: 1.5,
+    },
+    metaRow: {
       flexDirection: 'row',
-      gap: 10,
-      marginTop: -24,
-      marginHorizontal: 16,
+      alignItems: 'center',
+      gap: 5,
+      marginBottom: 20,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    metaText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.72)',
+    },
+    metaDot: {
+      fontSize: 16,
+      color: 'rgba(255,255,255,0.35)',
+    },
+    statsStrip: {
+      flexDirection: 'row',
+      backgroundColor: 'rgba(0,0,0,0.25)',
+      borderRadius: 20,
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      width: '100%',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+    },
+    statItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    statLabel: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.65)',
+      marginTop: 3,
+    },
+    statDivider: {
+      width: 1,
+      height: 34,
+      backgroundColor: 'rgba(255,255,255,0.18)',
     },
     tabsWrap: {
       marginHorizontal: 16,
