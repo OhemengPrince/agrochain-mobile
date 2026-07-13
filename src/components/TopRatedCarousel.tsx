@@ -263,9 +263,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
     return () => clearInterval(id);
   }, [sellers.length]);
 
-  const viewabilityConfig = useRef({ itemVisibilityPercentThreshold: 50 });
-
-  const onViewableItemsChanged = useCallback(
+  const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const idx = viewableItems[0]?.index;
       if (idx != null) {
@@ -275,6 +273,13 @@ export default function TopRatedCarousel({ navigation }: Props) {
     },
     []
   );
+
+  const viewabilityConfigCallbackPairs = useRef([
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 50 },
+      onViewableItemsChanged: handleViewableItemsChanged,
+    },
+  ]);
 
   if (!loading && sellers.length === 0) return null;
 
@@ -316,8 +321,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
           decelerationRate="fast"
           onScrollBeginDrag={() => { isScrollingRef.current = true; }}
           onMomentumScrollEnd={() => { isScrollingRef.current = false; }}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig.current}
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
           onScrollToIndexFailed={() => {}}
           renderItem={({ item }) => (
             <SellerCard
