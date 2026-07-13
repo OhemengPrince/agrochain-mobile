@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -151,28 +153,41 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const totalInquiries = listings.reduce((sum, l) => sum + l.inquiriesCount, 0);
 
   const styles = createStyles(colors);
+  const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <LinearGradient colors={['#071A0D', '#0D3318', '#1A6B2E']} style={styles.hero}>
+        <View style={styles.hero}>
+          {hasPhotoUrl && (
+            <Image source={{ uri: user!.profilePhotoUrl! }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          )}
+          <LinearGradient
+            colors={hasPhotoUrl
+              ? ['rgba(4,14,8,0.20)', 'rgba(7,26,13,0.55)', 'rgba(7,26,13,0.92)']
+              : ['#071A0D', '#0D3318', '#1A6B2E']}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
           <View style={styles.heroBubble1} pointerEvents="none" />
           <View style={styles.heroBubble2} pointerEvents="none" />
 
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>My Profile</Text>
-            <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
-              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.settingsIconButton} onPress={handlePickAvatar} disabled={avatarUploading}>
+                {avatarUploading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
+                <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.avatarWrap}>
-            <UserAvatar user={user} size={114} uploading={avatarUploading} borderWidth={4} borderColor="rgba(255,255,255,0.9)" />
-            <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar} disabled={avatarUploading}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.heroSpacer} />
 
           <View style={styles.nameBlock}>
             <Text style={styles.name}>{user.fullName}</Text>
@@ -211,7 +226,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
               <Text style={styles.statLabel}>Inquiries</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <View style={styles.tabsWrap}>
           <View style={styles.tabsHandle} />
@@ -416,6 +431,7 @@ function createStyles(colors: ThemeColors) {
       borderBottomLeftRadius: 36,
       borderBottomRightRadius: 36,
       overflow: 'hidden',
+      minHeight: 380,
     },
     heroBubble1: {
       position: 'absolute',
@@ -454,6 +470,14 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(255,255,255,0.15)',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    heroSpacer: {
+      height: 56,
     },
     avatarWrap: {
       position: 'relative',
