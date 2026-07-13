@@ -90,6 +90,22 @@ export async function updatePhotoUrl(photoUrl: string): Promise<void> {
   await apiClient.put('/users/me/photo-url', { photoUrl });
 }
 
+export async function enrichUsersWithPhotos(users: TopRatedUser[]): Promise<TopRatedUser[]> {
+  if (USE_MOCK_DATA) return users;
+  return Promise.all(
+    users.map(async (u) => {
+      if (u.profilePhotoUrl?.startsWith('http')) return u;
+      try {
+        const { data } = await apiClient.get<any>(`/users/${u.id}`);
+        const photoUrl = data?.profilePhotoUrl ?? data?.profileImageUrl;
+        return photoUrl ? { ...u, profilePhotoUrl: photoUrl } : u;
+      } catch {
+        return u;
+      }
+    })
+  );
+}
+
 export async function getTopRatedUsers(limit = 10): Promise<TopRatedUser[]> {
   if (USE_MOCK_DATA) {
     // Aggregate equipment ratings per owner

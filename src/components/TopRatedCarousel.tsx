@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
-import { getTopRatedUsers, getRecentUsers, TopRatedUser } from '../api/userApi';
+import { getTopRatedUsers, getRecentUsers, enrichUsersWithPhotos, TopRatedUser } from '../api/userApi';
 
 const CARD_WIDTH = 140;
 const CARD_H_MARGIN = 8;
@@ -233,6 +233,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
         if (data.length === 0) {
           data = await getRecentUsers(10);
         }
+        data = await enrichUsersWithPhotos(data);
         console.log(`[TopRated] showing ${data.length} users`);
         setUsers(data);
       } catch {
