@@ -55,6 +55,7 @@ type Message = {
   audioUrl?: string;
   audioDuration?: number;
   uploading?: boolean;
+  voiceState?: 'uploading' | 'ready' | 'failed';
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -147,10 +148,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // ── Voice recording state ────────────────────────────────
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
   const [cancelMode, setCancelMode] = useState(false);
+  const [displayTime, setDisplayTime] = useState('0:00');
+  const recordingSeconds = useRef(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveAnim = useRef(new Animated.Value(0)).current;
   const startRecordingFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
   const stopRecordingFnRef = useRef<((cancelled: boolean) => Promise<void>) | undefined>(undefined);
@@ -498,7 +500,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       recordingRef.current = recording;
       setIsRecording(true);
       setCancelMode(false);
-      setRecordingDuration(0);
+      recordingSeconds.current = 0;
+      setDisplayTime('0:00');
 
       Animated.loop(
         Animated.sequence([
@@ -507,11 +510,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         ])
       ).start();
 
-      let elapsed = 0;
-      recordingTimerRef.current = setInterval(() => {
-        elapsed += 1;
-        setRecordingDuration(elapsed);
-        if (elapsed >= 120) stopRecordingFnRef.current?.(false);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      timerIntervalRef.current = setInterval(() => {
+        recordingSeconds.current += 1;
+        const mins = Math.floor(recordingSeconds.current / 60);
+        const secs = recordingSeconds.current % 60;
+        setDisplayTime(`${mins}:${secs.toString().padStart(2, '0')}`);
+        if (recordingSeconds.current >= 120) stopRecordingFnRef.current?.(false);
       }, 1000);
     } catch (err) {
       console.log('[Voice] startRecording error:', err);
@@ -526,30 +534,31 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     recordingSessionRef.current++;
 
     // Stop timer and animation regardless of whether recording started
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
     waveAnim.stopAnimation();
     waveAnim.setValue(0);
     setIsRecording(false);
     setCancelMode(false);
+    setDisplayTime('0:00');
 
     if (!recordingRef.current) {
       // startRecording was still in flight and will clean up itself via session check
-      setRecordingDuration(0);
+      recordingSeconds.current = 0;
       return;
     }
 
     if (cancelled) {
       try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
       recordingRef.current = null;
-      setRecordingDuration(0);
+      recordingSeconds.current = 0;
       try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
       return;
     }
 
-    const durationSec = recordingDuration;
+    const durationSec = recordingSeconds.current;
     let uri: string | null = null;
     try {
       await recordingRef.current.stopAndUnloadAsync();
@@ -558,7 +567,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       console.log('[Voice] stop error:', err);
     }
     recordingRef.current = null;
-    setRecordingDuration(0);
+    recordingSeconds.current = 0;
     // Always reset audio mode so playback and future recordings work
     try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
 
@@ -578,7 +587,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setMessages((prev) => [...prev, {
       id: optimisticId, type: 'voice', sent: true, time: now,
       delivered: false, read: false,
-      audioUrl: uri!, audioDuration: durationSec, uploading: true,
+      audioUrl: uri!, audioDuration: durationSec, uploading: true, voiceState: 'uploading',
     }]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
@@ -590,20 +599,24 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         audioDuration: durationSec,
       });
       setMessages((prev) => prev.map((m) =>
-        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false } : m
+        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false, voiceState: 'ready' } : m
       ));
     } catch (err) {
       console.log('[Voice] upload error:', err);
-      // Keep bubble visible but mark upload failed
       setMessages((prev) => prev.map((m) =>
-        String(m.id) === optimisticId ? { ...m, uploading: false } : m
+        String(m.id) === optimisticId ? { ...m, uploading: false, voiceState: 'failed' } : m
       ));
     }
-  }, [recordingDuration, roomId, otherUserId, waveAnim]);
+  }, [roomId, otherUserId, waveAnim]);
 
   // Keep stable refs so PanResponder callbacks (created once) can call the latest fn
   useEffect(() => { startRecordingFnRef.current = startRecording; }, [startRecording]);
   useEffect(() => { stopRecordingFnRef.current = stopAndSendRecording; }, [stopAndSendRecording]);
+
+  // Clean up interval on unmount (safety net)
+  useEffect(() => () => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+  }, []);
 
   const micPanResponder = useRef(
     PanResponder.create({
@@ -639,23 +652,25 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
           <View>
             <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-              {item.uploading ? (
-                // Still uploading — show spinner
+              {(item.voiceState === 'uploading' || item.uploading) ? (
                 <>
                   <ActivityIndicator size="small" color={item.sent ? '#fff' : '#0B6E36'} style={{ marginRight: 8 }} />
-                  <Text style={[s.voiceDur, { color: voiceColor(0.80) }]}>Uploading…</Text>
+                  <Text style={[s.voiceDur, { color: voiceColor(0.80) }]}>Sending…</Text>
                 </>
-              ) : item.audioUrl ? (
-                // Audio URL available — fully playable
+              ) : item.voiceState === 'failed' ? (
+                <>
+                  <Ionicons name="alert-circle-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                  <Text style={[s.voiceDur, { color: '#EF4444' }]}>Failed to send</Text>
+                </>
+              ) : (item.voiceState === 'ready' || item.audioUrl) ? (
                 <AudioPlayer
-                  audioUrl={item.audioUrl}
+                  audioUrl={item.audioUrl!}
                   durationSec={item.audioDuration ?? 0}
                   sent={item.sent}
                   colors={colors}
                   s={s}
                 />
               ) : (
-                // No audioUrl — backend didn't persist the URL (show static indicator)
                 <>
                   <View style={[s.playBtn, { opacity: 0.5 }]}>
                     <Ionicons name="mic" size={15} color="#fff" />
@@ -803,7 +818,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                   <Ionicons name="mic" size={22} color="#fff" />
                 </Animated.View>
                 <Text style={[s.recordingTimer, cancelMode && { color: '#EF4444' }]}>
-                  {`${Math.floor(recordingDuration / 60)}:${String(recordingDuration % 60).padStart(2, '0')}`}
+                  {displayTime}
                 </Text>
                 <Text style={[s.recordingCancel, cancelMode && { color: '#EF4444', fontWeight: '700' }]}>
                   {'< Slide to cancel'}
@@ -1344,23 +1359,30 @@ const AudioPlayer = React.memo(function AudioPlayer({
     setPosition(0);
 
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+      console.log('[AudioPlayer] loading:', audioUrl);
       const { sound } = await Audio.Sound.createAsync(
         { uri: audioUrl },
-        { shouldPlay: true },
-        (status) => {
-          if (!status.isLoaded) return;
-          setPosition(status.positionMillis);
-          if (status.durationMillis) setDuration(status.durationMillis);
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-            setPosition(0);
-            if (_globalStopFn === stopSelf) _globalStopFn = null;
-          }
-        }
+        { shouldPlay: false, progressUpdateIntervalMillis: 100 }
       );
       soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+        setPosition(status.positionMillis);
+        if (status.durationMillis) setDuration(status.durationMillis);
+        if (status.didJustFinish) {
+          setIsPlaying(false);
+          setPosition(0);
+          if (_globalStopFn === stopSelf) _globalStopFn = null;
+        }
+      });
       setIsPlaying(true);
+      await sound.playAsync();
     } catch (err) {
       console.log('[AudioPlayer] error:', err);
     }
@@ -1370,6 +1392,11 @@ const AudioPlayer = React.memo(function AudioPlayer({
     unloadSound();
     if (_globalStopFn === stopSelf) _globalStopFn = null;
   }, [unloadSound, stopSelf]);
+
+  // All hooks above — safe to early-return here
+  if (!audioUrl || !audioUrl.startsWith('http')) {
+    return <Text style={{ color: '#EF4444', fontSize: 11, flex: 1 }}>Audio unavailable</Text>;
+  }
 
   const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
   const elapsed = Math.floor(position / 1000);
