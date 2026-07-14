@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Switch, Pressable, Animated, Image, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Switch, Pressable, Animated, Image, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -170,7 +170,8 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
         <View style={styles.backButtonSpacer} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <ErrorMessage message={error} />
 
         <Text style={styles.label}>Photo</Text>
@@ -210,6 +211,9 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
             onChangeText={setDescription}
             placeholderTextColor={colors.secondaryText}
             multiline
+            blurOnSubmit
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
 
           <View style={styles.switchRow}>
@@ -244,6 +248,7 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
           </Pressable>
         </Animated.View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

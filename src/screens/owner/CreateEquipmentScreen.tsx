@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -151,7 +151,8 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         <View style={styles.backButtonSpacer} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <ErrorMessage message={error} />
 
         <Text style={styles.label}>Photo</Text>
@@ -230,6 +231,9 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
             placeholder="Describe the equipment's condition and capabilities"
             placeholderTextColor={colors.secondaryText}
             multiline
+            blurOnSubmit
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
         </View>
 
@@ -246,6 +250,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
           </Pressable>
         </Animated.View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
