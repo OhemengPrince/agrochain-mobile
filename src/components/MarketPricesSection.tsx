@@ -23,6 +23,10 @@ const CROP_IMAGES: Record<string, any> = {
   Groundnut: require('../assets/crops/groundnut.jpg'),
 };
 
+const CROP_EMOJI: Record<string, string> = {
+  Maize: '🌽', Cocoa: '🍫', Tomato: '🍅', Cassava: '🍠', Rice: '🌾', Groundnut: '🥜',
+};
+
 function formatTime(iso: string): string {
   try {
     return new Date(iso).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' });
@@ -62,6 +66,7 @@ const sk = StyleSheet.create({
 
 function PriceCard({ item, colors }: { item: MarketPrice; colors: ThemeColors }) {
   const cropImg = CROP_IMAGES[item.crop] ?? null;
+  const emoji = CROP_EMOJI[item.crop] ?? '🌿';
   const isUp = item.trend === 'UP';
   const bw = barPercent(item.change);
 
@@ -77,13 +82,18 @@ function PriceCard({ item, colors }: { item: MarketPrice; colors: ThemeColors })
             style={p.img}
           />
         )}
-        {/* Bottom gradient scrim */}
+        {/* Full-image dark scrim for readability */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.55)']}
-          style={p.scrim}
+          colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.62)']}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        {/* Trend badge */}
+        {/* Emoji + crop label at bottom of image */}
+        <View style={p.imgLabel} pointerEvents="none">
+          <Text style={p.imgEmoji}>{emoji}</Text>
+          <Text style={p.imgCropName}>{item.crop}</Text>
+        </View>
+        {/* Trend badge top-right */}
         <View style={[p.badge, { backgroundColor: isUp ? '#16A34A' : '#DC2626' }]}>
           <Text style={p.badgeText}>{isUp ? '↑' : '↓'} {Math.abs(item.change).toFixed(1)}%</Text>
         </View>
@@ -91,7 +101,6 @@ function PriceCard({ item, colors }: { item: MarketPrice; colors: ThemeColors })
 
       {/* Info */}
       <View style={p.info}>
-        <Text style={[p.cropName, { color: colors.text }]} numberOfLines={1}>{item.crop}</Text>
         <Text style={[p.price, { color: colors.primaryGreen }]}>
           {item.currency} {item.price.toLocaleString()}
         </Text>
@@ -112,7 +121,7 @@ function PriceCard({ item, colors }: { item: MarketPrice; colors: ThemeColors })
 
 const p = StyleSheet.create({
   card: {
-    width: 150,
+    width: 148,
     borderRadius: 20,
     overflow: 'hidden',
     marginRight: 12,
@@ -122,17 +131,18 @@ const p = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  imgWrap:  { position: 'relative' },
-  img:      { width: 150, height: 90 },
-  scrim:    { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40 },
-  badge:    { position: 'absolute', top: 8, right: 8, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  info:     { padding: 10 },
-  cropName: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  price:    { fontSize: 16, fontWeight: '800', marginBottom: 1 },
-  unit:     { fontSize: 10, marginBottom: 8 },
-  barBg:    { height: 3, borderRadius: 2, backgroundColor: '#F0F0F0', overflow: 'hidden' },
-  barFill:  { height: 3, borderRadius: 2 },
+  imgWrap:    { position: 'relative' },
+  img:        { width: 148, height: 106 },
+  imgLabel:   { position: 'absolute', bottom: 8, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  imgEmoji:   { fontSize: 18 },
+  imgCropName: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
+  badge:      { position: 'absolute', top: 8, right: 8, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeText:  { color: '#fff', fontSize: 10, fontWeight: '700' },
+  info:       { padding: 10, paddingTop: 8 },
+  price:      { fontSize: 17, fontWeight: '800', marginBottom: 1 },
+  unit:       { fontSize: 10, marginBottom: 8 },
+  barBg:      { height: 3, borderRadius: 2, backgroundColor: '#F0F0F0', overflow: 'hidden' },
+  barFill:    { height: 3, borderRadius: 2 },
 });
 
 // ── Alert banner ──────────────────────────────────────────────────────────────

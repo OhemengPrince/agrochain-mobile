@@ -9,23 +9,6 @@ import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { fetchGhanaAgricultureNews, NewsItem } from '../services/newsService';
 
-interface MarketPrice {
-  emoji: string;
-  crop: string;
-  price: string;
-  unit: string;
-  changePercent: number;
-}
-
-const MARKET_PRICES: MarketPrice[] = [
-  { emoji: '🌽', crop: 'Maize', price: 'GHS 350', unit: '/bag', changePercent: 5 },
-  { emoji: '🍫', crop: 'Cocoa', price: 'GHS 2,400', unit: '/ton', changePercent: -2 },
-  { emoji: '🍅', crop: 'Tomato', price: 'GHS 180', unit: '/crate', changePercent: 12 },
-  { emoji: '🍠', crop: 'Cassava', price: 'GHS 120', unit: '/bag', changePercent: 3 },
-  { emoji: '🌾', crop: 'Rice', price: 'GHS 420', unit: '/bag', changePercent: -1 },
-  { emoji: '🥜', crop: 'Groundnut', price: 'GHS 280', unit: '/bag', changePercent: 8 },
-];
-
 const FALLBACK_NEWS: NewsItem[] = [
   { id: '1', headline: 'Ghana cocoa exports hit record high in Q1 2026', source: 'GhanaWeb', time: '2hrs ago', url: '' },
   { id: '2', headline: 'Government subsidizes fertiliser for smallholder farmers', source: 'Ghana News Agency', time: '5hrs ago', url: '' },
@@ -75,32 +58,6 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll }: Props) {
 
   return (
     <View>
-      {/* ── Market Prices ── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Market Prices</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.priceRow}>
-          {MARKET_PRICES.map((item) => {
-            const isUp = item.changePercent >= 0;
-            return (
-              <View key={item.crop} style={styles.priceCard}>
-                <Text style={styles.priceEmoji}>{item.emoji}</Text>
-                <Text style={styles.priceCrop}>{item.crop}</Text>
-                <Text style={styles.priceValue}>
-                  {item.price}
-                  <Text style={styles.priceUnit}>{item.unit}</Text>
-                </Text>
-                <View style={styles.priceChangeRow}>
-                  <Ionicons name={isUp ? 'arrow-up' : 'arrow-down'} size={11} color={isUp ? '#16A34A' : '#DC2626'} />
-                  <Text style={[styles.priceChangeText, { color: isUp ? '#16A34A' : '#DC2626' }]}>
-                    {Math.abs(item.changePercent)}%
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
-
       {/* ── Agriculture News ── */}
       <View style={[styles.section, styles.newsSection]}>
         <View style={styles.newsTitleRow}>
@@ -193,17 +150,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 11, fontWeight: '700', color: '#16A34A',
       backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
     },
-    priceRow: { gap: 12, paddingRight: 4 },
-    priceCard: {
-      width: 110, backgroundColor: colors.card, borderRadius: 16, padding: 12, alignItems: 'center',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    },
-    priceEmoji: { fontSize: 22 },
-    priceCrop: { fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 4 },
-    priceValue: { fontSize: 13, fontWeight: '800', color: colors.primaryGreen, marginTop: 4 },
-    priceUnit: { fontSize: 10, fontWeight: '500', color: colors.secondaryText },
-    priceChangeRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 4 },
-    priceChangeText: { fontSize: 11, fontWeight: '700' },
     loadingContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 28, justifyContent: 'center' },
     loadingText: { fontSize: 13, color: colors.secondaryText },
     newsCard: {
