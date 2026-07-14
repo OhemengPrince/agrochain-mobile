@@ -36,7 +36,23 @@ import UserAvatar from '../../components/UserAvatar';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerHomeMain'>;
 
-const TRACTOR_IMAGE = require('../../assets/equipment/tractor.jpg');
+const BANNER_SLIDES = [
+  {
+    image: require('../../assets/equipment/tractor.jpg'),
+    title: 'Need a Tractor?',
+    subtitle: 'Find equipment near you in minutes',
+  },
+  {
+    image: require('../../assets/equipment/sprayer.jpg'),
+    title: 'Need a Sprayer?',
+    subtitle: 'Keep your crops healthy with ease',
+  },
+  {
+    image: require('../../assets/equipment/tiller.jpg'),
+    title: 'Need a Tiller?',
+    subtitle: 'Prepare your fields in no time',
+  },
+];
 
 const QUICK_ACTIONS: {
   key: string;
@@ -176,6 +192,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerFade = useRef(new Animated.Value(1)).current;
 
   const loadData = useCallback(async () => {
     console.log('[FarmerHome] loading dashboard data...');
@@ -225,6 +243,16 @@ export default function FarmerHomeScreen({ navigation }: Props) {
       }
     })();
   }, [loadData]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      Animated.timing(bannerFade, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
+        setBannerIndex((i) => (i + 1) % BANNER_SLIDES.length);
+        Animated.timing(bannerFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+      });
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [bannerFade]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -331,17 +359,26 @@ export default function FarmerHomeScreen({ navigation }: Props) {
         <WeatherWidget />
 
         <View style={styles.section}>
-          <ImageBackground source={TRACTOR_IMAGE} style={styles.banner} imageStyle={styles.bannerImage}>
-            <View style={styles.bannerOverlay} />
-            <View style={styles.bannerContent}>
-              <Text style={styles.bannerTitle}>Need a Tractor?</Text>
-              <Text style={styles.bannerSubtitle}>Find equipment near you in minutes</Text>
-            </View>
-            <TouchableOpacity style={styles.bannerButton} onPress={() => goToEquipmentTab()}>
-              <Text style={styles.bannerButtonText}>Browse Now</Text>
-              <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
-            </TouchableOpacity>
-          </ImageBackground>
+          <Animated.View style={{ opacity: bannerFade }}>
+            <ImageBackground source={BANNER_SLIDES[bannerIndex].image} style={styles.banner} imageStyle={styles.bannerImage}>
+              <View style={styles.bannerOverlay} />
+              <View style={styles.bannerContent}>
+                <Text style={styles.bannerTitle}>{BANNER_SLIDES[bannerIndex].title}</Text>
+                <Text style={styles.bannerSubtitle}>{BANNER_SLIDES[bannerIndex].subtitle}</Text>
+              </View>
+              <View style={styles.bannerFooter}>
+                <TouchableOpacity style={styles.bannerButton} onPress={() => goToEquipmentTab()}>
+                  <Text style={styles.bannerButtonText}>Browse Now</Text>
+                  <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
+                </TouchableOpacity>
+                <View style={styles.bannerDots}>
+                  {BANNER_SLIDES.map((_, i) => (
+                    <View key={i} style={[styles.bannerDot, i === bannerIndex && styles.bannerDotActive]} />
+                  ))}
+                </View>
+              </View>
+            </ImageBackground>
+          </Animated.View>
         </View>
 
         <View style={styles.section}>
@@ -553,11 +590,15 @@ function createStyles(colors: ThemeColors) {
       color: colors.white,
       marginTop: 4,
     },
+    bannerFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     bannerButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 2,
-      alignSelf: 'flex-end',
       backgroundColor: colors.white,
       borderRadius: 20,
       paddingHorizontal: 14,
@@ -567,6 +608,21 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       fontWeight: '700',
       color: colors.primaryGreen,
+    },
+    bannerDots: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    bannerDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: 'rgba(255,255,255,0.4)',
+    },
+    bannerDotActive: {
+      width: 18,
+      backgroundColor: '#fff',
     },
     equipmentRow: {
       gap: 14,
