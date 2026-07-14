@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Animated,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import MarketPricesSection from '../../components/MarketPricesSection';
 import WeatherWidget from '../../components/WeatherWidget';
 import UserAvatar from '../../components/UserAvatar';
 
@@ -96,6 +98,14 @@ export default function GeneralHomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [query, setQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [marketKey, setMarketKey] = useState(0);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setMarketKey((k) => k + 1);
+    setRefreshing(false);
+  };
 
   const firstName = user?.fullName?.split(' ')[0] ?? 'there';
   const locationLabel = user?.district && user?.region ? `${user.district}, ${user.region}` : 'Ghana';
@@ -134,7 +144,11 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
@@ -193,6 +207,8 @@ export default function GeneralHomeScreen({ navigation }: Props) {
         </View>
 
         <WeatherWidget />
+
+        <MarketPricesSection refreshKey={marketKey} />
 
         <MarketNewsFeed
           maxItems={3}

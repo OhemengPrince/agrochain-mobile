@@ -24,6 +24,7 @@ import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import MarketPricesSection from '../../components/MarketPricesSection';
 import WeatherWidget from '../../components/WeatherWidget';
 import UserAvatar from '../../components/UserAvatar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -177,6 +178,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [marketKey, setMarketKey] = useState(0);
 
   const loadData = useCallback(async () => {
     setError(null);
@@ -222,6 +224,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setMarketKey((k) => k + 1);
     try {
       await loadData();
     } finally {
@@ -477,6 +480,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           ))}
         </ScrollView>
       )}
+
+      <MarketPricesSection refreshKey={marketKey} />
 
       <MarketNewsFeed
         maxItems={3}

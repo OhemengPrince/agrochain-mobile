@@ -13,6 +13,7 @@ import { formatCurrency, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import MarketPricesSection from '../../components/MarketPricesSection';
 import WeatherWidget from '../../components/WeatherWidget';
 import UserAvatar from '../../components/UserAvatar';
 import { useAuth } from '../../hooks/useAuth';
@@ -120,6 +121,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [marketKey, setMarketKey] = useState(0);
   const [query, setQuery] = useState('');
   const [cropFilter, setCropFilter] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -150,6 +152,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setMarketKey((k) => k + 1);
     try {
       await loadBatches();
     } finally {
@@ -363,6 +366,8 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 />
               </View>
             )}
+
+            <MarketPricesSection refreshKey={marketKey} />
 
             <MarketNewsFeed
               maxItems={3}

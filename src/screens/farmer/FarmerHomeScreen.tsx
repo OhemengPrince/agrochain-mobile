@@ -30,6 +30,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import EquipmentImage from '../../components/EquipmentImage';
 import StarRating from '../../components/StarRating';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
+import MarketPricesSection from '../../components/MarketPricesSection';
 import WeatherWidget from '../../components/WeatherWidget';
 import UserAvatar from '../../components/UserAvatar';
 
@@ -174,6 +175,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [marketKey, setMarketKey] = useState(0);
 
   const loadData = useCallback(async () => {
     console.log('[FarmerHome] loading dashboard data...');
@@ -226,6 +228,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setMarketKey((k) => k + 1);
     try {
       await loadData();
     } finally {
@@ -360,6 +363,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
             ))}
           </ScrollView>
         </View>
+
+        <MarketPricesSection refreshKey={marketKey} />
 
         <MarketNewsFeed
           maxItems={3}
