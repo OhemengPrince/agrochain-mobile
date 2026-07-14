@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -193,7 +194,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
-  const bannerFade = useRef(new Animated.Value(1)).current;
+  const bannerScrollRef = useRef<ScrollView>(null);
+  const bannerWidth = Dimensions.get('window').width - 32;
 
   const loadData = useCallback(async () => {
     console.log('[FarmerHome] loading dashboard data...');
@@ -246,13 +248,14 @@ export default function FarmerHomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      Animated.timing(bannerFade, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
-        setBannerIndex((i) => (i + 1) % BANNER_SLIDES.length);
-        Animated.timing(bannerFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+      setBannerIndex((prev) => {
+        const next = (prev + 1) % BANNER_SLIDES.length;
+        bannerScrollRef.current?.scrollTo({ x: next * bannerWidth, animated: true });
+        return next;
       });
-    }, 3500);
+    }, 3000);
     return () => clearInterval(timer);
-  }, [bannerFade]);
+  }, [bannerWidth]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -359,26 +362,39 @@ export default function FarmerHomeScreen({ navigation }: Props) {
         <WeatherWidget />
 
         <View style={styles.section}>
-          <Animated.View style={{ opacity: bannerFade }}>
-            <ImageBackground source={BANNER_SLIDES[bannerIndex].image} style={styles.banner} imageStyle={styles.bannerImage}>
-              <View style={styles.bannerOverlay} />
-              <View style={styles.bannerContent}>
-                <Text style={styles.bannerTitle}>{BANNER_SLIDES[bannerIndex].title}</Text>
-                <Text style={styles.bannerSubtitle}>{BANNER_SLIDES[bannerIndex].subtitle}</Text>
-              </View>
-              <View style={styles.bannerFooter}>
-                <TouchableOpacity style={styles.bannerButton} onPress={() => goToEquipmentTab()}>
-                  <Text style={styles.bannerButtonText}>Browse Now</Text>
-                  <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
-                </TouchableOpacity>
-                <View style={styles.bannerDots}>
-                  {BANNER_SLIDES.map((_, i) => (
-                    <View key={i} style={[styles.bannerDot, i === bannerIndex && styles.bannerDotActive]} />
-                  ))}
-                </View>
-              </View>
-            </ImageBackground>
-          </Animated.View>
+          <View style={styles.bannerWrapper}>
+            <ScrollView
+              ref={bannerScrollRef}
+              horizontal
+              scrollEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              style={{ width: bannerWidth }}
+            >
+              {BANNER_SLIDES.map((slide, i) => (
+                <ImageBackground
+                  key={i}
+                  source={slide.image}
+                  style={[styles.banner, { width: bannerWidth }]}
+                  imageStyle={styles.bannerImage}
+                >
+                  <View style={styles.bannerOverlay} />
+                  <View style={styles.bannerContent}>
+                    <Text style={styles.bannerTitle}>{slide.title}</Text>
+                    <Text style={styles.bannerSubtitle}>{slide.subtitle}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.bannerButton} onPress={() => goToEquipmentTab()}>
+                    <Text style={styles.bannerButtonText}>Browse Now</Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.primaryGreen} />
+                  </TouchableOpacity>
+                </ImageBackground>
+              ))}
+            </ScrollView>
+            <View style={styles.bannerDots}>
+              {BANNER_SLIDES.map((_, i) => (
+                <View key={i} style={[styles.bannerDot, i === bannerIndex && styles.bannerDotActive]} />
+              ))}
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -590,15 +606,15 @@ function createStyles(colors: ThemeColors) {
       color: colors.white,
       marginTop: 4,
     },
-    bannerFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+    bannerWrapper: {
+      borderRadius: 16,
+      overflow: 'hidden',
     },
     bannerButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 2,
+      alignSelf: 'flex-end',
       backgroundColor: colors.white,
       borderRadius: 20,
       paddingHorizontal: 14,
@@ -612,17 +628,19 @@ function createStyles(colors: ThemeColors) {
     bannerDots: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 5,
+      paddingTop: 8,
     },
     bannerDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: 'rgba(255,255,255,0.4)',
+      backgroundColor: colors.border,
     },
     bannerDotActive: {
       width: 18,
-      backgroundColor: '#fff',
+      backgroundColor: colors.primaryGreen,
     },
     equipmentRow: {
       gap: 14,
