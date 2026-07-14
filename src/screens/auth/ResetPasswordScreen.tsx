@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
   ScrollView, ActivityIndicator,
@@ -43,7 +43,15 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const otpInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const masked = maskIdentifier(identifier, method);
+
+  // Auto-focus password field when OTP auto-fills
+  useEffect(() => {
+    if (otp.length === 6) {
+      setTimeout(() => passwordInputRef.current?.focus(), 300);
+    }
+  }, [otp]);
 
   const handleReset = async () => {
     setError(null);
@@ -114,6 +122,9 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
             maxLength={6}
             style={s.otpHiddenInput}
             autoFocus
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            importantForAutofill="yes"
           />
           {/* Visual boxes */}
           <View style={s.otpRow}>
@@ -153,6 +164,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         <View style={s.inputWrap}>
           <Ionicons name="lock-closed-outline" size={18} color={colors.secondaryText} style={s.inputIcon} />
           <TextInput
+            ref={passwordInputRef}
             style={s.input}
             value={newPassword}
             onChangeText={setNewPassword}
@@ -161,6 +173,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
             secureTextEntry={!showPassword}
             returnKeyType="done"
             onSubmitEditing={handleReset}
+            textContentType="newPassword"
           />
           <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
             <Ionicons

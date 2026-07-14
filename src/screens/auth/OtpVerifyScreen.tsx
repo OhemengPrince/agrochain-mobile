@@ -77,18 +77,19 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = async (otpCode?: string) => {
+    const code = otpCode ?? otp;
     setError(null);
 
     if (USE_MOCK_DATA) {
-      if (!/^\d{6}$/.test(otp)) {
+      if (!/^\d{6}$/.test(code)) {
         setError('Enter the 6-digit code sent to your email.');
         triggerShake();
         return;
       }
       setLoading(true);
       try {
-        await verifyOtp({ email, otp });
+        await verifyOtp({ email, otp: code });
         navigation.navigate('Login');
       } finally {
         setLoading(false);
@@ -96,14 +97,14 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
       return;
     }
 
-    if (otp.length < 6) {
+    if (code.length < 6) {
       setError('Please enter the complete 6-digit code.');
       triggerShake();
       return;
     }
     setLoading(true);
     try {
-      const response = await verifyOtp({ email, otp });
+      const response = await verifyOtp({ email, otp: code });
       await login(response.token, response.user);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Invalid or expired code. Please try again.');
@@ -115,6 +116,13 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
       setLoading(false);
     }
   };
+
+  // Auto-submit when all 6 digits are filled (handles both manual entry and auto-fill)
+  useEffect(() => {
+    if (otp.length < 6 || loading) return;
+    const timer = setTimeout(() => handleVerify(otp), 500);
+    return () => clearTimeout(timer);
+  }, [otp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResend = async () => {
     if (countdown > 0 || resending) return;
@@ -198,6 +206,9 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
               maxLength={6}
               style={s.otpHiddenInput}
               caretHidden
+              textContentType="oneTimeCode"
+              autoComplete="one-time-code"
+              importantForAutofill="yes"
             />
             <View style={s.otpRow}>
               {Array.from({ length: 6 }).map((_, i) => {
