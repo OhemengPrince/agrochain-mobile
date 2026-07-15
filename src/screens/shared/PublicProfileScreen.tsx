@@ -6,8 +6,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Linking,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +16,6 @@ import { User, Equipment, ProduceBatch } from '../../types';
 import { getPublicProfile } from '../../api/userApi';
 import { searchEquipment } from '../../api/equipmentApi';
 import { cardShadow } from '../../constants/shadows';
-import { useAuth } from '../../hooks/useAuth';
 import UserAvatar from '../../components/UserAvatar';
 import EquipmentImage from '../../components/EquipmentImage';
 import { formatCurrency, getCropEmoji } from '../../utils/formatters';
@@ -47,10 +44,8 @@ const ROLE_BIO: Record<string, (name: string, location: string) => string> = {
 
 export default function PublicProfileScreen({ navigation, route }: { navigation: any; route: any }) {
   const { userId } = route.params as { userId: string };
-  const { user: currentUser } = useAuth();
   const { colors } = useTheme();
   const s = createStyles(colors);
-  const isSelf = currentUser?.id === userId;
 
   const [profile, setProfile] = useState<User | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -77,22 +72,6 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
       }
     })();
   }, [userId]);
-
-  const handleMessage = () => {
-    if (!profile) return;
-    navigation.navigate('Chat', {
-      name: profile.fullName,
-      role: profile.role,
-      otherUserId: profile.id,
-    });
-  };
-
-  const handleCall = () => {
-    if (!profile?.phoneNumber) return;
-    Linking.openURL(`tel:${profile.phoneNumber}`).catch(() =>
-      Alert.alert('Cannot call', 'Unable to open the phone dialer.')
-    );
-  };
 
   if (loading) {
     return (
@@ -163,21 +142,6 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
           <Text style={s.memberText}>Member since {memberSince}</Text>
         </LinearGradient>
 
-        {/* Action buttons — hidden when viewing your own profile */}
-        {!isSelf && (
-          <View style={s.actions}>
-            <Pressable style={[s.actionBtn, { backgroundColor: colors.primaryGreen }]} onPress={handleMessage}>
-              <Ionicons name="chatbubble-outline" size={18} color="#fff" />
-              <Text style={s.actionBtnText}>Message</Text>
-            </Pressable>
-            {profile.phoneNumber ? (
-              <Pressable style={[s.actionBtn, s.callBtn]} onPress={handleCall}>
-                <Ionicons name="call-outline" size={18} color={colors.primaryGreen} />
-                <Text style={[s.actionBtnText, { color: colors.primaryGreen }]}>Call</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        )}
 
         {/* About */}
         <View style={s.card}>
@@ -347,32 +311,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       color: 'rgba(255,255,255,0.65)',
       marginTop: 6,
-    },
-    actions: {
-      flexDirection: 'row',
-      gap: 12,
-      marginHorizontal: 16,
-      marginTop: 16,
-      marginBottom: 4,
-    },
-    actionBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      height: 46,
-      borderRadius: 14,
-    },
-    callBtn: {
-      backgroundColor: colors.card,
-      borderWidth: 1.5,
-      borderColor: colors.primaryGreen,
-    },
-    actionBtnText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: '#FFFFFF',
     },
     card: {
       backgroundColor: colors.card,
