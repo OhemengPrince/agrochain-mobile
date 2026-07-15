@@ -177,7 +177,11 @@ export default function GlobalSearchScreen({ navigation }: { navigation: any }) 
                   <Text style={s.sectionCount}>{results.people.length}</Text>
                 </View>
                 {results.people.map((person) => (
-                  <View key={person.id} style={s.resultRow}>
+                  <Pressable
+                    key={person.id}
+                    style={s.resultRow}
+                    onPress={() => navigation.navigate('PublicProfile', { userId: person.id })}
+                  >
                     <UserAvatar user={person} size={42} />
                     <View style={s.resultBody}>
                       <View style={s.resultNameRow}>
@@ -195,7 +199,8 @@ export default function GlobalSearchScreen({ navigation }: { navigation: any }) 
                         )}
                       </View>
                     </View>
-                  </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
+                  </Pressable>
                 ))}
               </View>
             )}

@@ -90,6 +90,19 @@ export async function updatePhotoUrl(photoUrl: string): Promise<void> {
   await apiClient.put('/users/me/photo-url', { photoUrl });
 }
 
+export async function getPublicProfile(userId: string): Promise<User | null> {
+  if (USE_MOCK_DATA) {
+    const found = MOCK_USERS.find((u) => u.id === userId);
+    return mockDelay(found ?? null);
+  }
+  try {
+    const { data } = await apiClient.get<any>(`/users/${userId}`);
+    return (data as User) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function enrichUsersWithPhotos(users: TopRatedUser[]): Promise<TopRatedUser[]> {
   if (USE_MOCK_DATA) return users;
   return Promise.all(

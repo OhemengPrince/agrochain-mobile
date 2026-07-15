@@ -25,6 +25,7 @@ import ChatScreen from '../screens/shared/ChatScreen';
 import ChatRoomsScreen from '../screens/shared/ChatRoomsScreen';
 import MapScreen from '../screens/shared/MapScreen';
 import GlobalSearchScreen from '../screens/shared/GlobalSearchScreen';
+import PublicProfileScreen from '../screens/shared/PublicProfileScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -39,6 +40,7 @@ function HomeStack() {
       <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
       <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
