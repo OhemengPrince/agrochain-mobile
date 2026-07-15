@@ -162,8 +162,18 @@ function MiniEquipmentCard({
   );
 }
 
+function getTimeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
+}
+
 export default function OwnerDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const firstName = user?.firstName ?? 'Nana';
+  const locationLabel = (user as any)?.location ?? 'Ejisu, Ashanti';
+  const greeting = getTimeOfDayGreeting();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [listings, setListings] = useState<Equipment[]>([]);
@@ -340,15 +350,18 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Pressable style={styles.bellButton} onPress={() => navigation.navigate('GlobalSearch')}>
-            <Ionicons name="search-outline" size={23} color="#FFFFFF" />
+            <Ionicons name="search-outline" size={22} color="#FFFFFF" />
           </Pressable>
-          <Text style={styles.headerBrand}>AgroChain</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerGreeting}>Good {greeting}, {firstName} 👋</Text>
+            <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
+          </View>
           <View style={styles.headerActions}>
             <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
-              <Ionicons name="notifications-outline" size={23} color="#FFFFFF" />
+              <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
             </Pressable>
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
-              <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="chatbubble-outline" size={21} color="#FFFFFF" />
             </Pressable>
             <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
               <UserAvatar user={user} size={26} />
@@ -492,20 +505,30 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 120,
     },
     header: {
-      paddingTop: 52,
+      paddingTop: 56,
       paddingHorizontal: 16,
-      paddingBottom: 12,
+      paddingBottom: 24,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerBrand: {
-      fontSize: 20,
-      fontWeight: '700',
+    headerTextWrap: {
+      flex: 1,
+      marginHorizontal: 8,
+    },
+    headerGreeting: {
+      fontSize: 22,
+      fontWeight: '800',
       color: '#FFFFFF',
-      letterSpacing: 0.4,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 4,
     },
     headerActions: {
       flexDirection: 'row',

@@ -94,6 +94,7 @@ function QuickAccessButton({
 
 export default function GeneralHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const firstName = user?.firstName ?? 'Ama';
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [refreshing, setRefreshing] = useState(false);
@@ -147,12 +148,17 @@ export default function GeneralHomeScreen({ navigation }: Props) {
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('GlobalSearch' as any)}>
-              <Ionicons name="search-outline" size={23} color={colors.white} />
+              <Ionicons name="search-outline" size={22} color={colors.white} />
             </TouchableOpacity>
-            <Text style={styles.headerBrand}>AgroChain</Text>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
+            </View>
             <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
-                <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
+                <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
               </TouchableOpacity>
             </View>
           </View>
@@ -210,18 +216,21 @@ function createStyles(colors: ThemeColors) {
     header: {
       paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 16,
+      paddingBottom: 36,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerBrand: {
-      fontSize: 20,
-      fontWeight: '700',
+    headerTextWrap: {
+      flex: 1,
+      marginHorizontal: 8,
+    },
+    greeting: {
+      fontSize: 22,
+      fontWeight: '800',
       color: colors.white,
-      letterSpacing: 0.4,
     },
     headerActions: {
       flexDirection: 'row',

@@ -202,15 +202,18 @@ export default function BuyerHomeScreen({ navigation }: Props) {
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
               <View style={styles.headerTopRow}>
                 <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('GlobalSearch')}>
-                  <Ionicons name="search-outline" size={23} color={colors.white} />
+                  <Ionicons name="search-outline" size={22} color={colors.white} />
                 </Pressable>
-                <Text style={styles.headerBrand}>AgroChain</Text>
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
+                  <Text style={styles.headerSubtitle}>Verified Ghanaian Farmers</Text>
+                </View>
                 <View style={styles.headerActions}>
                   <Pressable style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
-                    <Ionicons name="notifications-outline" size={23} color={colors.white} />
+                    <Ionicons name="notifications-outline" size={22} color={colors.white} />
                   </Pressable>
                   <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms')}>
-                    <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
+                    <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
                   </Pressable>
                 </View>
               </View>
@@ -328,18 +331,28 @@ function createStyles(colors: ThemeColors) {
     header: {
       paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 16,
+      paddingBottom: 24,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerBrand: {
-      fontSize: 20,
-      fontWeight: '700',
+    headerTextWrap: {
+      flex: 1,
+      marginHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: '800',
       color: colors.white,
-      letterSpacing: 0.4,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 4,
     },
     headerActions: {
       flexDirection: 'row',

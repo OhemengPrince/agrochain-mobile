@@ -180,8 +180,18 @@ function notificationColor(type: AppNotification['type'], colors: ThemeColors): 
   }
 }
 
+function getTimeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
+}
+
 export default function FarmerHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const firstName = user?.firstName ?? 'Kwame';
+  const locationLabel = (user as any)?.location ?? 'Kumasi, Ashanti';
+  const greeting = getTimeOfDayGreeting();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -303,15 +313,21 @@ export default function FarmerHomeScreen({ navigation }: Props) {
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
           <View style={styles.headerTopRow}>
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('GlobalSearch')}>
-              <Ionicons name="search-outline" size={23} color={colors.white} />
+              <Ionicons name="search-outline" size={22} color={colors.white} />
             </Pressable>
-            <Text style={styles.headerBrand}>AgroChain</Text>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.greeting}>Good {greeting}, {firstName} 👋</Text>
+              <View style={styles.locationRow}>
+                <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.locationText}> {locationLabel}</Text>
+              </View>
+            </View>
             <View style={styles.headerActions}>
               <Pressable style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
-                <Ionicons name="notifications-outline" size={23} color={colors.white} />
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
               </Pressable>
               <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
-                <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
+                <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
               </Pressable>
             </View>
           </View>
@@ -438,18 +454,30 @@ function createStyles(colors: ThemeColors) {
     header: {
       paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 16,
+      paddingBottom: 36,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerBrand: {
-      fontSize: 20,
-      fontWeight: '700',
+    headerTextWrap: {
+      flex: 1,
+      marginHorizontal: 8,
+    },
+    greeting: {
+      fontSize: 22,
+      fontWeight: '800',
       color: colors.white,
-      letterSpacing: 0.4,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    locationText: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
     },
     headerActions: {
       flexDirection: 'row',
