@@ -350,6 +350,9 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
               <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
             </Pressable>
+            <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
+              <UserAvatar user={user} size={26} />
+            </Pressable>
           </View>
         </View>
       </LinearGradient>
@@ -489,9 +492,9 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 120,
     },
     header: {
-      paddingTop: 56,
+      paddingTop: 52,
       paddingHorizontal: 16,
-      paddingBottom: 16,
+      paddingBottom: 12,
     },
     headerTopRow: {
       flexDirection: 'row',
