@@ -295,7 +295,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.contactActions}>
                   <View>
-                    <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'General User' })}>
+                    <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('ChatRooms' as any)}>
                       <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
                     </Pressable>
                     <View style={{ position: 'absolute', top: -4, right: -4 }}>

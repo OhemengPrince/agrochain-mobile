@@ -308,7 +308,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.contactActions}>
                   <View>
-                    <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('Chat', { name: user.fullName, role: 'Agri-Buyer' })}>
+                    <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('ChatRooms')}>
                       <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
                     </Pressable>
                     <View style={{ position: 'absolute', top: -4, right: -4 }}>
