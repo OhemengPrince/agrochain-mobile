@@ -50,12 +50,6 @@ function usePressAnimation() {
   };
 }
 
-function getTimeOfDayGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Morning';
-  if (hour < 17) return 'Afternoon';
-  return 'Evening';
-}
 
 function isBookingActive(booking: Booking): boolean {
   if (booking.status !== 'CONFIRMED') return false;
@@ -337,10 +331,6 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     })
     .reduce((sum, b) => sum + b.totalCost, 0);
 
-  const firstName = user?.fullName?.split(' ')[0] ?? 'there';
-  const locationLabel = user?.district && user?.region ? `${user.district}, ${user.region}` : 'Ghana';
-  const greeting = getTimeOfDayGreeting();
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
     <ScrollView
@@ -349,19 +339,16 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     >
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerGreeting}>Good {greeting}, {firstName} 👋</Text>
-            <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
-          </View>
+          <Pressable style={styles.bellButton} onPress={() => navigation.navigate('GlobalSearch')}>
+            <Ionicons name="search-outline" size={23} color="#FFFFFF" />
+          </Pressable>
+          <Text style={styles.headerBrand}>AgroChain</Text>
           <View style={styles.headerActions}>
-            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
-              <Ionicons name="chatbubbles-outline" size={22} color="#FFFFFF" />
-            </Pressable>
             <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
-              <Ionicons name="notifications" size={22} color="#FFFFFF" />
+              <Ionicons name="notifications-outline" size={23} color="#FFFFFF" />
             </Pressable>
-            <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
-              <UserAvatar user={user} size={28} />
+            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
+              <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -504,33 +491,22 @@ function createStyles(colors: ThemeColors) {
     header: {
       paddingTop: 56,
       paddingHorizontal: 16,
-      paddingBottom: 24,
-      borderBottomLeftRadius: 24,
-      borderBottomRightRadius: 24,
+      paddingBottom: 16,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
     },
-    headerTextWrap: {
-      flex: 1,
-      marginRight: 12,
-    },
-    headerGreeting: {
-      fontSize: 22,
-      fontWeight: '800',
+    headerBrand: {
+      fontSize: 20,
+      fontWeight: '700',
       color: '#FFFFFF',
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: '#FFFFFF',
-      opacity: 0.8,
-      marginTop: 4,
+      letterSpacing: 0.4,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 4,
     },
     bellButton: {
       width: 40,

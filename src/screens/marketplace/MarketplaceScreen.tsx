@@ -276,6 +276,9 @@ export default function MarketplaceScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
+          <Pressable style={styles.searchIconBtn} onPress={() => navigation.navigate('GlobalSearch' as any)}>
+            <Ionicons name="search-outline" size={22} color="#fff" />
+          </Pressable>
           <Text style={styles.headerTitle}>AgroChain Marketplace</Text>
           <HeaderAddButton onPress={() => navigation.navigate('CreateListing')} />
         </View>
@@ -371,8 +374,14 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    searchIconBtn: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     headerTitle: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: '700',
       color: colors.white,
       flexShrink: 1,

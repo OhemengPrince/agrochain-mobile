@@ -266,6 +266,9 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={[styles.header, { zIndex: 10 }]}>
         <View style={styles.headerTopRow}>
+          <Pressable style={styles.searchIconBtn} onPress={() => navigation.navigate('GlobalSearch' as any)}>
+            <Ionicons name="search-outline" size={22} color={colors.primaryGreen} />
+          </Pressable>
           <Text style={styles.headerTitle}>Find Equipment</Text>
           <TouchableOpacity style={styles.filterButton} onPress={openFilterModal}>
             <Ionicons name="options-outline" size={18} color={colors.white} />
@@ -520,6 +523,12 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+    },
+    searchIconBtn: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerTitle: {
       fontSize: 24,

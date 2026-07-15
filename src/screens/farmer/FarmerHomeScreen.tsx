@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   ImageBackground,
@@ -189,7 +188,6 @@ export default function FarmerHomeScreen({ navigation }: Props) {
   const [batches, setBatches] = useState<ProduceBatch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
@@ -271,9 +269,6 @@ export default function FarmerHomeScreen({ navigation }: Props) {
     return <LoadingOverlay message="Loading your farm dashboard..." />;
   }
 
-  const firstName = user?.fullName?.split(' ')[0] ?? 'Farmer';
-  const locationLabel = user?.district && user?.region ? `${user.district}, ${user.region}` : 'Ghana';
-
   const recentActivity = [...notifications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
@@ -307,34 +302,18 @@ export default function FarmerHomeScreen({ navigation }: Props) {
       >
         <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
           <View style={styles.headerTopRow}>
-            <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
+            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('GlobalSearch')}>
+              <Ionicons name="search-outline" size={23} color={colors.white} />
+            </Pressable>
+            <Text style={styles.headerBrand}>AgroChain</Text>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
-                <Ionicons name="chatbubbles-outline" size={20} color={colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
-                <Ionicons name="notifications" size={20} color={colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
-                <UserAvatar user={user} size={28} />
-              </TouchableOpacity>
+              <Pressable style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
+                <Ionicons name="notifications-outline" size={23} color={colors.white} />
+              </Pressable>
+              <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
+                <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
+              </Pressable>
             </View>
-          </View>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}> {locationLabel}</Text>
-          </View>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={() => goToEquipmentTab(query)}
-              placeholder="Search equipment, produce..."
-              placeholderTextColor={colors.secondaryText}
-              returnKeyType="search"
-            />
           </View>
         </LinearGradient>
 
@@ -457,57 +436,32 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     header: {
-      paddingHorizontal: 20,
+      paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 36,
+      paddingBottom: 16,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    greeting: {
-      fontSize: 22,
-      fontWeight: '800',
+    headerBrand: {
+      fontSize: 20,
+      fontWeight: '700',
       color: colors.white,
+      letterSpacing: 0.4,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 4,
     },
     bellButton: {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: 'rgba(255,255,255,0.20)',
+      backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    locationRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 6,
-    },
-    locationText: {
-      fontSize: 14,
-      color: 'rgba(255,255,255,0.85)',
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      height: 46,
-      paddingHorizontal: 14,
-      marginTop: 16,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.text,
     },
     quickActionsSection: {
       backgroundColor: colors.card,

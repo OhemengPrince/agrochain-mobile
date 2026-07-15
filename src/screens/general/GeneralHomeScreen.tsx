@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   Animated,
@@ -97,7 +96,6 @@ export default function GeneralHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
 
@@ -106,9 +104,6 @@ export default function GeneralHomeScreen({ navigation }: Props) {
     setMarketKey((k) => k + 1);
     setRefreshing(false);
   };
-
-  const firstName = user?.fullName?.split(' ')[0] ?? 'there';
-  const locationLabel = user?.district && user?.region ? `${user.district}, ${user.region}` : 'Ghana';
 
   const goToMarketplace = (searchQuery?: string) => {
     const parent = navigation.getParent() as any;
@@ -151,28 +146,15 @@ export default function GeneralHomeScreen({ navigation }: Props) {
       >
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
-            <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('GlobalSearch' as any)}>
+              <Ionicons name="search-outline" size={23} color={colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerBrand}>AgroChain</Text>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <UserAvatar user={user} size={28} />
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
+                <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
               </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.locationText}> {locationLabel}</Text>
-          </View>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={() => goToMarketplace(query)}
-              placeholder="Search the marketplace..."
-              placeholderTextColor={colors.secondaryText}
-              returnKeyType="search"
-            />
           </View>
         </LinearGradient>
 
@@ -226,23 +208,24 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     header: {
-      paddingHorizontal: 20,
+      paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 36,
+      paddingBottom: 16,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    greeting: {
-      fontSize: 22,
-      fontWeight: '800',
+    headerBrand: {
+      fontSize: 20,
+      fontWeight: '700',
       color: colors.white,
+      letterSpacing: 0.4,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 4,
     },
     headerIconBtn: {
       width: 38,
@@ -251,32 +234,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(255,255,255,0.20)',
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    locationRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 6,
-    },
-    locationText: {
-      fontSize: 14,
-      color: 'rgba(255,255,255,0.85)',
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      height: 46,
-      paddingHorizontal: 14,
-      marginTop: 16,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.text,
     },
     listItemBannerWrap: {
       paddingHorizontal: 20,

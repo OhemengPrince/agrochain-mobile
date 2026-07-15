@@ -337,6 +337,7 @@ export type MarketplaceStackParamList = {
 export type FarmerStackParamList = {
   FarmerHome: undefined;
   FarmerHomeMain: undefined;
+  GlobalSearch: { query?: string } | undefined;
   FarmerEquipment: { query?: string } | undefined;
   FarmerEquipmentList: { query?: string } | undefined;
   EquipmentDetail: { equipmentId: string };
@@ -366,6 +367,7 @@ export type FarmerStackParamList = {
 export type OwnerStackParamList = {
   OwnerDashboard: undefined;
   OwnerDashboardMain: undefined;
+  GlobalSearch: { query?: string } | undefined;
   OwnerEquipment: undefined;
   OwnerEquipmentList: undefined;
   CreateEquipment: undefined;
@@ -393,6 +395,7 @@ export type OwnerStackParamList = {
 export type BuyerStackParamList = {
   BuyerHome: undefined;
   BuyerHomeMain: undefined;
+  GlobalSearch: { query?: string } | undefined;
   BuyerCatalogue: undefined;
   BuyerCatalogueList: undefined;
   ProduceDetail: { batchId: string };
@@ -418,6 +421,7 @@ export type BuyerStackParamList = {
 export type GeneralStackParamList = {
   GeneralHome: undefined;
   GeneralHomeMain: undefined;
+  GlobalSearch: { query?: string } | undefined;
   GeneralMarket: undefined;
   GeneralList: undefined;
   GeneralBrowse: undefined;

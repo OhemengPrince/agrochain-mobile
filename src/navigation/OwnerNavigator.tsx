@@ -22,6 +22,8 @@ import MarketplaceMyListingsScreen from '../screens/marketplace/MyListingsScreen
 import ChatScreen from '../screens/shared/ChatScreen';
 import ChatRoomsScreen from '../screens/shared/ChatRoomsScreen';
 import MapScreen from '../screens/shared/MapScreen';
+import GlobalSearchScreen from '../screens/shared/GlobalSearchScreen';
+import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
 
 const Tab = createBottomTabNavigator<OwnerStackParamList>();
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -32,6 +34,9 @@ function DashboardStack() {
       <Stack.Screen name="OwnerDashboardMain" component={OwnerDashboardScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -65,6 +70,7 @@ function MarketStack() {
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

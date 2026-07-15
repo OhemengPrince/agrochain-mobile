@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -122,9 +122,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [marketKey, setMarketKey] = useState(0);
-  const [query, setQuery] = useState('');
   const [cropFilter, setCropFilter] = useState<string | null>(null);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const loadBatches = useCallback(async () => {
     setError(null);
@@ -160,28 +158,6 @@ export default function BuyerHomeScreen({ navigation }: Props) {
     }
   };
 
-  const addRecentSearch = (term: string) => {
-    const trimmed = term.trim();
-    if (!trimmed) return;
-    setRecentSearches((prev) => {
-      const next = [trimmed, ...prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase())];
-      return next.slice(0, 5);
-    });
-  };
-
-  const handleSearchSubmit = () => {
-    if (query.trim()) {
-      addRecentSearch(query);
-    }
-    navigation.navigate('BuyerCatalogue');
-  };
-
-  const handleRecentSearchPress = (term: string) => {
-    setQuery(term);
-    addRecentSearch(term);
-    navigation.navigate('BuyerCatalogue');
-  };
-
   const goToScanner = () => {
     const parent = navigation.getParent() as any;
     if (parent) {
@@ -197,16 +173,9 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   };
 
   const filteredBatches = useMemo(() => {
-    let list = batches;
-    if (cropFilter) {
-      list = list.filter((b) => b.cropName.toLowerCase() === cropFilter.toLowerCase());
-    }
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter((b) => b.cropName.toLowerCase().includes(q));
-    }
-    return list;
-  }, [batches, cropFilter, query]);
+    if (!cropFilter) return batches;
+    return batches.filter((b) => b.cropName.toLowerCase() === cropFilter.toLowerCase());
+  }, [batches, cropFilter]);
 
   const featuredBatches = useMemo(() => {
     const ready = filteredBatches.filter((b) => b.status === 'READY_FOR_SALE');
@@ -232,29 +201,18 @@ export default function BuyerHomeScreen({ navigation }: Props) {
           <View>
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
               <View style={styles.headerTopRow}>
-                <Text style={styles.headerTitle}>Find Quality Produce 🌽</Text>
+                <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('GlobalSearch')}>
+                  <Ionicons name="search-outline" size={23} color={colors.white} />
+                </Pressable>
+                <Text style={styles.headerBrand}>AgroChain</Text>
                 <View style={styles.headerActions}>
-                  <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
-                    <Ionicons name="notifications" size={20} color={colors.white} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
-                    <UserAvatar user={user} size={28} />
-                  </TouchableOpacity>
+                  <Pressable style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
+                    <Ionicons name="notifications-outline" size={23} color={colors.white} />
+                  </Pressable>
+                  <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms')}>
+                    <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
+                  </Pressable>
                 </View>
-              </View>
-              <Text style={styles.headerSubtitle}>Verified Ghanaian Farmers</Text>
-
-              <View style={styles.searchBar}>
-                <Ionicons name="search" size={18} color={colors.secondaryText} style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchInput}
-                  value={query}
-                  onChangeText={setQuery}
-                  onSubmitEditing={handleSearchSubmit}
-                  placeholder="Search crops, varieties..."
-                  placeholderTextColor={colors.secondaryText}
-                  returnKeyType="search"
-                />
               </View>
             </LinearGradient>
 
@@ -344,29 +302,6 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               />
             )}
 
-            {recentSearches.length > 0 && (
-              <View style={styles.recentSection}>
-                <Text style={styles.sectionTitle}>Recent Searches</Text>
-                <FlatList
-                  removeClippedSubviews
-                  maxToRenderPerBatch={10}
-                  windowSize={5}
-                  initialNumToRender={5}
-                  data={recentSearches}
-                  horizontal
-                  keyExtractor={(item, index) => `${item}-${index}`}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.recentList}
-                  renderItem={({ item }) => (
-                    <Pressable style={styles.recentChip} onPress={() => handleRecentSearchPress(item)}>
-                      <Ionicons name="time-outline" size={13} color={colors.secondaryText} />
-                      <Text style={styles.recentChipText}>{item}</Text>
-                    </Pressable>
-                  )}
-                />
-              </View>
-            )}
-
             <MarketPricesSection refreshKey={marketKey} />
 
             <MarketNewsFeed
@@ -391,55 +326,32 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 120,
     },
     header: {
-      paddingHorizontal: 20,
+      paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 24,
-      borderBottomLeftRadius: 24,
-      borderBottomRightRadius: 24,
+      paddingBottom: 16,
     },
     headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
+    headerBrand: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.white,
+      letterSpacing: 0.4,
+    },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 4,
     },
     headerIconBtn: {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: 'rgba(255,255,255,0.20)',
+      backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: colors.white,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 4,
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      height: 48,
-      paddingHorizontal: 14,
-      marginTop: 16,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: colors.text,
     },
     scanBannerWrap: {
       marginHorizontal: 14,
@@ -636,29 +548,6 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '800',
       color: colors.primaryGreen,
       marginTop: 6,
-    },
-    recentSection: {
-      marginTop: 22,
-    },
-    recentList: {
-      paddingHorizontal: 14,
-    },
-    recentChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      marginRight: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    recentChipText: {
-      fontSize: 12,
-      color: colors.secondaryText,
-      fontWeight: '600',
     },
   });
 }
