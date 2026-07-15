@@ -293,19 +293,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
                   <Text style={styles.contactName}>{user.fullName}</Text>
                   <Text style={styles.contactRole}>General User</Text>
                 </View>
-                <View style={styles.contactActions}>
-                  <View>
-                    <Pressable style={styles.contactActionCircle} onPress={() => navigation.navigate('ChatRooms' as any)}>
-                      <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
-                    </Pressable>
-                    <View style={{ position: 'absolute', top: -4, right: -4 }}>
-                      <ActiveIndicator size={8} />
-                    </View>
-                  </View>
-                  <Pressable style={styles.contactActionCircle} onPress={() => showComingSoon('Calling')}>
-                    <Ionicons name="call-outline" size={16} color={colors.primaryGreen} />
-                  </Pressable>
-                </View>
               </View>
 
               <View style={styles.specsRow}>
