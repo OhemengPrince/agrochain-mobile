@@ -222,22 +222,6 @@ export default function LoginScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.demoSection}>
-          <Text style={styles.demoLabel}>Quick access:</Text>
-          <View style={styles.demoRow}>
-            {DEMO_ACCOUNTS.map((account) => (
-              <DemoChip
-                key={account.email}
-                label={account.label}
-                disabled={loading}
-                onPress={() => handleDemoLogin(account.role)}
-                styles={styles}
-              />
-            ))}
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -110,7 +110,7 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
 
   return (
     <SafeAreaView style={s.root} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header gradient */}
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={s.header}>
           <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>

@@ -121,7 +121,7 @@ export default function GlobalSearchScreen({ navigation }: { navigation: any }) 
               <View style={s.section}>
                 <View style={s.sectionRow}>
                   <Text style={s.sectionTitle}>Recent Searches</Text>
-                  <Pressable onPress={clearAllRecent}>
+                  <Pressable onPress={clearAllRecent} style={{ marginLeft: 'auto' }}>
                     <Text style={s.clearAll}>Clear all</Text>
                   </Pressable>
                 </View>
@@ -388,7 +388,6 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       fontSize: 13,
       color: colors.primaryGreen,
       fontWeight: '600',
-      marginLeft: 'auto',
     },
     recentRow: {
       flexDirection: 'row',
