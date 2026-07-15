@@ -329,6 +329,9 @@ export default function FarmerHomeScreen({ navigation }: Props) {
               <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
                 <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
               </Pressable>
+              <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
+                <UserAvatar user={user} size={26} />
+              </Pressable>
             </View>
           </View>
         </LinearGradient>
