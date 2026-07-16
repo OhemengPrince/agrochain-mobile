@@ -188,12 +188,7 @@ const c = StyleSheet.create({
 // ── Navigation helper ──────────────────────────────────────────────────────────
 
 function navigateForRole(navigation: any, user: TopRatedUser) {
-  // All marketplace stacks have Chat — use it as the universal contact route
-  navigation.navigate('Chat', {
-    name: user.fullName,
-    role: user.role,
-    otherUserId: user.id,
-  });
+  navigation.navigate('PublicProfile', { userId: user.id });
 }
 
 // ── Main carousel ──────────────────────────────────────────────────────────────

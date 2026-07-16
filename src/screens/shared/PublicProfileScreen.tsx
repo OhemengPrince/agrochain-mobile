@@ -19,6 +19,7 @@ import { cardShadow } from '../../constants/shadows';
 import UserAvatar from '../../components/UserAvatar';
 import EquipmentImage from '../../components/EquipmentImage';
 import { formatCurrency, getCropEmoji } from '../../utils/formatters';
+import { useAuth } from '../../hooks/useAuth';
 
 const ROLE_LABELS: Record<string, string> = {
   FARMER: 'Farmer',
@@ -45,6 +46,7 @@ const ROLE_BIO: Record<string, (name: string, location: string) => string> = {
 export default function PublicProfileScreen({ navigation, route }: { navigation: any; route: any }) {
   const { userId } = route.params as { userId: string };
   const { colors } = useTheme();
+  const { user: currentUser } = useAuth();
   const s = createStyles(colors);
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -140,6 +142,22 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
           )}
 
           <Text style={s.memberText}>Member since {memberSince}</Text>
+
+          {currentUser?.id !== userId && (
+            <Pressable
+              style={s.messageBtn}
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  name: profile.fullName,
+                  role: profile.role,
+                  otherUserId: userId,
+                })
+              }
+            >
+              <Ionicons name="chatbubble-outline" size={16} color="#1A6B2E" />
+              <Text style={s.messageBtnText}>Message</Text>
+            </Pressable>
+          )}
         </LinearGradient>
 
 
@@ -311,6 +329,21 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       color: 'rgba(255,255,255,0.65)',
       marginTop: 6,
+    },
+    messageBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 24,
+      paddingHorizontal: 24,
+      paddingVertical: 11,
+      marginTop: 16,
+    },
+    messageBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#1A6B2E',
     },
     card: {
       backgroundColor: colors.card,
