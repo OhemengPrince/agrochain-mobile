@@ -15,6 +15,8 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { User, Equipment, ProduceBatch } from '../../types';
 import { getPublicProfile } from '../../api/userApi';
 import { searchEquipment } from '../../api/equipmentApi';
+import { getFollowCounts, getFollowStatus } from '../../api/followApi';
+import FollowButton from '../../components/FollowButton';
 import { cardShadow } from '../../constants/shadows';
 import UserAvatar from '../../components/UserAvatar';
 import EquipmentImage from '../../components/EquipmentImage';
@@ -52,6 +54,9 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
   const [profile, setProfile] = useState<User | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -69,6 +74,17 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
             // not critical
           }
         }
+
+        try {
+          const countsRes = await getFollowCounts(userId);
+          setFollowerCount(countsRes.data.followerCount ?? 0);
+          setFollowingCount(countsRes.data.followingCount ?? 0);
+        } catch {}
+
+        try {
+          const statusRes = await getFollowStatus(userId);
+          setIsFollowing(statusRes.data.following ?? false);
+        } catch {}
       } finally {
         setLoading(false);
       }
@@ -142,6 +158,37 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
           )}
 
           <Text style={s.memberText}>Member since {memberSince}</Text>
+
+          {/* Follower / following counts */}
+          <View style={s.countsRow}>
+            <Pressable
+              style={s.countBtn}
+              onPress={() => navigation.navigate('FollowList', { userId, type: 'followers', userName: profile.fullName })}
+            >
+              <Text style={s.countNum}>{followerCount}</Text>
+              <Text style={s.countLabel}>Followers</Text>
+            </Pressable>
+            <View style={s.countSep} />
+            <Pressable
+              style={s.countBtn}
+              onPress={() => navigation.navigate('FollowList', { userId, type: 'following', userName: profile.fullName })}
+            >
+              <Text style={s.countNum}>{followingCount}</Text>
+              <Text style={s.countLabel}>Following</Text>
+            </Pressable>
+          </View>
+
+          {currentUser?.id !== userId && (
+            <View style={{ marginBottom: 6 }}>
+              <FollowButton
+                userId={userId}
+                initialIsFollowing={isFollowing}
+                onFollowChange={(following) =>
+                  setFollowerCount((c) => (following ? c + 1 : Math.max(0, c - 1)))
+                }
+              />
+            </View>
+          )}
 
           {currentUser?.id !== userId && (
             <Pressable
@@ -344,6 +391,31 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '700',
       color: '#1A6B2E',
+    },
+    countsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    countBtn: {
+      alignItems: 'center',
+      paddingHorizontal: 16,
+    },
+    countNum: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    countLabel: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.75)',
+      marginTop: 1,
+    },
+    countSep: {
+      width: 1,
+      height: 28,
+      backgroundColor: 'rgba(255,255,255,0.3)',
     },
     card: {
       backgroundColor: colors.card,

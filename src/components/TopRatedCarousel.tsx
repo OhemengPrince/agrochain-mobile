@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { getTopRatedUsers, getRecentUsers, enrichUsersWithPhotos, TopRatedUser } from '../api/userApi';
+import FollowButton from './FollowButton';
 
 const CARD_WIDTH = 140;
 const CARD_H_MARGIN = 8;
@@ -136,6 +137,10 @@ function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: The
           </Text>
         </View>
       )}
+
+      <View style={{ marginTop: 8 }}>
+        <FollowButton userId={user.id} initialIsFollowing={(user as any).isFollowing} />
+      </View>
     </TouchableOpacity>
   );
 }

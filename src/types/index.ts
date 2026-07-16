@@ -242,7 +242,13 @@ export type NotificationType =
   | 'BOOKING'
   | 'PAYMENT'
   | 'BATCH'
-  | 'SYSTEM';
+  | 'SYSTEM'
+  | 'NEW_EQUIPMENT'
+  | 'NEW_LISTING'
+  | 'NEW_PRODUCE'
+  | 'PRICE_CHANGE'
+  | 'BOOKING_ACCEPTED'
+  | 'NEW_FOLLOWER';
 
 export interface AppNotification {
   id: string;
@@ -250,6 +256,7 @@ export interface AppNotification {
   message: string;
   type: NotificationType;
   isRead: boolean;
+  referenceId?: string;
   createdAt: string;
 }
 
@@ -339,6 +346,7 @@ export type FarmerStackParamList = {
   FarmerHomeMain: undefined;
   GlobalSearch: { query?: string } | undefined;
   PublicProfile: { userId: string };
+  FollowList: { userId: string; type: 'followers' | 'following'; userName: string };
   FarmerEquipment: { query?: string } | undefined;
   FarmerEquipmentList: { query?: string } | undefined;
   EquipmentDetail: { equipmentId: string };
@@ -370,6 +378,7 @@ export type OwnerStackParamList = {
   OwnerDashboardMain: undefined;
   GlobalSearch: { query?: string } | undefined;
   PublicProfile: { userId: string };
+  FollowList: { userId: string; type: 'followers' | 'following'; userName: string };
   OwnerEquipment: undefined;
   OwnerEquipmentList: undefined;
   CreateEquipment: undefined;
@@ -399,6 +408,7 @@ export type BuyerStackParamList = {
   BuyerHomeMain: undefined;
   GlobalSearch: { query?: string } | undefined;
   PublicProfile: { userId: string };
+  FollowList: { userId: string; type: 'followers' | 'following'; userName: string };
   BuyerCatalogue: undefined;
   BuyerCatalogueList: undefined;
   ProduceDetail: { batchId: string };
@@ -426,6 +436,7 @@ export type GeneralStackParamList = {
   GeneralHomeMain: undefined;
   GlobalSearch: { query?: string } | undefined;
   PublicProfile: { userId: string };
+  FollowList: { userId: string; type: 'followers' | 'following'; userName: string };
   GeneralMarket: undefined;
   GeneralList: undefined;
   GeneralBrowse: undefined;

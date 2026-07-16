@@ -13,6 +13,7 @@ import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
+import FollowButton from '../../components/FollowButton';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
@@ -126,6 +127,9 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.ratingSubtext}>(illustrative rating)</Text>
               </View>
             </View>
+          </View>
+          <View style={{ alignItems: 'flex-start', marginTop: 8, marginBottom: 8 }}>
+            <FollowButton userId={batch.farmerId} />
           </View>
           <Animated.View style={{ transform: [{ scale: contactPress.scale }], opacity: contactPress.opacity }}>
             <Pressable

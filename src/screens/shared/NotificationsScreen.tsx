@@ -25,16 +25,31 @@ const TYPE_ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   PAYMENT: 'cash',
   BATCH: 'leaf',
   SYSTEM: 'information-circle',
+  NEW_EQUIPMENT: 'construct-outline',
+  NEW_LISTING: 'storefront-outline',
+  NEW_PRODUCE: 'leaf-outline',
+  PRICE_CHANGE: 'pricetag-outline',
+  BOOKING_ACCEPTED: 'checkmark-circle-outline',
+  NEW_FOLLOWER: 'person-add-outline',
 };
 
 function getTypeColor(type: NotificationType, colors: ThemeColors): string {
   switch (type) {
     case 'BOOKING':
-      return colors.primaryGreen;
+    case 'BOOKING_ACCEPTED':
+      return '#16A34A';
     case 'PAYMENT':
       return '#1565C0';
     case 'BATCH':
-      return colors.accentAmber;
+    case 'NEW_PRODUCE':
+      return colors.primaryGreen;
+    case 'NEW_EQUIPMENT':
+    case 'NEW_FOLLOWER':
+      return '#1565C0';
+    case 'NEW_LISTING':
+      return '#FF8F00';
+    case 'PRICE_CHANGE':
+      return '#7B1FA2';
     case 'SYSTEM':
     default:
       return colors.secondaryText;
@@ -158,7 +173,7 @@ function NotificationRow({ notification, colors, onPress, onDelete }: Notificati
   );
 }
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen({ navigation }: { navigation?: any }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -184,6 +199,13 @@ export default function NotificationsScreen() {
     })();
   }, [loadNotifications]);
 
+  useEffect(() => {
+    const markAll = async () => {
+      try { await markAllRead(); } catch (e) {}
+    };
+    markAll();
+  }, []);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try { await loadNotifications(); } finally { setRefreshing(false); }
@@ -199,14 +221,38 @@ export default function NotificationsScreen() {
   };
 
   const handlePressNotification = async (notification: AppNotification) => {
-    if (notification.isRead) return;
     try {
-      await markAsRead(notification.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-      );
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to mark as read.');
+      if (!notification.isRead) {
+        await markAsRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+        );
+      }
+    } catch {}
+
+    if (notification.referenceId && navigation) {
+      try {
+        switch (notification.type) {
+          case 'NEW_EQUIPMENT':
+          case 'PRICE_CHANGE':
+            navigation.navigate('EquipmentDetail', { equipmentId: notification.referenceId });
+            break;
+          case 'NEW_LISTING':
+            navigation.navigate('MarketplaceListingDetail', { listingId: notification.referenceId });
+            break;
+          case 'NEW_PRODUCE':
+            navigation.navigate('ProduceDetail', { batchId: notification.referenceId });
+            break;
+          case 'BOOKING_ACCEPTED':
+            navigation.navigate('BookingDetail', { bookingId: notification.referenceId });
+            break;
+          case 'NEW_FOLLOWER':
+            navigation.navigate('PublicProfile', { userId: notification.referenceId });
+            break;
+          default:
+            break;
+        }
+      } catch {}
     }
   };
 

@@ -20,6 +20,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import FollowButton from '../../components/FollowButton';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceListingDetail'>;
 
@@ -210,6 +211,10 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
               <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
               <Text style={styles.verifiedBadgeText}>Verified</Text>
             </View>
+          </View>
+
+          <View style={{ alignItems: 'flex-start', marginBottom: 12 }}>
+            <FollowButton userId={listing.sellerId} />
           </View>
 
           <View style={styles.priceRow}>

@@ -1,4 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import apiClient from '../../api/axios';
 import {
   View,
   Text,
@@ -99,6 +101,19 @@ export default function GeneralHomeScreen({ navigation }: Props) {
   const styles = createStyles(colors);
   const [refreshing, setRefreshing] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUnreadCount = async () => {
+        try {
+          const response = await apiClient.get('/notifications');
+          setUnreadCount(response.data.unreadCount ?? 0);
+        } catch (e) {}
+      };
+      fetchUnreadCount();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -155,7 +170,14 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
-                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                <View style={{ position: 'relative' }}>
+                  <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                  {unreadCount > 0 && (
+                    <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                    </View>
+                  )}
+                </View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
                 <Ionicons name="chatbubble-outline" size={21} color={colors.white} />

@@ -17,6 +17,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
+import FollowButton from '../../components/FollowButton';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
 
@@ -384,6 +385,14 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
                 }}
               />
             </View>
+          </View>
+
+          {/* Follow section */}
+          <View style={{ alignItems: 'flex-start', marginBottom: 16 }}>
+            <FollowButton userId={equipment.ownerId} initialIsFollowing={(equipment as any).isFollowing} />
+            <Text style={{ color: '#9CA3AF', fontSize: 11, marginTop: 4 }}>
+              Follow to get notified of new listings
+            </Text>
           </View>
 
           {/* Specs row */}

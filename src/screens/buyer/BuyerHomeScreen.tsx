@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import apiClient from '../../api/axios';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -123,6 +125,19 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [marketKey, setMarketKey] = useState(0);
   const [cropFilter, setCropFilter] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUnreadCount = async () => {
+        try {
+          const response = await apiClient.get('/notifications');
+          setUnreadCount(response.data.unreadCount ?? 0);
+        } catch (e) {}
+      };
+      fetchUnreadCount();
+    }, [])
+  );
 
   const loadBatches = useCallback(async () => {
     setError(null);
@@ -210,7 +225,14 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.headerActions}>
                   <Pressable style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
-                    <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                    <View style={{ position: 'relative' }}>
+                      <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                      {unreadCount > 0 && (
+                        <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
+                          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                        </View>
+                      )}
+                    </View>
                   </Pressable>
                   <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms')}>
                     <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
