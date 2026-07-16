@@ -160,8 +160,8 @@ export default function GeneralHomeScreen({ navigation }: Props) {
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
                 <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <UserAvatar user={user} size={26} />
+              <TouchableOpacity onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
+                <UserAvatar user={user} size={34} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
               </TouchableOpacity>
             </View>
           </View>

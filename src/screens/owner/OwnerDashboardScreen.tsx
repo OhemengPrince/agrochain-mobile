@@ -363,8 +363,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
               <Ionicons name="chatbubble-outline" size={21} color="#FFFFFF" />
             </Pressable>
-            <Pressable style={styles.bellButton} onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
-              <UserAvatar user={user} size={26} />
+            <Pressable onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
+              <UserAvatar user={user} size={34} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
             </Pressable>
           </View>
         </View>
