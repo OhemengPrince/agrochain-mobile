@@ -143,6 +143,14 @@ export default function MapScreen({ navigation, route }: Props) {
     );
   }, [userCoords, updateFollowing]);
 
+  const flyToPin = useCallback(() => {
+    if (!pinCoords) return;
+    updateFollowing(false);
+    mapRef.current?.animateToRegion(
+      { ...pinCoords, latitudeDelta: DELTA_PIN, longitudeDelta: DELTA_PIN }, 600
+    );
+  }, [pinCoords, updateFollowing]);
+
   const toggleLayer = useCallback(() => {
     setMapLayer((prev) => (prev === 'standard' ? 'hybrid' : 'standard'));
   }, []);
@@ -296,6 +304,11 @@ export default function MapScreen({ navigation, route }: Props) {
             showsScale
             onPanDrag={() => updateFollowing(false)}
           >
+            {/* Equipment pin — no title/description so the callout popup never appears */}
+            {pinCoords && (
+              <Marker coordinate={pinCoords} pinColor="#1A6B2E" />
+            )}
+
             {/* Search result pin */}
             {searchCoords && (
               <Marker
@@ -360,6 +373,13 @@ export default function MapScreen({ navigation, route }: Props) {
               />
             </Pressable>
 
+            {/* Fly to equipment pin */}
+            {pinCoords && (
+              <Pressable style={[styles.fab, { backgroundColor: '#fff' }]} onPress={flyToPin}>
+                <Ionicons name="location" size={20} color={colors.primaryGreen} />
+              </Pressable>
+            )}
+
             {/* Satellite / standard toggle */}
             <Pressable
               style={[styles.fab, { backgroundColor: isSatellite ? colors.primaryGreen : '#fff' }]}
@@ -403,6 +423,16 @@ export default function MapScreen({ navigation, route }: Props) {
               <Pressable onPress={() => setRouteVisible(false)} hitSlop={10}>
                 <Ionicons name="close-circle" size={20} color="#9CA3AF" />
               </Pressable>
+            </View>
+          )}
+
+          {/* ── Location badge (hidden when route card is showing) ── */}
+          {!routeVisible && (
+            <View style={[styles.badge, { bottom: insets.bottom + 24 }]}>
+              <Ionicons name="location" size={13} color={colors.primaryGreen} />
+              <Text style={styles.badgeText} numberOfLines={1}>
+                {district}, {region} Region
+              </Text>
             </View>
           )}
 
@@ -529,4 +559,23 @@ const styles = StyleSheet.create({
   routeDistance: { fontSize: 15, fontWeight: '800', color: '#111827' },
   routeDuration: { fontSize: 12, color: '#6B7280', marginTop: 1 },
 
+  // ── Location badge ───────────────────────────────────────
+  badge: {
+    position: 'absolute',
+    left: 16,
+    right: 80,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  badgeText: { fontSize: 13, fontWeight: '500', flex: 1, color: '#111827' },
 });
