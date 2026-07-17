@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, Text, StyleSheet } from 'react-native';
 import { followUser, unfollowUser } from '../api/followApi';
 import { useAuth } from '../hooks/useAuth';
 
@@ -22,41 +22,25 @@ export default function FollowButton({
 
   if (currentUser?.id === userId) return null;
 
-  const doUnfollow = useCallback(async () => {
-    setLoading(true);
-    try {
-      await unfollowUser(userId);
-      setIsFollowing(false);
-      onFollowChange?.(false);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, onFollowChange]);
-
   const handlePress = useCallback(async () => {
     if (loading) return;
-
-    if (isFollowing) {
-      Alert.alert('Unfollow', 'Unfollow this user?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Unfollow', style: 'destructive', onPress: doUnfollow },
-      ]);
-      return;
-    }
-
     setLoading(true);
     try {
-      await followUser(userId);
-      setIsFollowing(true);
-      onFollowChange?.(true);
+      if (isFollowing) {
+        await unfollowUser(userId);
+        setIsFollowing(false);
+        onFollowChange?.(false);
+      } else {
+        await followUser(userId);
+        setIsFollowing(true);
+        onFollowChange?.(true);
+      }
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [loading, isFollowing, userId, onFollowChange, doUnfollow]);
+  }, [loading, isFollowing, userId, onFollowChange]);
 
   const onGreen = variant === 'onGreen';
 

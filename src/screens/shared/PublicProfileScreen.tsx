@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { User, Equipment, ProduceBatch } from '../../types';
+import { User, Equipment } from '../../types';
 import { getPublicProfile } from '../../api/userApi';
 import { searchEquipment } from '../../api/equipmentApi';
 import { getFollowCounts, getFollowStatus } from '../../api/followApi';
@@ -20,7 +20,7 @@ import FollowButton from '../../components/FollowButton';
 import { cardShadow } from '../../constants/shadows';
 import UserAvatar from '../../components/UserAvatar';
 import EquipmentImage from '../../components/EquipmentImage';
-import { formatCurrency, getCropEmoji } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import { useAuth } from '../../hooks/useAuth';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -93,28 +93,28 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
 
   if (loading) {
     return (
-      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-        <View style={s.loadingWrap}>
-          <Pressable style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
+      <SafeAreaView style={s.root} edges={['bottom']}>
+        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={s.headerBg}>
+          <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </Pressable>
-          <ActivityIndicator color={colors.primaryGreen} size="large" style={{ marginTop: 60 }} />
-        </View>
+        </LinearGradient>
+        <ActivityIndicator color={colors.primaryGreen} size="large" style={{ marginTop: 60 }} />
       </SafeAreaView>
     );
   }
 
   if (!profile) {
     return (
-      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-        <View style={s.loadingWrap}>
-          <Pressable style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
+      <SafeAreaView style={s.root} edges={['bottom']}>
+        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={s.headerBg}>
+          <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </Pressable>
-          <View style={s.notFound}>
-            <Ionicons name="person-outline" size={56} color={colors.border} />
-            <Text style={s.notFoundText}>Profile not found</Text>
-          </View>
+        </LinearGradient>
+        <View style={s.notFound}>
+          <Ionicons name="person-outline" size={56} color={colors.border} />
+          <Text style={s.notFoundText}>Profile not found</Text>
         </View>
       </SafeAreaView>
     );
@@ -125,73 +125,79 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
   const specialties = ROLE_SPECIALTIES[profile.role] ?? [];
   const bio = (ROLE_BIO[profile.role] ?? (() => ''))(profile.fullName.split(' ')[0], location);
   const memberSince = new Date(profile.createdAt).getFullYear();
+  const isOwnProfile = currentUser?.id === userId;
 
   return (
     <SafeAreaView style={s.root} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header gradient */}
-        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={s.header}>
+
+        {/* Green header band */}
+        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={s.headerBg}>
           <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>
             <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </Pressable>
+        </LinearGradient>
 
-          <View style={s.avatarWrap}>
-            <UserAvatar user={profile} size={82} />
-            {profile.isVerified && (
-              <View style={s.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#1A6B2E" />
-              </View>
-            )}
+        {/* Avatar straddles header */}
+        <View style={s.avatarWrap}>
+          <View style={s.avatarRing}>
+            <UserAvatar user={profile} size={88} />
           </View>
+          {profile.isVerified && (
+            <View style={s.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={22} color="#1A6B2E" />
+            </View>
+          )}
+        </View>
 
+        {/* Identity */}
+        <View style={s.identitySection}>
           <Text style={s.name}>{profile.fullName}</Text>
-
           <View style={s.rolePill}>
             <Text style={s.rolePillText}>{roleLabel}</Text>
           </View>
-
-          {location && (
+          {location ? (
             <View style={s.locationRow}>
-              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+              <Ionicons name="location-outline" size={13} color={colors.secondaryText} />
               <Text style={s.locationText}> {location}</Text>
             </View>
-          )}
-
+          ) : null}
           <Text style={s.memberText}>Member since {memberSince}</Text>
+        </View>
 
-          {/* Follower / following counts */}
-          <View style={s.countsRow}>
-            <Pressable
-              style={s.countBtn}
-              onPress={() => navigation.navigate('FollowList', { userId, type: 'followers', userName: profile.fullName })}
-            >
-              <Text style={s.countNum}>{followerCount}</Text>
-              <Text style={s.countLabel}>Followers</Text>
-            </Pressable>
-            <View style={s.countSep} />
-            <Pressable
-              style={s.countBtn}
-              onPress={() => navigation.navigate('FollowList', { userId, type: 'following', userName: profile.fullName })}
-            >
-              <Text style={s.countNum}>{followingCount}</Text>
-              <Text style={s.countLabel}>Following</Text>
-            </Pressable>
-          </View>
+        {/* Stats */}
+        <View style={[s.statsCard, cardShadow]}>
+          <Pressable
+            style={s.statBtn}
+            onPress={() =>
+              navigation.navigate('FollowList', { userId, type: 'followers', userName: profile.fullName })
+            }
+          >
+            <Text style={s.statNum}>{followerCount}</Text>
+            <Text style={s.statLabel}>Followers</Text>
+          </Pressable>
+          <View style={s.statDivider} />
+          <Pressable
+            style={s.statBtn}
+            onPress={() =>
+              navigation.navigate('FollowList', { userId, type: 'following', userName: profile.fullName })
+            }
+          >
+            <Text style={s.statNum}>{followingCount}</Text>
+            <Text style={s.statLabel}>Following</Text>
+          </Pressable>
+        </View>
 
-          {currentUser?.id !== userId && (
-            <View style={{ marginBottom: 6 }}>
-              <FollowButton
-                userId={userId}
-                initialIsFollowing={isFollowing}
-                variant="onGreen"
-                onFollowChange={(following) =>
-                  setFollowerCount((c) => (following ? c + 1 : Math.max(0, c - 1)))
-                }
-              />
-            </View>
-          )}
-
-          {currentUser?.id !== userId && (
+        {/* Action buttons */}
+        {!isOwnProfile && (
+          <View style={s.actionRow}>
+            <FollowButton
+              userId={userId}
+              initialIsFollowing={isFollowing}
+              onFollowChange={(following) =>
+                setFollowerCount((c) => (following ? c + 1 : Math.max(0, c - 1)))
+              }
+            />
             <Pressable
               style={s.messageBtn}
               onPress={() =>
@@ -202,12 +208,11 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
                 })
               }
             >
-              <Ionicons name="chatbubble-outline" size={16} color="#1A6B2E" />
+              <Ionicons name="chatbubble-outline" size={15} color="#1A6B2E" />
               <Text style={s.messageBtnText}>Message</Text>
             </Pressable>
-          )}
-        </LinearGradient>
-
+          </View>
+        )}
 
         {/* About */}
         <View style={s.card}>
@@ -265,7 +270,12 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
                 size={15}
                 color={profile.isVerified ? colors.primaryGreen : colors.secondaryText}
               />
-              <Text style={[s.infoValue, { color: profile.isVerified ? colors.primaryGreen : colors.secondaryText }]}>
+              <Text
+                style={[
+                  s.infoValue,
+                  { color: profile.isVerified ? colors.primaryGreen : colors.secondaryText },
+                ]}
+              >
                 {profile.isVerified ? 'Verified' : 'Unverified'}
               </Text>
             </View>
@@ -290,17 +300,32 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
                 style={s.equipRow}
                 onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
               >
-                <EquipmentImage category={item.category} imageUrl={item.imageUrl} style={s.equipThumb} resizeMode="cover" />
+                <EquipmentImage
+                  category={item.category}
+                  imageUrl={item.imageUrl}
+                  style={s.equipThumb}
+                  resizeMode="cover"
+                />
                 <View style={s.equipBody}>
-                  <Text style={s.equipName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={s.equipName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
                   <Text style={s.equipPrice}>{formatCurrency(item.dailyRate)}/day</Text>
-                  <Text style={s.equipLocation} numberOfLines={1}>{item.district}, {item.region}</Text>
+                  <Text style={s.equipLocation} numberOfLines={1}>
+                    {item.district}, {item.region}
+                  </Text>
                 </View>
-                <View style={[s.availDot, { backgroundColor: item.isAvailable ? colors.primaryGreen : '#EF4444' }]} />
+                <View
+                  style={[
+                    s.availDot,
+                    { backgroundColor: item.isAvailable ? colors.primaryGreen : '#EF4444' },
+                  ]}
+                />
               </Pressable>
             ))}
           </View>
         )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -312,21 +337,13 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    loadingWrap: {
-      flex: 1,
-    },
-    header: {
+    headerBg: {
+      height: 140,
       paddingTop: 56,
-      paddingBottom: 28,
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      borderBottomLeftRadius: 28,
-      borderBottomRightRadius: 28,
+      paddingHorizontal: 16,
+      justifyContent: 'flex-start',
     },
     backBtn: {
-      position: 'absolute',
-      top: 56,
-      left: 16,
       width: 38,
       height: 38,
       borderRadius: 19,
@@ -335,88 +352,117 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     avatarWrap: {
-      position: 'relative',
-      marginBottom: 12,
-      marginTop: 8,
+      alignSelf: 'center',
+      marginTop: -48,
+      width: 96,
+      height: 96,
+    },
+    avatarRing: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     verifiedBadge: {
       position: 'absolute',
-      bottom: 0,
-      right: 0,
-      backgroundColor: '#fff',
-      borderRadius: 10,
+      bottom: 2,
+      right: 2,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 1,
+      zIndex: 1,
+    },
+    identitySection: {
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      marginTop: 10,
+      gap: 4,
     },
     name: {
       fontSize: 22,
       fontWeight: '800',
-      color: '#FFFFFF',
+      color: colors.text,
       textAlign: 'center',
     },
     rolePill: {
-      backgroundColor: 'rgba(255,255,255,0.22)',
+      backgroundColor: 'rgba(26,107,46,0.1)',
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 5,
-      marginTop: 8,
+      marginTop: 2,
     },
     rolePillText: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: '#1A6B2E',
     },
     locationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 8,
+      marginTop: 4,
     },
     locationText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.85)',
+      color: colors.secondaryText,
     },
     memberText: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.65)',
-      marginTop: 6,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    statsCard: {
+      flexDirection: 'row',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      marginHorizontal: 16,
+      marginTop: 18,
+      paddingVertical: 14,
+    },
+    statBtn: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 2,
+    },
+    statNum: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.secondaryText,
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: colors.border,
+      marginVertical: 4,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 16,
+      marginTop: 14,
     },
     messageBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 7,
-      backgroundColor: '#FFFFFF',
-      borderRadius: 24,
-      paddingHorizontal: 24,
-      paddingVertical: 11,
-      marginTop: 16,
+      gap: 6,
+      borderWidth: 1.5,
+      borderColor: '#1A6B2E',
+      borderRadius: 20,
+      paddingHorizontal: 20,
+      paddingVertical: 6,
+      justifyContent: 'center',
+      minWidth: 110,
     },
     messageBtnText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
       color: '#1A6B2E',
-    },
-    countsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 12,
-      marginBottom: 4,
-    },
-    countBtn: {
-      alignItems: 'center',
-      paddingHorizontal: 16,
-    },
-    countNum: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-    countLabel: {
-      fontSize: 11,
-      color: 'rgba(255,255,255,0.75)',
-      marginTop: 1,
-    },
-    countSep: {
-      width: 1,
-      height: 28,
-      backgroundColor: 'rgba(255,255,255,0.3)',
     },
     card: {
       backgroundColor: colors.card,
@@ -486,7 +532,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.border,
     },
     notFound: {
-      flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 12,
