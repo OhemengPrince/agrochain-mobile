@@ -371,6 +371,8 @@ export type FarmerStackParamList = {
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
+  Withdrawal: undefined;
+  TransactionHistory: undefined;
 };
 
 export type OwnerStackParamList = {
@@ -401,6 +403,8 @@ export type OwnerStackParamList = {
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
+  Withdrawal: undefined;
+  TransactionHistory: undefined;
 };
 
 export type BuyerStackParamList = {
@@ -429,6 +433,8 @@ export type BuyerStackParamList = {
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
+  Withdrawal: undefined;
+  TransactionHistory: undefined;
 };
 
 export type GeneralStackParamList = {
@@ -454,4 +460,6 @@ export type GeneralStackParamList = {
   Chat: { name: string; role?: string; otherUserId?: string };
   ChatRooms: undefined;
   Map: MapRouteParams;
+  Withdrawal: undefined;
+  TransactionHistory: undefined;
 };

@@ -15,6 +15,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -35,6 +36,7 @@ import UserAvatar from '../../components/UserAvatar';
 import FloatToast from '../../components/FloatToast';
 import { uploadImage } from '../../api/fileApi';
 import { updatePhotoUrl } from '../../api/userApi';
+import { getEarnings, EarningsSummary } from '../../api/earningsApi';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -123,6 +125,13 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const [aboutText, setAboutText] = useState(BIO_TEXT);
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      getEarnings().then(r => setEarnings(r.data)).catch(() => {});
+    }, [])
+  );
 
   const loadData = useCallback(async () => {
     const [bookingsData, batchesData] = await Promise.all([getMyBookings(), getMyBatches()]);
@@ -370,6 +379,60 @@ export default function FarmerProfileScreen({ navigation }: Props) {
         )}
 
         {activeTab === 'Activity' && (
+          <>
+          {/* Earnings Card */}
+          <View style={styles.premiumCardWrap}>
+            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
+              <View style={styles.premiumHeaderRow}>
+                <View style={styles.premiumIconCircle}>
+                  <Ionicons name="cash-outline" size={18} color={colors.primaryGreen} />
+                </View>
+                <Text style={styles.premiumHeaderText}>My Earnings</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('TransactionHistory')} style={styles.seeAllWrap}>
+                  <Text style={styles.seeAllText}>View All →</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.earningsBalanceRow}>
+                <View style={styles.earningsPendingBox}>
+                  <Text style={styles.earningsPendingLabel}>⏳ Pending</Text>
+                  <Text style={styles.earningsPendingValue}>GHS {(earnings?.pendingBalance ?? 0).toFixed(2)}</Text>
+                  <Text style={styles.earningsSubLabel}>awaiting delivery</Text>
+                </View>
+                <View style={styles.earningsAvailBox}>
+                  <Text style={styles.earningsAvailLabel}>✅ Available</Text>
+                  <Text style={styles.earningsAvailValue}>GHS {(earnings?.availableBalance ?? 0).toFixed(2)}</Text>
+                  <Text style={styles.earningsSubLabel}>ready to withdraw</Text>
+                </View>
+              </View>
+              <View style={styles.earningsSummary}>
+                <View style={styles.earningsSummaryRow}>
+                  <Text style={styles.earningsSummaryKey}>Total Earned</Text>
+                  <Text style={styles.earningsSummaryVal}>GHS {(earnings?.totalEarned ?? 0).toFixed(2)}</Text>
+                </View>
+                <View style={styles.earningsSummaryRow}>
+                  <Text style={styles.earningsSummaryKey}>AgroChain Fee</Text>
+                  <Text style={[styles.earningsSummaryVal, { color: '#DC2626' }]}>-GHS {(earnings?.totalAgrochainFee ?? 0).toFixed(2)}</Text>
+                </View>
+                <View style={styles.earningsSummaryRow}>
+                  <Text style={styles.earningsSummaryKey}>Total Withdrawn</Text>
+                  <Text style={styles.earningsSummaryVal}>GHS {(earnings?.totalWithdrawn ?? 0).toFixed(2)}</Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => navigation.navigate('Withdrawal')}
+                disabled={(earnings?.availableBalance ?? 0) < 10}
+                style={[styles.withdrawBtn, (earnings?.availableBalance ?? 0) < 10 && styles.withdrawBtnDisabled]}
+              >
+                <Text style={[styles.withdrawBtnText, (earnings?.availableBalance ?? 0) < 10 && styles.withdrawBtnTextDisabled]}>
+                  Withdraw Funds
+                </Text>
+              </Pressable>
+              {(earnings?.availableBalance ?? 0) < 10 && (
+                <Text style={styles.withdrawMinText}>Minimum withdrawal: GHS 10.00</Text>
+              )}
+            </LinearGradient>
+          </View>
+
           <View style={styles.premiumCardWrap}>
             <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
               <View style={styles.premiumHeaderRow}>
@@ -406,6 +469,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
               </View>
             </LinearGradient>
           </View>
+          </>
         )}
 
         {activeTab === 'Reviews' && (
@@ -1137,5 +1201,52 @@ function createStyles(colors: ThemeColors) {
       fontSize: 15,
       fontWeight: '700',
     },
+    earningsBalanceRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 14,
+    },
+    earningsPendingBox: {
+      flex: 1,
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: '#FFF9E6',
+      borderRadius: 12,
+    },
+    earningsAvailBox: {
+      flex: 1,
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: '#E8F5E9',
+      borderRadius: 12,
+    },
+    earningsPendingLabel: { color: '#FF8F00', fontSize: 11, marginBottom: 4 },
+    earningsPendingValue: { color: '#FF8F00', fontSize: 18, fontWeight: '700' },
+    earningsAvailLabel: { color: '#1A6B2E', fontSize: 11, marginBottom: 4 },
+    earningsAvailValue: { color: '#1A6B2E', fontSize: 18, fontWeight: '700' },
+    earningsSubLabel: { color: '#9CA3AF', fontSize: 10, marginTop: 2 },
+    earningsSummary: {
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      paddingTop: 12,
+      marginBottom: 14,
+    },
+    earningsSummaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    earningsSummaryKey: { fontSize: 12, color: colors.secondaryText },
+    earningsSummaryVal: { fontSize: 12, fontWeight: '600', color: colors.text },
+    withdrawBtn: {
+      backgroundColor: '#1A6B2E',
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+    },
+    withdrawBtnDisabled: { backgroundColor: '#E5E7EB' },
+    withdrawBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+    withdrawBtnTextDisabled: { color: '#9CA3AF' },
+    withdrawMinText: { color: '#9CA3AF', fontSize: 11, textAlign: 'center', marginTop: 6 },
   });
 }

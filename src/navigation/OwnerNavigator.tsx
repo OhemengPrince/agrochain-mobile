@@ -26,6 +26,8 @@ import GlobalSearchScreen from '../screens/shared/GlobalSearchScreen';
 import PublicProfileScreen from '../screens/shared/PublicProfileScreen';
 import FollowListScreen from '../screens/shared/FollowListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
+import WithdrawalScreen from '../screens/shared/WithdrawalScreen';
+import TransactionHistoryScreen from '../screens/shared/TransactionHistoryScreen';
 
 const Tab = createBottomTabNavigator<OwnerStackParamList>();
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -86,6 +88,8 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerProfileMain" component={OwnerProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Withdrawal" component={WithdrawalScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
