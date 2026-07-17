@@ -183,6 +183,7 @@ export default function PublicProfileScreen({ navigation, route }: { navigation:
               <FollowButton
                 userId={userId}
                 initialIsFollowing={isFollowing}
+                variant="onGreen"
                 onFollowChange={(following) =>
                   setFollowerCount((c) => (following ? c + 1 : Math.max(0, c - 1)))
                 }
