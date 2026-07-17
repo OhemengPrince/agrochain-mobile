@@ -464,11 +464,6 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
           <Text style={styles.confirmKey}>Subtotal</Text>
           <Text style={styles.confirmVal}>{formatCurrency(subtotal)}</Text>
         </View>
-        <View style={styles.confirmRow}>
-          <Ionicons name="pricetag-outline" size={16} color={colors.secondaryText} />
-          <Text style={styles.confirmKey}>AgroChain Fee (5%)</Text>
-          <Text style={styles.confirmVal}>{formatCurrency(fee)}</Text>
-        </View>
         <View style={[styles.confirmDivider, { backgroundColor: colors.divider }]} />
         <View style={styles.confirmRow}>
           <Ionicons name="wallet-outline" size={16} color={colors.primaryGreen} />
