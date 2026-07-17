@@ -264,6 +264,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
   // ── Step 2: Payment method ──────────────────────────────────────────────
   const [payMethod, setPayMethod] = useState<'MOMO' | 'BANK'>('MOMO');
   const [selectedNetwork, setSelectedNetwork] = useState('MTN');
+  const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedBank, setSelectedBank] = useState<typeof GHANA_BANKS[0] | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
@@ -393,20 +394,45 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
         {payMethod === 'MOMO' ? (
           <View>
             <Text style={styles.fieldLabel}>Select Network</Text>
-            {NETWORKS.map(net => (
-              <TouchableOpacity
-                key={net.id}
-                style={[styles.networkRow, selectedNetwork === net.id && styles.networkRowActive]}
-                onPress={() => setSelectedNetwork(net.id)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.networkDot, { backgroundColor: net.color }]} />
-                <Text style={styles.networkLabel}>{net.label}</Text>
-                <View style={[styles.radio, selectedNetwork === net.id && styles.radioActive]}>
-                  {selectedNetwork === net.id && <View style={styles.radioInner} />}
+            {(() => {
+              const activeNet = NETWORKS.find(n => n.id === selectedNetwork) ?? NETWORKS[0];
+              return (
+                <View>
+                  <TouchableOpacity
+                    style={styles.networkCard}
+                    onPress={() => setShowNetworkDropdown(v => !v)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.networkBadge, { backgroundColor: activeNet.color }]}>
+                      <Text style={styles.networkBadgeText}>{activeNet.id.charAt(0)}</Text>
+                    </View>
+                    <Text style={styles.networkCardLabel}>{activeNet.label}</Text>
+                    <Ionicons
+                      name={showNetworkDropdown ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={colors.secondaryText}
+                    />
+                  </TouchableOpacity>
+                  {showNetworkDropdown && (
+                    <View style={styles.networkDropdown}>
+                      {NETWORKS.filter(n => n.id !== selectedNetwork).map(net => (
+                        <TouchableOpacity
+                          key={net.id}
+                          style={styles.networkDropdownItem}
+                          onPress={() => { setSelectedNetwork(net.id); setShowNetworkDropdown(false); }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.networkBadge, { backgroundColor: net.color }]}>
+                            <Text style={styles.networkBadgeText}>{net.id.charAt(0)}</Text>
+                          </View>
+                          <Text style={styles.networkDropdownLabel}>{net.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
-              </TouchableOpacity>
-            ))}
+              );
+            })()}
             <Text style={styles.fieldLabel}>Phone Number</Text>
             <View style={styles.inputWrap}>
               <Ionicons name="call-outline" size={18} color={colors.secondaryText} style={{ marginRight: 8 }} />
@@ -732,13 +758,13 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
 
     // MoMo
     fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.secondaryText, marginBottom: 8, marginTop: 4 },
-    networkRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: colors.divider },
-    networkRowActive: { borderColor: colors.primaryGreen, backgroundColor: colors.lightGreen },
-    networkDot: { width: 12, height: 12, borderRadius: 6, marginRight: 10 },
-    networkLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
-    radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.divider, alignItems: 'center', justifyContent: 'center' },
-    radioActive: { borderColor: colors.primaryGreen },
-    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primaryGreen },
+    networkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 4, borderWidth: 1.5, borderColor: colors.primaryGreen },
+    networkBadge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    networkBadgeText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    networkCardLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
+    networkDropdown: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1.5, borderColor: colors.divider, marginBottom: 10, overflow: 'hidden' },
+    networkDropdownItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: colors.divider },
+    networkDropdownLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
 
     // Input
     inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.inputBackground, borderRadius: 14, paddingHorizontal: 14, height: 52, marginBottom: 12 },
