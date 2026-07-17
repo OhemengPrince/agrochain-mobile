@@ -387,12 +387,10 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
             </View>
           </View>
 
-          {/* Follow section */}
-          <View style={{ alignItems: 'flex-start', marginBottom: 16 }}>
+          {/* Follow strip */}
+          <View style={styles.followStrip}>
             <FollowButton userId={equipment.ownerId} initialIsFollowing={(equipment as any).isFollowing} />
-            <Text style={{ color: '#9CA3AF', fontSize: 11, marginTop: 4 }}>
-              Follow to get notified of new listings
-            </Text>
+            <Text style={styles.followHint}>Follow to get notified of new listings</Text>
           </View>
 
           {/* Specs row */}
@@ -627,6 +625,24 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     verifiedText: { fontSize: 12, color: colors.primaryGreen },
     ownerActions: { flexDirection: 'row', alignItems: 'center' },
 
+    // ── Follow strip ─────────────────────────────────────────
+    followStrip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginTop: 10,
+      marginBottom: 6,
+    },
+    followHint: {
+      flex: 1,
+      fontSize: 12,
+      color: colors.secondaryText,
+    },
+
     // ── Specs ────────────────────────────────────────────────
     specsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
     specBox: { flex: 1, borderRadius: 14, backgroundColor: colors.inputBackground, paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center' },
@@ -639,9 +655,9 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     // ── Location ─────────────────────────────────────────────
     locationCard: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginTop: 16, borderWidth: 1, borderColor: colors.divider },
     locationTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    locationLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    locationText: { fontSize: 14, fontWeight: '700', color: colors.text },
-    viewMapRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    locationLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexShrink: 1, marginRight: 10 },
+    locationText: { fontSize: 14, fontWeight: '700', color: colors.text, flexShrink: 1 },
+    viewMapRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     viewMapText: { fontSize: 12, color: colors.primaryGreen, fontWeight: '600' },
     distanceText: { fontSize: 12, color: colors.secondaryText, marginTop: 6 },
 
