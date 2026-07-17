@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  Platform,
   Alert,
 } from 'react-native';
 import MapView, { Marker, Region, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -33,7 +32,8 @@ interface Coords {
 }
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
-const DELTA = 0.08; // ~8 km viewport
+const DELTA_USER = 0.012; // ~1.2 km — tight zoom when following
+const DELTA_PIN  = 0.08;  // ~8 km  — wider view for equipment pin
 
 export default function MapScreen({ navigation, route }: Props) {
   const { title, subtitle, district, region } = route.params;
@@ -43,19 +43,70 @@ export default function MapScreen({ navigation, route }: Props) {
 
   const [pinCoords, setPinCoords] = useState<Coords | null>(null);
   const [userCoords, setUserCoords] = useState<Coords | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [isFollowing, setIsFollowing] = useState(true);
 
-  // Geocode district + region via Nominatim (no API key required)
+  // Refs so the watchPosition callback always sees current values without stale closure
+  const isFollowingRef = useRef(true);
+  const watchRef = useRef<Location.LocationSubscription | null>(null);
+  const firstFixDone = useRef(false);
+
+  // ── Live GPS tracking ─────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
-    const geocode = async () => {
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled || status !== 'granted') return;
+
+      watchRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,     // update at most every second
+          distanceInterval: 3,    // or every 3 metres of movement
+        },
+        (pos) => {
+          if (cancelled) return;
+          const coords: Coords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setUserCoords(coords);
+
+          if (!firstFixDone.current) {
+            // First fix → immediately fly to user with close zoom
+            firstFixDone.current = true;
+            mapRef.current?.animateToRegion(
+              { ...coords, latitudeDelta: DELTA_USER, longitudeDelta: DELTA_USER },
+              800
+            );
+          } else if (isFollowingRef.current) {
+            // Subsequent fixes → smoothly pan to keep user centred
+            mapRef.current?.animateToRegion(
+              { ...coords, latitudeDelta: DELTA_USER, longitudeDelta: DELTA_USER },
+              500
+            );
+          }
+        }
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+      watchRef.current?.remove();
+    };
+  }, []);
+
+  // ── Geocode equipment location for the pin marker ─────────
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
       try {
         const query = encodeURIComponent(`${district}, ${region}, Ghana`);
-        const res = await fetch(
-          `${NOMINATIM}?q=${query}&format=json&limit=1`,
-          { headers: { 'User-Agent': 'AgroChain-Mobile/1.0' } }
-        );
+        const res = await fetch(`${NOMINATIM}?q=${query}&format=json&limit=1`, {
+          headers: { 'User-Agent': 'AgroChain-Mobile/1.0' },
+        });
         const data = await res.json();
         if (cancelled) return;
         if (data && data.length > 0) {
@@ -64,56 +115,54 @@ export default function MapScreen({ navigation, route }: Props) {
             longitude: parseFloat(data[0].lon),
           });
         } else {
-          setError(`Could not find "${district}, ${region}" on the map.`);
+          setGeoError(`Could not locate "${district}, ${region}" on the map.`);
         }
       } catch {
-        if (!cancelled) setError('Map unavailable. Check your internet connection.');
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setGeoError('Map unavailable. Check your internet connection.');
       }
-    };
-    geocode();
+    })();
+
     return () => { cancelled = true; };
   }, [district, region]);
 
-  // Request location permission and get user's GPS position
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      try {
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setUserCoords({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-      } catch {
-        // silent — user location is optional
-      }
-    })();
+  // ── Helpers ───────────────────────────────────────────────
+  const updateFollowing = useCallback((val: boolean) => {
+    isFollowingRef.current = val;
+    setIsFollowing(val);
   }, []);
 
+  // Navigate FAB: re-enable following and snap back to user
   const flyToUser = useCallback(() => {
     if (!userCoords) {
-      Alert.alert('Location', 'Your GPS location is not available yet.');
+      Alert.alert('Location', 'Still acquiring your GPS position…');
       return;
     }
+    updateFollowing(true);
     mapRef.current?.animateToRegion(
-      { ...userCoords, latitudeDelta: DELTA, longitudeDelta: DELTA },
+      { ...userCoords, latitudeDelta: DELTA_USER, longitudeDelta: DELTA_USER },
       600
     );
-  }, [userCoords]);
+  }, [userCoords, updateFollowing]);
 
+  // Pin FAB: stop following and show equipment location
   const flyToPin = useCallback(() => {
     if (!pinCoords) return;
+    updateFollowing(false);
     mapRef.current?.animateToRegion(
-      { ...pinCoords, latitudeDelta: DELTA, longitudeDelta: DELTA },
+      { ...pinCoords, latitudeDelta: DELTA_PIN, longitudeDelta: DELTA_PIN },
       600
     );
-  }, [pinCoords]);
+  }, [pinCoords, updateFollowing]);
 
-  const initialRegion: Region | undefined = pinCoords
-    ? { ...pinCoords, latitudeDelta: DELTA, longitudeDelta: DELTA }
+  // Display states
+  const loading = !pinCoords && !userCoords;
+  const showError = !!geoError && !pinCoords && !userCoords;
+
+  // initialRegion: prefer user location so map opens on you, not the pin
+  const initialRegion: Region | undefined = userCoords
+    ? { ...userCoords, latitudeDelta: DELTA_USER, longitudeDelta: DELTA_USER }
+    : pinCoords
+    ? { ...pinCoords, latitudeDelta: DELTA_PIN, longitudeDelta: DELTA_PIN }
     : undefined;
 
   return (
@@ -135,21 +184,31 @@ export default function MapScreen({ navigation, route }: Props) {
             </Text>
           </View>
         </View>
+        {/* Live indicator pill — shows when we have GPS */}
+        {userCoords && (
+          <View style={styles.livePill}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+        )}
       </LinearGradient>
 
-      {/* Map or States */}
+      {/* Content */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primaryGreen} />
           <Text style={[styles.statusText, { color: colors.secondaryText }]}>
-            Locating on map…
+            Getting your location…
           </Text>
         </View>
-      ) : error ? (
+      ) : showError ? (
         <View style={styles.center}>
           <Ionicons name="map-outline" size={48} color={colors.secondaryText} />
-          <Text style={[styles.errorText, { color: colors.secondaryText }]}>{error}</Text>
-          <Pressable onPress={() => navigation.goBack()} style={[styles.retryBtn, { backgroundColor: colors.primaryGreen }]}>
+          <Text style={[styles.errorText, { color: colors.secondaryText }]}>{geoError}</Text>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={[styles.retryBtn, { backgroundColor: colors.primaryGreen }]}
+          >
             <Text style={styles.retryBtnText}>Go Back</Text>
           </Pressable>
         </View>
@@ -160,10 +219,11 @@ export default function MapScreen({ navigation, route }: Props) {
             style={StyleSheet.absoluteFill}
             provider={PROVIDER_DEFAULT}
             initialRegion={initialRegion}
-            showsUserLocation={!!userCoords}
+            showsUserLocation={true}
             showsMyLocationButton={false}
             showsCompass
             showsScale
+            onPanDrag={() => updateFollowing(false)}
           >
             {pinCoords && (
               <Marker
@@ -175,22 +235,35 @@ export default function MapScreen({ navigation, route }: Props) {
             )}
           </MapView>
 
-          {/* FAB — fly to pin */}
+          {/* FABs — right side */}
           <View style={[styles.fabs, { bottom: insets.bottom + 24 }]}>
-            {userCoords && (
-              <Pressable style={[styles.fab, { backgroundColor: '#fff' }]} onPress={flyToUser}>
-                <Ionicons name="navigate" size={20} color={colors.primaryGreen} />
+            {/* Navigate / follow-me FAB — filled green when following, white when not */}
+            <Pressable
+              style={[
+                styles.fab,
+                { backgroundColor: isFollowing ? colors.primaryGreen : '#fff' },
+              ]}
+              onPress={flyToUser}
+            >
+              <Ionicons
+                name={isFollowing ? 'navigate' : 'navigate-outline'}
+                size={20}
+                color={isFollowing ? '#fff' : colors.primaryGreen}
+              />
+            </Pressable>
+
+            {/* Fly-to-pin FAB — only shown when we have pin coords */}
+            {pinCoords && (
+              <Pressable style={[styles.fab, { backgroundColor: '#fff' }]} onPress={flyToPin}>
+                <Ionicons name="location" size={20} color={colors.primaryGreen} />
               </Pressable>
             )}
-            <Pressable style={[styles.fab, { backgroundColor: colors.primaryGreen }]} onPress={flyToPin}>
-              <Ionicons name="location" size={20} color="#fff" />
-            </Pressable>
           </View>
 
-          {/* Location badge */}
+          {/* Location label badge */}
           <View style={[styles.badge, { bottom: insets.bottom + 90 }]}>
             <Ionicons name="location" size={13} color={colors.primaryGreen} />
-            <Text style={[styles.badgeText, { color: colors.text }]}>
+            <Text style={[styles.badgeText, { color: colors.text }]} numberOfLines={1}>
               {district}, {region} Region
             </Text>
           </View>
@@ -202,6 +275,8 @@ export default function MapScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
+
+  // ── Header ──────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -214,11 +289,36 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   headerLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   headerSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+  },
+  liveText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  // ── Loading / Error ─────────────────────────────────────────
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   statusText: { fontSize: 14, marginTop: 8 },
   errorText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, marginTop: 8 },
   retryBtnText: { color: '#fff', fontWeight: '600' },
+
+  // ── FABs ────────────────────────────────────────────────────
   fabs: {
     position: 'absolute',
     right: 16,
@@ -237,6 +337,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
+
+  // ── Location badge ──────────────────────────────────────────
   badge: {
     position: 'absolute',
     left: 16,
