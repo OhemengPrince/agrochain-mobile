@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, TextInput,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Animated,
   Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -136,11 +136,31 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
   const [selectedNetwork, setSelectedNetwork] = useState('MTN');
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneInputFocused, setPhoneInputFocused] = useState(false);
   const [selectedBank, setSelectedBank] = useState<typeof GHANA_BANKS[0] | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [verifyingBank, setVerifyingBank] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
+
+  const networkScaleAnim = useRef(new Animated.Value(1)).current;
+  const phoneScaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(networkScaleAnim, {
+      toValue: showNetworkDropdown ? 1.025 : 1,
+      useNativeDriver: true, tension: 280, friction: 14,
+    }).start();
+  }, [showNetworkDropdown]);
+
+  const handlePhoneFocus = () => {
+    setPhoneInputFocused(true);
+    Animated.spring(phoneScaleAnim, { toValue: 1.025, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
+  const handlePhoneBlur = () => {
+    setPhoneInputFocused(false);
+    Animated.spring(phoneScaleAnim, { toValue: 1, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
 
   const subtotal = price * quantity;
   const fee = subtotal * FEE_RATE;
@@ -281,11 +301,14 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
             {(() => {
               const activeNet = NETWORKS.find(n => n.id === selectedNetwork) ?? NETWORKS[0];
               return (
-                <View>
+                <Animated.View style={{ transform: [{ scale: networkScaleAnim }] }}>
                   <TouchableOpacity
-                    style={styles.networkCard}
+                    style={[
+                      styles.networkCard,
+                      showNetworkDropdown && { borderColor: colors.primaryGreen, borderWidth: 2 },
+                    ]}
                     onPress={() => setShowNetworkDropdown(v => !v)}
-                    activeOpacity={0.85}
+                    activeOpacity={0.9}
                   >
                     <View style={[styles.networkBadge, { backgroundColor: activeNet.color }]}>
                       <Text style={styles.networkBadgeText}>{activeNet.id.charAt(0)}</Text>
@@ -294,15 +317,18 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
                     <Ionicons
                       name={showNetworkDropdown ? 'chevron-up' : 'chevron-down'}
                       size={18}
-                      color={colors.secondaryText}
+                      color={showNetworkDropdown ? colors.primaryGreen : colors.secondaryText}
                     />
                   </TouchableOpacity>
                   {showNetworkDropdown && (
                     <View style={styles.networkDropdown}>
-                      {NETWORKS.filter(n => n.id !== selectedNetwork).map(net => (
+                      {NETWORKS.filter(n => n.id !== selectedNetwork).map((net, idx, arr) => (
                         <TouchableOpacity
                           key={net.id}
-                          style={styles.networkDropdownItem}
+                          style={[
+                            styles.networkDropdownItem,
+                            idx === arr.length - 1 && { borderBottomWidth: 0 },
+                          ]}
                           onPress={() => { setSelectedNetwork(net.id); setShowNetworkDropdown(false); }}
                           activeOpacity={0.8}
                         >
@@ -314,22 +340,30 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
                       ))}
                     </View>
                   )}
-                </View>
+                </Animated.View>
               );
             })()}
-            <Text style={styles.fieldLabel}>Phone Number</Text>
-            <View style={styles.inputWrap}>
-              <Ionicons name="call-outline" size={18} color={colors.secondaryText} style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.input}
-                placeholder="0XX XXX XXXX"
-                placeholderTextColor={colors.secondaryText}
-                keyboardType="phone-pad"
-                maxLength={13}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-              />
-            </View>
+
+            <Text style={[styles.fieldLabel, { marginTop: 20 }]}>Phone Number</Text>
+            <Animated.View style={{ transform: [{ scale: phoneScaleAnim }] }}>
+              <View style={[
+                styles.inputWrap,
+                phoneInputFocused && { borderWidth: 1.5, borderColor: colors.primaryGreen },
+              ]}>
+                <Ionicons name="call-outline" size={18} color={phoneInputFocused ? colors.primaryGreen : colors.secondaryText} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="0XX XXX XXXX"
+                  placeholderTextColor={colors.secondaryText}
+                  keyboardType="phone-pad"
+                  maxLength={13}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  onFocus={handlePhoneFocus}
+                  onBlur={handlePhoneBlur}
+                />
+              </View>
+            </Animated.View>
           </View>
         ) : (
           <View>
@@ -593,7 +627,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
 
     // MoMo
     fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.secondaryText, marginBottom: 8, marginTop: 4 },
-    networkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 4, borderWidth: 1.5, borderColor: colors.primaryGreen },
+    networkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 4, borderWidth: 1.5, borderColor: colors.divider },
     networkBadge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
     networkBadgeText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     networkCardLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
