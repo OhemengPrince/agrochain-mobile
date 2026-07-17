@@ -15,7 +15,7 @@ export function tabBarIcon(name: keyof typeof Ionicons.glyphMap) {
 
 export function getTabBarStyleForRoute(route: RouteProp<any, any>) {
   const focusedRouteName = getFocusedRouteNameFromRoute(route);
-  if (focusedRouteName?.endsWith('Detail') || focusedRouteName === 'Chat' || focusedRouteName === 'NewsArticle') {
+  if (focusedRouteName?.endsWith('Detail') || focusedRouteName === 'Chat' || focusedRouteName === 'NewsArticle' || focusedRouteName === 'Map') {
     return { display: 'none' as const };
   }
   return undefined;
