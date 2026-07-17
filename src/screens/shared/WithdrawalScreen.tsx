@@ -16,40 +16,41 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { getEarnings, initiateWithdrawal, verifyBankAccount, EarningsSummary } from '../../api/earningsApi';
+import { BANK_LOGOS, NETWORK_LOGOS } from '../../config/logoRegistry';
 
 const NETWORKS = [
-  { id: 'MTN', name: 'MTN Mobile Money', color: '#FFC107', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/MTN_Logo.svg/320px-MTN_Logo.svg.png' },
-  { id: 'VOD', name: 'Vodafone Cash', color: '#E53935', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Vodafone_icon.svg/320px-Vodafone_icon.svg.png' },
-  { id: 'ATL', name: 'AirtelTigo Money', color: '#FF5722', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/AirtelTigo_Logo.png/320px-AirtelTigo_Logo.png' },
+  { id: 'MTN', name: 'MTN Mobile Money', color: '#FFC107', logoKey: 'mtn' },
+  { id: 'VOD', name: 'Vodafone Cash', color: '#E53935', logoKey: 'vodafone' },
+  { id: 'ATL', name: 'AirtelTigo Money', color: '#FF5722', logoKey: 'airteltigo' },
 ];
 
 const GHANA_BANKS = [
-  { code: '040100', name: 'GCB Bank', color: '#1A6B2E', logo: 'https://gcbbank.com.gh/wp-content/uploads/2021/01/GCB-Logo.png' },
-  { code: '030100', name: 'Absa Bank Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Absa_Group_logo.svg/320px-Absa_Group_logo.svg.png' },
-  { code: '017100', name: 'Ecobank Ghana', color: '#1565C0', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Ecobank_logo.svg/320px-Ecobank_logo.svg.png' },
-  { code: '240100', name: 'Fidelity Bank Ghana', color: '#1565C0', logo: 'https://fidelitybank.com.gh/wp-content/uploads/2021/01/fidelity-logo.png' },
-  { code: '190100', name: 'Stanbic Bank Ghana', color: '#1565C0', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Standard_Bank_Logo.svg/320px-Standard_Bank_Logo.svg.png' },
-  { code: '044100', name: 'Access Bank Ghana', color: '#FF6F00', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Access_Bank_Logo.svg/320px-Access_Bank_Logo.svg.png' },
-  { code: '057100', name: 'Zenith Bank Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Zenith_Bank_Logo.svg/320px-Zenith_Bank_Logo.svg.png' },
-  { code: '340100', name: 'CAL Bank', color: '#1A6B2E', logo: 'https://calbank.net/wp-content/uploads/2021/01/cal-bank-logo.png' },
-  { code: '033100', name: 'UBA Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/United_Bank_for_Africa_Logo.svg/320px-United_Bank_for_Africa_Logo.svg.png' },
-  { code: '301100', name: 'Republic Bank Ghana', color: '#1565C0', logo: 'https://republicghana.com/wp-content/uploads/2021/01/republic-bank-logo.png' },
-  { code: '080100', name: 'Agricultural Development Bank', color: '#1A6B2E', logo: 'https://adbghana.com/wp-content/uploads/2021/01/adb-logo.png' },
-  { code: '500100', name: 'National Investment Bank', color: '#1565C0', logo: 'https://nibghana.com/wp-content/uploads/2021/01/nib-logo.png' },
-  { code: '180100', name: 'Prudential Bank', color: '#1565C0', logo: 'https://prudentialbank.com.gh/wp-content/uploads/2021/01/prudential-logo.png' },
-  { code: '170100', name: 'First Atlantic Bank', color: '#1565C0', logo: 'https://firstatlanticbank.com.gh/wp-content/uploads/2021/01/fab-logo.png' },
-  { code: '058100', name: 'GT Bank Ghana', color: '#FF6F00', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Guaranty_Trust_Bank_logo.svg/320px-Guaranty_Trust_Bank_logo.svg.png' },
-  { code: '210100', name: 'Bank of Africa Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Bank_of_Africa_logo.svg/320px-Bank_of_Africa_logo.svg.png' },
-  { code: '023100', name: 'Consolidated Bank Ghana', color: '#1A6B2E', logo: 'https://cbg.com.gh/wp-content/uploads/2021/01/cbg-logo.png' },
-  { code: '490100', name: 'OmniBank Ghana', color: '#7B1FA2', logo: 'https://omnibankgh.com/wp-content/uploads/2021/01/omni-logo.png' },
+  { code: '040100', name: 'GCB Bank', color: '#1A6B2E', logoKey: 'gcb' },
+  { code: '030100', name: 'Absa Bank Ghana', color: '#DC2626', logoKey: 'absa' },
+  { code: '017100', name: 'Ecobank Ghana', color: '#1565C0', logoKey: 'ecobank' },
+  { code: '240100', name: 'Fidelity Bank Ghana', color: '#1565C0', logoKey: 'fidelity' },
+  { code: '190100', name: 'Stanbic Bank Ghana', color: '#1565C0', logoKey: 'stanbic' },
+  { code: '044100', name: 'Access Bank Ghana', color: '#FF6F00', logoKey: 'access' },
+  { code: '057100', name: 'Zenith Bank Ghana', color: '#DC2626', logoKey: 'zenith' },
+  { code: '340100', name: 'CAL Bank', color: '#1A6B2E', logoKey: 'cal' },
+  { code: '033100', name: 'UBA Ghana', color: '#DC2626', logoKey: 'uba' },
+  { code: '301100', name: 'Republic Bank Ghana', color: '#1565C0', logoKey: 'republic' },
+  { code: '080100', name: 'Agricultural Development Bank', color: '#1A6B2E', logoKey: 'adb' },
+  { code: '500100', name: 'National Investment Bank', color: '#1565C0', logoKey: 'nib' },
+  { code: '180100', name: 'Prudential Bank', color: '#1565C0', logoKey: 'prudential' },
+  { code: '170100', name: 'First Atlantic Bank', color: '#1565C0', logoKey: 'firstatlantic' },
+  { code: '058100', name: 'GT Bank Ghana', color: '#FF6F00', logoKey: 'gtbank' },
+  { code: '210100', name: 'Bank of Africa Ghana', color: '#DC2626', logoKey: 'boa' },
+  { code: '023100', name: 'Consolidated Bank Ghana', color: '#1A6B2E', logoKey: 'cbg' },
+  { code: '490100', name: 'OmniBank Ghana', color: '#7B1FA2', logoKey: 'omni' },
 ];
 
 // ─── Logo image with letter fallback ────────────────────────────────────────
-function LogoImage({ uri, color, initial, size = 40, radius = 8 }: {
-  uri: string; color: string; initial: string; size?: number; radius?: number;
+function LogoImage({ logoKey, type, color, initial, size = 40, radius = 8 }: {
+  logoKey: string; type: 'bank' | 'network'; color: string; initial: string; size?: number; radius?: number;
 }) {
-  const [hasError, setHasError] = useState(false);
-  if (hasError) {
+  const source = type === 'bank' ? BANK_LOGOS[logoKey] : NETWORK_LOGOS[logoKey];
+  if (!source) {
     return (
       <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: Math.round(size * 0.4) }}>{initial}</Text>
@@ -58,9 +59,8 @@ function LogoImage({ uri, color, initial, size = 40, radius = 8 }: {
   }
   return (
     <Image
-      source={{ uri }}
+      source={source}
       style={{ width: size, height: size, borderRadius: radius, resizeMode: 'contain', backgroundColor: '#fff' }}
-      onError={() => setHasError(true)}
     />
   );
 }
@@ -244,7 +244,7 @@ export default function WithdrawalScreen({ navigation }: any) {
                     onPress={() => setSelectedNetwork(net)}
                     style={[s.networkRow, selectedNetwork.id === net.id && s.networkRowActive]}
                   >
-                    <LogoImage uri={net.logo} color={net.color} initial={net.name.charAt(0)} size={40} radius={8} />
+                    <LogoImage logoKey={net.logoKey} type="network" color={net.color} initial={net.name.charAt(0)} size={40} radius={8} />
                     <Text style={s.networkName}>{net.name}</Text>
                     {selectedNetwork.id === net.id && (
                       <Ionicons name="checkmark-circle" size={20} color="#1A6B2E" />
@@ -279,7 +279,7 @@ export default function WithdrawalScreen({ navigation }: any) {
               <Pressable onPress={() => setShowBankModal(true)} style={s.bankSelector}>
                 {selectedBank ? (
                   <View style={s.bankSelectorInner}>
-                    <LogoImage uri={selectedBank.logo} color={selectedBank.color} initial={selectedBank.name.charAt(0)} size={40} radius={8} />
+                    <LogoImage logoKey={selectedBank.logoKey} type="bank" color={selectedBank.color} initial={selectedBank.name.charAt(0)} size={40} radius={8} />
                     <Text style={s.bankSelectorName}>{selectedBank.name}</Text>
                   </View>
                 ) : (
@@ -352,7 +352,7 @@ export default function WithdrawalScreen({ navigation }: any) {
                         onPress={() => { setSelectedBank(bank); setShowBankModal(false); setBankSearch(''); }}
                         style={s.bankListRow}
                       >
-                        <LogoImage uri={bank.logo} color={bank.color} initial={bank.name.charAt(0)} size={40} radius={8} />
+                        <LogoImage logoKey={bank.logoKey} type="bank" color={bank.color} initial={bank.name.charAt(0)} size={40} radius={8} />
                         <Text style={s.bankListName}>{bank.name}</Text>
                       </Pressable>
                     )}
