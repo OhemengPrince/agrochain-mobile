@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Animated, TextInput,
-  Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,30 +21,30 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 const FEE_RATE = 0.05;
 
 const NETWORKS = [
-  { id: 'MTN', label: 'MTN MoMo', color: '#FFC107' },
-  { id: 'VODAFONE', label: 'Vodafone Cash', color: '#E53935' },
-  { id: 'AIRTELTIGO', label: 'AirtelTigo Money', color: '#FF5722' },
+  { id: 'MTN', label: 'MTN MoMo', color: '#FFC107', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/MTN_Logo.svg/320px-MTN_Logo.svg.png' },
+  { id: 'VODAFONE', label: 'Vodafone Cash', color: '#E53935', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Vodafone_icon.svg/320px-Vodafone_icon.svg.png' },
+  { id: 'AIRTELTIGO', label: 'AirtelTigo Money', color: '#FF5722', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/AirtelTigo_Logo.png/320px-AirtelTigo_Logo.png' },
 ];
 
 const GHANA_BANKS = [
-  { code: 'GCB', name: 'GCB Bank', color: '#1A6B2E', letter: 'G' },
-  { code: 'ABSA', name: 'Absa Bank Ghana', color: '#E53935', letter: 'A' },
-  { code: 'STANCHART', name: 'Standard Chartered', color: '#006FCF', letter: 'S' },
-  { code: 'ECOBANK', name: 'Ecobank Ghana', color: '#003087', letter: 'E' },
-  { code: 'FIDELITY', name: 'Fidelity Bank', color: '#FF6B00', letter: 'F' },
-  { code: 'CAL', name: 'CAL Bank', color: '#8B0000', letter: 'C' },
-  { code: 'ZENITH', name: 'Zenith Bank', color: '#E53935', letter: 'Z' },
-  { code: 'UBA', name: 'UBA Ghana', color: '#E53935', letter: 'U' },
-  { code: 'SOCIETE', name: 'Société Générale', color: '#E53935', letter: 'S' },
-  { code: 'ACCESS', name: 'Access Bank Ghana', color: '#E53935', letter: 'A' },
-  { code: 'PRUDENTIAL', name: 'Prudential Bank', color: '#003087', letter: 'P' },
-  { code: 'ADB', name: 'Agricultural Development Bank', color: '#1A6B2E', letter: 'A' },
-  { code: 'NIB', name: 'National Investment Bank', color: '#003087', letter: 'N' },
-  { code: 'REPUBLIC', name: 'Republic Bank Ghana', color: '#003087', letter: 'R' },
-  { code: 'FIRST_ATLANTIC', name: 'First Atlantic Bank', color: '#FF6B00', letter: 'F' },
-  { code: 'OMB', name: 'Omni Bank', color: '#1A6B2E', letter: 'O' },
-  { code: 'UNIVERSAL', name: 'Universal Merchant Bank', color: '#8B0000', letter: 'U' },
-  { code: 'CONSOLIDATED', name: 'Consolidated Bank Ghana', color: '#003087', letter: 'C' },
+  { code: '040100', name: 'GCB Bank', color: '#1A6B2E', logo: 'https://gcbbank.com.gh/wp-content/uploads/2021/01/GCB-Logo.png' },
+  { code: '030100', name: 'Absa Bank Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Absa_Group_logo.svg/320px-Absa_Group_logo.svg.png' },
+  { code: '017100', name: 'Ecobank Ghana', color: '#1565C0', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Ecobank_logo.svg/320px-Ecobank_logo.svg.png' },
+  { code: '240100', name: 'Fidelity Bank Ghana', color: '#1565C0', logo: 'https://fidelitybank.com.gh/wp-content/uploads/2021/01/fidelity-logo.png' },
+  { code: '190100', name: 'Stanbic Bank Ghana', color: '#1565C0', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Standard_Bank_Logo.svg/320px-Standard_Bank_Logo.svg.png' },
+  { code: '044100', name: 'Access Bank Ghana', color: '#FF6F00', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Access_Bank_Logo.svg/320px-Access_Bank_Logo.svg.png' },
+  { code: '057100', name: 'Zenith Bank Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Zenith_Bank_Logo.svg/320px-Zenith_Bank_Logo.svg.png' },
+  { code: '340100', name: 'CAL Bank', color: '#1A6B2E', logo: 'https://calbank.net/wp-content/uploads/2021/01/cal-bank-logo.png' },
+  { code: '033100', name: 'UBA Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/United_Bank_for_Africa_Logo.svg/320px-United_Bank_for_Africa_Logo.svg.png' },
+  { code: '301100', name: 'Republic Bank Ghana', color: '#1565C0', logo: 'https://republicghana.com/wp-content/uploads/2021/01/republic-bank-logo.png' },
+  { code: '080100', name: 'Agricultural Development Bank', color: '#1A6B2E', logo: 'https://adbghana.com/wp-content/uploads/2021/01/adb-logo.png' },
+  { code: '500100', name: 'National Investment Bank', color: '#1565C0', logo: 'https://nibghana.com/wp-content/uploads/2021/01/nib-logo.png' },
+  { code: '180100', name: 'Prudential Bank', color: '#1565C0', logo: 'https://prudentialbank.com.gh/wp-content/uploads/2021/01/prudential-logo.png' },
+  { code: '170100', name: 'First Atlantic Bank', color: '#1565C0', logo: 'https://firstatlanticbank.com.gh/wp-content/uploads/2021/01/fab-logo.png' },
+  { code: '058100', name: 'GT Bank Ghana', color: '#FF6F00', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Guaranty_Trust_Bank_logo.svg/320px-Guaranty_Trust_Bank_logo.svg.png' },
+  { code: '210100', name: 'Bank of Africa Ghana', color: '#DC2626', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Bank_of_Africa_logo.svg/320px-Bank_of_Africa_logo.svg.png' },
+  { code: '023100', name: 'Consolidated Bank Ghana', color: '#1A6B2E', logo: 'https://cbg.com.gh/wp-content/uploads/2021/01/cbg-logo.png' },
+  { code: '490100', name: 'OmniBank Ghana', color: '#7B1FA2', logo: 'https://omnibankgh.com/wp-content/uploads/2021/01/omni-logo.png' },
 ];
 
 function todayPlusDays(days: number): string {
@@ -60,6 +60,27 @@ function formatDisplayDate(dateStr: string): string {
 
 function formatCurrency(amount: number): string {
   return `GHS ${amount.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// ─── Logo image with letter fallback ────────────────────────────────────────
+function LogoImage({ uri, color, initial, size = 40, radius = 8 }: {
+  uri: string; color: string; initial: string; size?: number; radius?: number;
+}) {
+  const [hasError, setHasError] = useState(false);
+  if (hasError) {
+    return (
+      <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: Math.round(size * 0.4) }}>{initial}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri }}
+      style={{ width: size, height: size, borderRadius: radius, resizeMode: 'contain', backgroundColor: '#fff' }}
+      onError={() => setHasError(true)}
+    />
+  );
 }
 
 // ─── Minimal calendar date picker ───────────────────────────────────────────
@@ -212,8 +233,8 @@ function BankPickerModal({
                 onPress={() => { onSelect(bank); onClose(); }}
                 style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#2C2C2E' : '#F0F0F0' }}
               >
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: bank.color, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{bank.letter}</Text>
+                <View style={{ marginRight: 12 }}>
+                  <LogoImage uri={bank.logo} color={bank.color} initial={bank.name.charAt(0)} size={36} radius={8} />
                 </View>
                 <Text style={{ fontSize: 15, color: textColor, flex: 1 }}>{bank.name}</Text>
               </TouchableOpacity>
@@ -446,9 +467,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
                     onPress={() => setShowNetworkDropdown(v => !v)}
                     activeOpacity={0.9}
                   >
-                    <View style={[styles.networkBadge, { backgroundColor: activeNet.color }]}>
-                      <Text style={styles.networkBadgeText}>{activeNet.id.charAt(0)}</Text>
-                    </View>
+                    <LogoImage uri={activeNet.logo} color={activeNet.color} initial={activeNet.id.charAt(0)} size={36} radius={8} />
                     <Text style={styles.networkCardLabel}>{activeNet.label}</Text>
                     <Ionicons
                       name={showNetworkDropdown ? 'chevron-up' : 'chevron-down'}
@@ -468,9 +487,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
                           onPress={() => { setSelectedNetwork(net.id); setShowNetworkDropdown(false); }}
                           activeOpacity={0.8}
                         >
-                          <View style={[styles.networkBadge, { backgroundColor: net.color }]}>
-                            <Text style={styles.networkBadgeText}>{net.id.charAt(0)}</Text>
-                          </View>
+                          <LogoImage uri={net.logo} color={net.color} initial={net.id.charAt(0)} size={36} radius={8} />
                           <Text style={styles.networkDropdownLabel}>{net.label}</Text>
                         </TouchableOpacity>
                       ))}
@@ -507,10 +524,8 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
             <Animated.View style={{ transform: [{ scale: bankScaleAnim }] }}>
               <TouchableOpacity style={[styles.bankSelector, showBankModal && { borderWidth: 1.5, borderColor: colors.primaryGreen }]} onPress={handleBankOpen} activeOpacity={0.8}>
                 {selectedBank ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={[styles.bankBadge, { backgroundColor: selectedBank.color }]}>
-                      <Text style={styles.bankBadgeLetter}>{selectedBank.letter}</Text>
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <LogoImage uri={selectedBank.logo} color={selectedBank.color} initial={selectedBank.name.charAt(0)} size={32} radius={6} />
                     <Text style={styles.bankName}>{selectedBank.name}</Text>
                   </View>
                 ) : (
