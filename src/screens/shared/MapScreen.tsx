@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   Pressable,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
 import MapView, { Marker, Polyline, Region, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -37,8 +39,8 @@ interface RouteInfo {
   durationMin: number;
 }
 
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
-const OSRM     = 'https://router.project-osrm.org/route/v1/driving';
+const NOMINATIM  = 'https://nominatim.openstreetmap.org/search';
+const OSRM       = 'https://router.project-osrm.org/route/v1/driving';
 const DELTA_USER = 0.012;
 const DELTA_PIN  = 0.08;
 
@@ -49,15 +51,20 @@ export default function MapScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
+  const searchInputRef = useRef<TextInput>(null);
 
-  const [pinCoords, setPinCoords]     = useState<Coords | null>(null);
-  const [userCoords, setUserCoords]   = useState<Coords | null>(null);
-  const [geoError, setGeoError]       = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState(true);
-  const [mapLayer, setMapLayer]       = useState<MapLayerType>('standard');
-  const [routeInfo, setRouteInfo]     = useState<RouteInfo | null>(null);
-  const [routeVisible, setRouteVisible] = useState(false);
-  const [routeLoading, setRouteLoading] = useState(false);
+  const [pinCoords, setPinCoords]         = useState<Coords | null>(null);
+  const [userCoords, setUserCoords]       = useState<Coords | null>(null);
+  const [geoError, setGeoError]           = useState<string | null>(null);
+  const [isFollowing, setIsFollowing]     = useState(true);
+  const [mapLayer, setMapLayer]           = useState<MapLayerType>('standard');
+  const [routeInfo, setRouteInfo]         = useState<RouteInfo | null>(null);
+  const [routeVisible, setRouteVisible]   = useState(false);
+  const [routeLoading, setRouteLoading]   = useState(false);
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [searchCoords, setSearchCoords]   = useState<Coords | null>(null);
+  const [searchLabel, setSearchLabel]     = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const isFollowingRef = useRef(true);
   const watchRef       = useRef<Location.LocationSubscription | null>(null);
@@ -104,7 +111,7 @@ export default function MapScreen({ navigation, route }: Props) {
     (async () => {
       try {
         const query = encodeURIComponent(`${district}, ${region}, Ghana`);
-        const res = await fetch(`${NOMINATIM}?q=${query}&format=json&limit=1`, {
+        const res   = await fetch(`${NOMINATIM}?q=${query}&format=json&limit=1`, {
           headers: { 'User-Agent': 'AgroChain-Mobile/1.0' },
         });
         const data = await res.json();
@@ -145,21 +152,58 @@ export default function MapScreen({ navigation, route }: Props) {
   }, [pinCoords, updateFollowing]);
 
   const toggleLayer = useCallback(() => {
-    setMapLayer((prev) => prev === 'standard' ? 'hybrid' : 'standard');
+    setMapLayer((prev) => (prev === 'standard' ? 'hybrid' : 'standard'));
   }, []);
 
-  // ── Fetch OSRM route directions ──────────────────────────
-  const toggleDirections = useCallback(async () => {
-    if (routeVisible) {
-      setRouteVisible(false);
-      return;
+  // ── Search a location ────────────────────────────────────
+  const handleSearch = useCallback(async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    Keyboard.dismiss();
+    setSearchLoading(true);
+    try {
+      const query = encodeURIComponent(`${q}, Ghana`);
+      const res   = await fetch(`${NOMINATIM}?q=${query}&format=json&limit=1`, {
+        headers: { 'User-Agent': 'AgroChain-Mobile/1.0' },
+      });
+      const data = await res.json();
+      if (data?.length > 0) {
+        const coords: Coords = {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+        setSearchCoords(coords);
+        setSearchLabel(data[0].display_name?.split(',').slice(0, 2).join(',') ?? q);
+        updateFollowing(false);
+        mapRef.current?.animateToRegion(
+          { ...coords, latitudeDelta: DELTA_PIN, longitudeDelta: DELTA_PIN },
+          800
+        );
+      } else {
+        Alert.alert('Search', `"${q}" not found. Try a different location name.`);
+      }
+    } catch {
+      Alert.alert('Search', 'Search failed. Check your internet connection.');
+    } finally {
+      setSearchLoading(false);
     }
+  }, [searchQuery, updateFollowing]);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchCoords(null);
+    setSearchLabel('');
+  }, []);
+
+  // ── OSRM route directions ────────────────────────────────
+  const toggleDirections = useCallback(async () => {
+    if (routeVisible) { setRouteVisible(false); return; }
     if (!userCoords) { Alert.alert('Directions', 'Still acquiring your GPS position…'); return; }
     if (!pinCoords)  { Alert.alert('Directions', 'Equipment location is still loading…'); return; }
 
     setRouteLoading(true);
     try {
-      const url = `${OSRM}/${userCoords.longitude},${userCoords.latitude};${pinCoords.longitude},${pinCoords.latitude}?geometries=geojson&overview=full`;
+      const url  = `${OSRM}/${userCoords.longitude},${userCoords.latitude};${pinCoords.longitude},${pinCoords.latitude}?geometries=geojson&overview=full`;
       const res  = await fetch(url);
       const data = await res.json();
 
@@ -175,9 +219,8 @@ export default function MapScreen({ navigation, route }: Props) {
         });
         setRouteVisible(true);
         updateFollowing(false);
-        // Fit map to show the full route
         mapRef.current?.fitToCoordinates([userCoords, pinCoords], {
-          edgePadding: { top: 100, right: 60, bottom: 220, left: 60 },
+          edgePadding: { top: 120, right: 70, bottom: 240, left: 70 },
           animated: true,
         });
       } else {
@@ -190,18 +233,17 @@ export default function MapScreen({ navigation, route }: Props) {
     }
   }, [routeVisible, userCoords, pinCoords, updateFollowing]);
 
-  // ── Derived display state ────────────────────────────────
-  const loading   = !pinCoords && !userCoords;
-  const showError = !!geoError && !pinCoords && !userCoords;
+  // ── Derived state ────────────────────────────────────────
+  const loading          = !pinCoords && !userCoords;
+  const showError        = !!geoError && !pinCoords && !userCoords;
+  const canShowDirections = !!(userCoords && pinCoords);
+  const isSatellite      = mapLayer === 'hybrid';
 
   const initialRegion: Region | undefined = userCoords
     ? { ...userCoords, latitudeDelta: DELTA_USER, longitudeDelta: DELTA_USER }
     : pinCoords
     ? { ...pinCoords,  latitudeDelta: DELTA_PIN,  longitudeDelta: DELTA_PIN  }
     : undefined;
-
-  const canShowDirections = !!(userCoords && pinCoords);
-  const isSatellite = mapLayer === 'hybrid';
 
   return (
     <View style={styles.root}>
@@ -262,13 +304,22 @@ export default function MapScreen({ navigation, route }: Props) {
             showsScale
             onPanDrag={() => updateFollowing(false)}
           >
-            {/* Equipment pin */}
+            {/* Equipment destination pin */}
             {pinCoords && (
               <Marker
                 coordinate={pinCoords}
                 title={title}
                 description={`${subtitle} · ${district}, ${region}`}
                 pinColor="#1A6B2E"
+              />
+            )}
+
+            {/* Search result pin */}
+            {searchCoords && (
+              <Marker
+                coordinate={searchCoords}
+                title={searchLabel || 'Search result'}
+                pinColor="#2563EB"
               />
             )}
 
@@ -282,8 +333,38 @@ export default function MapScreen({ navigation, route }: Props) {
             )}
           </MapView>
 
-          {/* ── FABs (right column) ── */}
-          <View style={[styles.fabs, { bottom: insets.bottom + 24 }]}>
+          {/* ── Floating search bar ── */}
+          <View style={styles.searchWrap}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color="#6B7280" style={{ marginRight: 2 }} />
+              <TextInput
+                ref={searchInputRef}
+                style={styles.searchInput}
+                placeholder="Search a location…"
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
+                returnKeyType="search"
+                autoCorrect={false}
+              />
+              {searchLoading ? (
+                <ActivityIndicator size="small" color={colors.primaryGreen} />
+              ) : searchQuery.length > 0 ? (
+                <Pressable onPress={clearSearch} hitSlop={8}>
+                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                </Pressable>
+              ) : null}
+              {!searchLoading && searchQuery.length > 0 && (
+                <Pressable style={styles.searchGoBtn} onPress={handleSearch}>
+                  <Text style={styles.searchGoBtnText}>Go</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* ── FABs (right column, shifted up with wider gaps) ── */}
+          <View style={[styles.fabs, { bottom: insets.bottom + 100 }]}>
 
             {/* Navigate / follow-me */}
             <Pressable
@@ -304,7 +385,7 @@ export default function MapScreen({ navigation, route }: Props) {
               </Pressable>
             )}
 
-            {/* Satellite / map layer toggle */}
+            {/* Satellite / standard toggle */}
             <Pressable
               style={[styles.fab, { backgroundColor: isSatellite ? colors.primaryGreen : '#fff' }]}
               onPress={toggleLayer}
@@ -338,27 +419,23 @@ export default function MapScreen({ navigation, route }: Props) {
 
           {/* ── Route info card ── */}
           {routeVisible && routeInfo && (
-            <View style={[styles.routeCard, { bottom: insets.bottom + 100 }]}>
+            <View style={[styles.routeCard, { bottom: insets.bottom + 24 }]}>
               <Ionicons name="car-outline" size={18} color={colors.primaryGreen} />
               <View style={styles.routeTextWrap}>
-                <Text style={[styles.routeDistance, { color: colors.text }]}>
-                  {routeInfo.distanceKm} km
-                </Text>
-                <Text style={[styles.routeDuration, { color: colors.secondaryText }]}>
-                  ~{routeInfo.durationMin} min by road
-                </Text>
+                <Text style={styles.routeDistance}>{routeInfo.distanceKm} km</Text>
+                <Text style={styles.routeDuration}>~{routeInfo.durationMin} min by road</Text>
               </View>
               <Pressable onPress={() => setRouteVisible(false)} hitSlop={10}>
-                <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
               </Pressable>
             </View>
           )}
 
-          {/* ── Location label badge ── */}
+          {/* ── Location badge (hidden when route card is showing) ── */}
           {!routeVisible && (
-            <View style={[styles.badge, { bottom: insets.bottom + 100 }]}>
+            <View style={[styles.badge, { bottom: insets.bottom + 24 }]}>
               <Ionicons name="location" size={13} color={colors.primaryGreen} />
-              <Text style={[styles.badgeText, { color: colors.text }]} numberOfLines={1}>
+              <Text style={styles.badgeText} numberOfLines={1}>
                 {district}, {region} Region
               </Text>
             </View>
@@ -404,17 +481,57 @@ const styles = StyleSheet.create({
   retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, marginTop: 8 },
   retryBtnText: { color: '#fff', fontWeight: '600' },
 
+  // ── Search bar ───────────────────────────────────────────
+  searchWrap: {
+    position: 'absolute',
+    top: 14,
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  searchGoBtn: {
+    backgroundColor: '#1A6B2E',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  searchGoBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
   // ── FABs ────────────────────────────────────────────────
   fabs: {
     position: 'absolute',
     right: 16,
-    gap: 10,
+    gap: 16,      // wider spacing between buttons
     alignItems: 'center',
   },
   fab: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -428,11 +545,11 @@ const styles = StyleSheet.create({
   routeCard: {
     position: 'absolute',
     left: 16,
-    right: 72,
+    right: 80,
     backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -443,18 +560,18 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   routeTextWrap: { flex: 1 },
-  routeDistance: { fontSize: 15, fontWeight: '800' },
-  routeDuration: { fontSize: 12, marginTop: 1 },
+  routeDistance: { fontSize: 15, fontWeight: '800', color: '#111827' },
+  routeDuration: { fontSize: 12, color: '#6B7280', marginTop: 1 },
 
   // ── Location badge ───────────────────────────────────────
   badge: {
     position: 'absolute',
     left: 16,
-    right: 72,
+    right: 80,
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -464,5 +581,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  badgeText: { fontSize: 13, fontWeight: '500', flex: 1 },
+  badgeText: { fontSize: 13, fontWeight: '500', flex: 1, color: '#111827' },
 });
