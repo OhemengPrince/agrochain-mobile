@@ -9,7 +9,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Equipment } from '../../types';
 import { getEquipmentById } from '../../api/equipmentApi';
-import { createBooking } from '../../api/bookingApi';
 import { daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -241,7 +240,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
 
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -268,17 +266,18 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
     })();
   }, [equipmentId]);
 
-  const handleBook = async () => {
-    setError(null);
-    setBooking(true);
-    try {
-      const result = await createBooking({ equipmentId, startDate, endDate });
-      navigation.navigate('BookingDetail', { bookingId: result.id });
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to create booking.');
-    } finally {
-      setBooking(false);
-    }
+  const handleBook = () => {
+    if (!equipment) return;
+    navigation.navigate('BookingPayment', {
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+      dailyRate: equipment.dailyRate,
+      ownerId: equipment.ownerId ?? '',
+      ownerName: equipment.ownerName ?? '',
+      imageUrl: equipment.imageUrl,
+      startDate,
+      endDate,
+    });
   };
 
   const bookBar = usePressAnimation();
@@ -517,13 +516,13 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
           <Text style={styles.bottomDays}>{numDays} day{numDays !== 1 ? 's' : ''} · GHS {total}</Text>
         </View>
         <Animated.View style={[styles.bookButtonWrap, { transform: [{ scale: bookBar.scale }], opacity: bookBar.opacity }]}>
-          <Pressable onPress={handleBook} onPressIn={bookBar.onPressIn} onPressOut={bookBar.onPressOut} disabled={booking || !equipment.isAvailable}>
+          <Pressable onPress={handleBook} onPressIn={bookBar.onPressIn} onPressOut={bookBar.onPressOut} disabled={!equipment.isAvailable}>
             <LinearGradient
               colors={['#2E8B4A', '#1A6B2E']}
-              style={[styles.bookButton, (booking || !equipment.isAvailable) && styles.bookButtonDisabled]}
+              style={[styles.bookButton, !equipment.isAvailable && styles.bookButtonDisabled]}
             >
               <Text style={styles.bookButtonText}>
-                {booking ? 'Booking...' : equipment.isAvailable ? 'Book Now' : 'Unavailable'}
+                {equipment.isAvailable ? 'Book Now' : 'Unavailable'}
               </Text>
             </LinearGradient>
           </Pressable>

@@ -10,6 +10,8 @@ import {
   Image,
   Alert,
   Platform,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -184,6 +186,7 @@ export default function CreateListingScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('Posting...');
   const [error, setError] = useState<string | null>(null);
+  const [showTnC, setShowTnC] = useState(false);
 
   const submitAnim = usePressAnimation();
   const addPhotoAnim = usePressAnimation();
@@ -219,7 +222,32 @@ export default function CreateListingScreen({ navigation }: Props) {
     setPhotos((prev) => prev.filter((p) => p !== uri));
   };
 
+  const handleShowTnC = () => {
+    setError(null);
+    const parsedPrice = parseFloat(price);
+    const hasValidPrice = !Number.isNaN(parsedPrice) && parsedPrice > 0;
+
+    if (!category || !name.trim() || !description.trim()) {
+      setError('Please fill in the category, name, and description.');
+      return;
+    }
+    if (priceType !== 'NEGOTIABLE' && !hasValidPrice) {
+      setError('Please enter a valid price, or switch to Negotiable.');
+      return;
+    }
+    if (!region || !district) {
+      setError('Please capture your location before posting.');
+      return;
+    }
+    if (!contactPreference) {
+      setError('Please choose a contact preference.');
+      return;
+    }
+    setShowTnC(true);
+  };
+
   const handleSubmit = async () => {
+    setShowTnC(false);
     setError(null);
 
     const parsedPrice = parseFloat(price);
@@ -428,7 +456,7 @@ export default function CreateListingScreen({ navigation }: Props) {
 
         <Animated.View style={{ transform: [{ scale: submitAnim.scale }], opacity: submitAnim.opacity }}>
           <Pressable
-            onPress={handleSubmit}
+            onPress={handleShowTnC}
             onPressIn={submitAnim.onPressIn}
             onPressOut={submitAnim.onPressOut}
             disabled={loading}
@@ -439,6 +467,57 @@ export default function CreateListingScreen({ navigation }: Props) {
           </Pressable>
         </Animated.View>
       </ScrollView>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTnC} transparent animationType="slide" onRequestClose={() => setShowTnC(false)} statusBarTranslucent>
+        <View style={styles.tncOverlay}>
+          <View style={styles.tncSheet}>
+            <Text style={styles.tncTitle}>Terms & Conditions</Text>
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              {(() => {
+                const parsedPrice = parseFloat(price) || 0;
+                const fee = parsedPrice * 0.05;
+                const buyerPays = parsedPrice + fee;
+                const sellerReceives = parsedPrice - fee;
+                const isNeg = priceType === 'NEGOTIABLE';
+                return (
+                  <>
+                    <View style={styles.tncPriceRow}>
+                      <Text style={styles.tncPriceKey}>Listed Price</Text>
+                      <Text style={styles.tncPriceVal}>{isNeg ? 'Negotiable' : `GHS ${parsedPrice.toFixed(2)}`}</Text>
+                    </View>
+                    {!isNeg && (
+                      <>
+                        <View style={styles.tncPriceRow}>
+                          <Text style={styles.tncPriceKey}>Buyer pays (price + 5% fee)</Text>
+                          <Text style={styles.tncPriceVal}>GHS {buyerPays.toFixed(2)}</Text>
+                        </View>
+                        <View style={[styles.tncPriceRow, { borderBottomWidth: 0 }]}>
+                          <Text style={styles.tncPriceKey}>You receive (price − 5% fee)</Text>
+                          <Text style={[styles.tncPriceVal, { color: colors.primaryGreen }]}>GHS {sellerReceives.toFixed(2)}</Text>
+                        </View>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+              <Text style={styles.tncBody}>
+                {'Funds are held in escrow by AgroChain until you confirm the buyer\'s order.\n\nBy posting this listing, you confirm that:\n• The information provided is accurate.\n• The item matches its description and photos.\n• You agree to AgroChain\'s Terms of Service and Marketplace Policy.'}
+              </Text>
+            </ScrollView>
+            <View style={styles.tncBtnRow}>
+              <TouchableOpacity style={styles.tncCancelBtn} onPress={() => setShowTnC(false)}>
+                <Text style={styles.tncCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.tncAcceptBtn} onPress={handleSubmit}>
+                <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={styles.tncAcceptGradient}>
+                  <Text style={styles.tncAcceptText}>I Agree & Post</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -652,5 +731,18 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
     },
+    tncOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    tncSheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    tncTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 16 },
+    tncPriceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.divider },
+    tncPriceKey: { fontSize: 13, color: colors.secondaryText },
+    tncPriceVal: { fontSize: 13, fontWeight: '700', color: colors.text },
+    tncBody: { fontSize: 13, color: colors.secondaryText, lineHeight: 20, marginTop: 16 },
+    tncBtnRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    tncCancelBtn: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    tncCancelText: { fontSize: 15, fontWeight: '600', color: colors.secondaryText },
+    tncAcceptBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+    tncAcceptGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },
+    tncAcceptText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   });
 }

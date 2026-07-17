@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -163,6 +163,7 @@ export default function CreateBatchScreen({ navigation }: Props) {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTnC, setShowTnC] = useState(false);
 
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -215,13 +216,19 @@ export default function CreateBatchScreen({ navigation }: Props) {
     setInputs((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleCreate = async () => {
+  const handleShowTnC = () => {
     setError(null);
     const quantity = parseFloat(quantityKg);
     if (!cropName || !quantityKg || !region || !district || Number.isNaN(quantity)) {
       setError('Please fill in all required fields with valid values.');
       return;
     }
+    setShowTnC(true);
+  };
+
+  const handleCreate = async () => {
+    setShowTnC(false);
+    const quantity = parseFloat(quantityKg);
     setLoading(true);
     try {
       await createBatch({ cropName, variety, quantityKg: quantity, region, district, plantedDate, inputs });
@@ -392,8 +399,30 @@ export default function CreateBatchScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <SubmitButton title="Submit Harvest Log" onPress={handleCreate} loading={loading} styles={styles} />
+        <SubmitButton title="Submit Harvest Log" onPress={handleShowTnC} loading={loading} styles={styles} />
       </ScrollView>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTnC} transparent animationType="slide" onRequestClose={() => setShowTnC(false)} statusBarTranslucent>
+        <View style={styles.tncOverlay}>
+          <View style={styles.tncSheet}>
+            <Text style={styles.tncTitle}>Terms & Conditions</Text>
+            <Text style={styles.tncBody}>
+              {'By submitting this harvest log, you confirm that:\n\n• The crop information and quantity provided is accurate.\n• Your harvest data will be visible to potential buyers and auditors in the AgroChain catalogue.\n• AgroChain will generate a unique QR code for traceability purposes.\n• You agree to AgroChain\'s Traceability Policy and Terms of Service.'}
+            </Text>
+            <View style={styles.tncBtnRow}>
+              <TouchableOpacity style={styles.tncCancelBtn} onPress={() => setShowTnC(false)}>
+                <Text style={styles.tncCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.tncAcceptBtn} onPress={handleCreate}>
+                <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={styles.tncAcceptGradient}>
+                  <Text style={styles.tncAcceptText}>I Agree & Submit</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -729,5 +758,15 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       color: '#fff',
     },
+    tncOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    tncSheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    tncTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 16 },
+    tncBody: { fontSize: 13, color: colors.secondaryText, lineHeight: 20 },
+    tncBtnRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    tncCancelBtn: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    tncCancelText: { fontSize: 15, fontWeight: '600', color: colors.secondaryText },
+    tncAcceptBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+    tncAcceptGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },
+    tncAcceptText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   });
 }

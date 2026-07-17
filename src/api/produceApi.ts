@@ -222,6 +222,30 @@ export async function updateMarketplaceListingStatus(
   return data;
 }
 
+export interface PurchaseMarketplacePayload {
+  quantity: number;
+  paymentMethod: 'MOMO' | 'BANK';
+  network?: string;
+  phoneNumber?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+}
+
+export async function purchaseMarketplaceListing(
+  listingId: string,
+  payload: PurchaseMarketplacePayload
+): Promise<{ orderId: string }> {
+  if (USE_MOCK_DATA) {
+    return mockDelay({ orderId: generateMockId('ORD') });
+  }
+  const { data } = await apiClient.post<{ orderId: string }>(
+    `/marketplace/listings/${listingId}/purchase`,
+    payload
+  );
+  return data;
+}
+
 export async function deleteMarketplaceListing(listingId: string): Promise<void> {
   if (USE_MOCK_DATA) {
     const index = MOCK_MARKETPLACE_LISTINGS.findIndex((l) => l.id === listingId);

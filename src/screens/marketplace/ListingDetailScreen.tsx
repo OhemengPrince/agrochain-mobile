@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Animated,
-  Alert,
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -143,12 +142,20 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
     navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller', otherUserId: listing.sellerId });
   };
 
-  const handleMakeOffer = () => {
-    Alert.alert('Coming soon', 'Making an offer is not available yet.');
+  const handleBuyNow = () => {
+    if (!listing) return;
+    (navigation as any).navigate('MarketplacePayment', {
+      listingId: listing.id,
+      listingName: listing.name,
+      price: listing.price,
+      sellerId: listing.sellerId,
+      sellerName: listing.sellerName,
+      imageUrl: listing.photoUrls?.[0],
+    });
   };
 
   const contactButton = usePressAnimation();
-  const offerButton = usePressAnimation();
+  const buyButton = usePressAnimation();
 
   if (loading) {
     return <LoadingOverlay message="Loading listing..." />;
@@ -276,32 +283,32 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
         <Animated.View
           style={[
             styles.offerButtonWrap,
-            { transform: [{ scale: offerButton.scale }], opacity: offerButton.opacity },
+            { transform: [{ scale: contactButton.scale }], opacity: contactButton.opacity },
           ]}
         >
           <Pressable
             style={styles.offerButton}
-            onPress={handleMakeOffer}
-            onPressIn={offerButton.onPressIn}
-            onPressOut={offerButton.onPressOut}
+            onPress={handleContactSeller}
+            onPressIn={contactButton.onPressIn}
+            onPressOut={contactButton.onPressOut}
           >
-            <Text style={styles.offerButtonText}>Make Offer</Text>
+            <Text style={styles.offerButtonText}>Contact Seller</Text>
           </Pressable>
         </Animated.View>
 
         <Animated.View
           style={[
             styles.contactButtonWrap,
-            { transform: [{ scale: contactButton.scale }], opacity: contactButton.opacity },
+            { transform: [{ scale: buyButton.scale }], opacity: buyButton.opacity },
           ]}
         >
           <Pressable
-            onPress={handleContactSeller}
-            onPressIn={contactButton.onPressIn}
-            onPressOut={contactButton.onPressOut}
+            onPress={handleBuyNow}
+            onPressIn={buyButton.onPressIn}
+            onPressOut={buyButton.onPressOut}
           >
             <LinearGradient colors={[colors.primaryGreenLight, colors.primaryGreen]} style={styles.contactButton}>
-              <Text style={styles.contactButtonText}>Contact Seller</Text>
+              <Text style={styles.contactButtonText}>Buy Now</Text>
             </LinearGradient>
           </Pressable>
         </Animated.View>

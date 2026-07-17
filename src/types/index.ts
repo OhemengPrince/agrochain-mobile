@@ -332,6 +332,26 @@ export type MapRouteParams = {
   region: string;
 };
 
+export type BookingPaymentParams = {
+  equipmentId: string;
+  equipmentName: string;
+  dailyRate: number;
+  ownerId: string;
+  ownerName: string;
+  imageUrl?: string;
+  startDate: string;
+  endDate: string;
+};
+
+export type MarketplacePaymentParams = {
+  listingId: string;
+  listingName: string;
+  price: number;
+  sellerId: string;
+  sellerName: string;
+  imageUrl?: string;
+};
+
 export type MarketplaceStackParamList = {
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
@@ -339,6 +359,7 @@ export type MarketplaceStackParamList = {
   MyMarketplaceListings: undefined;
   Map: MapRouteParams;
   Chat: { name: string; role?: string; otherUserId?: string };
+  MarketplacePayment: MarketplacePaymentParams;
 };
 
 export type FarmerStackParamList = {
@@ -373,6 +394,8 @@ export type FarmerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  BookingPayment: BookingPaymentParams;
+  MarketplacePayment: MarketplacePaymentParams;
 };
 
 export type OwnerStackParamList = {
@@ -405,6 +428,8 @@ export type OwnerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  BookingPayment: BookingPaymentParams;
+  MarketplacePayment: MarketplacePaymentParams;
 };
 
 export type BuyerStackParamList = {
@@ -435,6 +460,8 @@ export type BuyerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  BookingPayment: BookingPaymentParams;
+  MarketplacePayment: MarketplacePaymentParams;
 };
 
 export type GeneralStackParamList = {
@@ -462,4 +489,6 @@ export type GeneralStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  BookingPayment: BookingPaymentParams;
+  MarketplacePayment: MarketplacePaymentParams;
 };

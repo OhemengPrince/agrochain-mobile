@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -83,6 +83,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('Listing...');
   const [error, setError] = useState<string | null>(null);
+  const [showTnC, setShowTnC] = useState(false);
 
   const submitAnim = usePressAnimation();
 
@@ -103,13 +104,19 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
     }
   };
 
-  const handleCreate = async () => {
+  const handleShowTnC = () => {
     setError(null);
     const rate = parseFloat(dailyRate);
     if (!name || !description || !dailyRate || !region || !district || Number.isNaN(rate)) {
       setError('Please fill in all required fields with valid values.');
       return;
     }
+    setShowTnC(true);
+  };
+
+  const handleCreate = async () => {
+    setShowTnC(false);
+    const rate = parseFloat(dailyRate);
     setLoading(true);
 
     let remoteImageUrl: string | undefined;
@@ -239,7 +246,7 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
 
         <Animated.View style={{ transform: [{ scale: submitAnim.scale }], opacity: submitAnim.opacity }}>
           <Pressable
-            onPress={handleCreate}
+            onPress={handleShowTnC}
             onPressIn={submitAnim.onPressIn}
             onPressOut={submitAnim.onPressOut}
             disabled={loading}
@@ -251,6 +258,52 @@ export default function CreateEquipmentScreen({ navigation }: Props) {
         </Animated.View>
       </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTnC} transparent animationType="slide" onRequestClose={() => setShowTnC(false)} statusBarTranslucent>
+        <View style={styles.tncOverlay}>
+          <View style={styles.tncSheet}>
+            <Text style={styles.tncTitle}>Terms & Conditions</Text>
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              {(() => {
+                const rate = parseFloat(dailyRate) || 0;
+                const fee = rate * 0.05;
+                const buyerPays = rate + fee;
+                const sellerReceives = rate - fee;
+                return (
+                  <>
+                    <View style={styles.tncPriceRow}>
+                      <Text style={styles.tncPriceKey}>Your Daily Rate</Text>
+                      <Text style={styles.tncPriceVal}>GHS {rate.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.tncPriceRow}>
+                      <Text style={styles.tncPriceKey}>Farmer pays (rate + 5% fee)</Text>
+                      <Text style={styles.tncPriceVal}>GHS {buyerPays.toFixed(2)}</Text>
+                    </View>
+                    <View style={[styles.tncPriceRow, { borderBottomWidth: 0 }]}>
+                      <Text style={styles.tncPriceKey}>You receive (rate − 5% fee)</Text>
+                      <Text style={[styles.tncPriceVal, { color: colors.primaryGreen }]}>GHS {sellerReceives.toFixed(2)}</Text>
+                    </View>
+                  </>
+                );
+              })()}
+              <Text style={styles.tncBody}>
+                {'Funds are held in escrow by AgroChain until you confirm the equipment rental.\n\nBy listing your equipment, you confirm that:\n• The information provided is accurate.\n• The equipment is in the condition described.\n• You agree to AgroChain\'s Terms of Service and Equipment Rental Policy.'}
+              </Text>
+            </ScrollView>
+            <View style={styles.tncBtnRow}>
+              <TouchableOpacity style={styles.tncCancelBtn} onPress={() => setShowTnC(false)}>
+                <Text style={styles.tncCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.tncAcceptBtn} onPress={handleCreate}>
+                <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={styles.tncAcceptGradient}>
+                  <Text style={styles.tncAcceptText}>I Agree & List</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -389,5 +442,18 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
     },
+    tncOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    tncSheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    tncTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 16 },
+    tncPriceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.divider },
+    tncPriceKey: { fontSize: 13, color: colors.secondaryText },
+    tncPriceVal: { fontSize: 13, fontWeight: '700', color: colors.text },
+    tncBody: { fontSize: 13, color: colors.secondaryText, lineHeight: 20, marginTop: 16 },
+    tncBtnRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    tncCancelBtn: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    tncCancelText: { fontSize: 15, fontWeight: '600', color: colors.secondaryText },
+    tncAcceptBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+    tncAcceptGradient: { height: 50, alignItems: 'center', justifyContent: 'center' },
+    tncAcceptText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   });
 }

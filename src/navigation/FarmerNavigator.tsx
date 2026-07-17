@@ -29,6 +29,8 @@ import PublicProfileScreen from '../screens/shared/PublicProfileScreen';
 import FollowListScreen from '../screens/shared/FollowListScreen';
 import WithdrawalScreen from '../screens/shared/WithdrawalScreen';
 import TransactionHistoryScreen from '../screens/shared/TransactionHistoryScreen';
+import BookingPaymentScreen from '../screens/shared/BookingPaymentScreen';
+import MarketplacePaymentScreen from '../screens/shared/MarketplacePaymentScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -38,6 +40,7 @@ function HomeStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerHomeMain" component={FarmerHomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FarmerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} options={{ headerShown: false }} />
@@ -54,6 +57,7 @@ function EquipmentStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="FarmerEquipmentList" component={EquipmentListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} options={{ headerShown: false }} />
@@ -76,6 +80,7 @@ function MarketStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MarketplacePayment" component={MarketplacePaymentScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />

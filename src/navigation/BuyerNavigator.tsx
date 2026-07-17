@@ -26,6 +26,8 @@ import FollowListScreen from '../screens/shared/FollowListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
 import WithdrawalScreen from '../screens/shared/WithdrawalScreen';
 import TransactionHistoryScreen from '../screens/shared/TransactionHistoryScreen';
+import BookingPaymentScreen from '../screens/shared/BookingPaymentScreen';
+import MarketplacePaymentScreen from '../screens/shared/MarketplacePaymentScreen';
 
 const Tab = createBottomTabNavigator<BuyerStackParamList>();
 const Stack = createNativeStackNavigator<BuyerStackParamList>();
@@ -43,7 +45,9 @@ function HomeStack() {
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FollowList" component={FollowListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MarketplacePayment" component={MarketplacePaymentScreen as any} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -75,6 +79,7 @@ function MarketStack() {
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MarketplacePayment" component={MarketplacePaymentScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
