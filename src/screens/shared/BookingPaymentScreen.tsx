@@ -190,8 +190,8 @@ function BankPickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' }}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' }}>
           <View style={{ padding: 20, paddingBottom: 12 }}>
             <Text style={{ fontSize: 17, fontWeight: '700', color: textColor, marginBottom: 12 }}>Select Bank</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F5', borderRadius: 12, paddingHorizontal: 12, height: 44 }}>
@@ -220,8 +220,8 @@ function BankPickerModal({
             ))}
           </ScrollView>
           <SafeAreaView edges={['bottom']} />
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -275,6 +275,9 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
 
   const networkScaleAnim = useRef(new Animated.Value(1)).current;
   const phoneScaleAnim = useRef(new Animated.Value(1)).current;
+  const bankScaleAnim = useRef(new Animated.Value(1)).current;
+  const accountScaleAnim = useRef(new Animated.Value(1)).current;
+  const [accountInputFocused, setAccountInputFocused] = useState(false);
 
   useEffect(() => {
     Animated.spring(networkScaleAnim, {
@@ -290,6 +293,23 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
   const handlePhoneBlur = () => {
     setPhoneInputFocused(false);
     Animated.spring(phoneScaleAnim, { toValue: 1, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
+
+  const handleBankOpen = () => {
+    setShowBankModal(true);
+    Animated.spring(bankScaleAnim, { toValue: 1.025, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
+  const handleBankClose = () => {
+    setShowBankModal(false);
+    Animated.spring(bankScaleAnim, { toValue: 1, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
+  const handleAccountFocus = () => {
+    setAccountInputFocused(true);
+    Animated.spring(accountScaleAnim, { toValue: 1.025, useNativeDriver: true, tension: 280, friction: 14 }).start();
+  };
+  const handleAccountBlur = () => {
+    setAccountInputFocused(false);
+    Animated.spring(accountScaleAnim, { toValue: 1, useNativeDriver: true, tension: 280, friction: 14 }).start();
   };
 
   const numDays = Math.max(daysBetween(startDate, endDate), 1);
@@ -484,34 +504,40 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
         ) : (
           <View>
             <Text style={styles.fieldLabel}>Select Bank</Text>
-            <TouchableOpacity style={styles.bankSelector} onPress={() => setShowBankModal(true)} activeOpacity={0.8}>
-              {selectedBank ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.bankBadge, { backgroundColor: selectedBank.color }]}>
-                    <Text style={styles.bankBadgeLetter}>{selectedBank.letter}</Text>
+            <Animated.View style={{ transform: [{ scale: bankScaleAnim }] }}>
+              <TouchableOpacity style={[styles.bankSelector, showBankModal && { borderWidth: 1.5, borderColor: colors.primaryGreen }]} onPress={handleBankOpen} activeOpacity={0.8}>
+                {selectedBank ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.bankBadge, { backgroundColor: selectedBank.color }]}>
+                      <Text style={styles.bankBadgeLetter}>{selectedBank.letter}</Text>
+                    </View>
+                    <Text style={styles.bankName}>{selectedBank.name}</Text>
                   </View>
-                  <Text style={styles.bankName}>{selectedBank.name}</Text>
-                </View>
-              ) : (
-                <Text style={styles.bankPlaceholder}>Tap to select a bank</Text>
-              )}
-              <Ionicons name="chevron-down" size={18} color={colors.secondaryText} />
-            </TouchableOpacity>
+                ) : (
+                  <Text style={styles.bankPlaceholder}>Tap to select a bank</Text>
+                )}
+                <Ionicons name="chevron-down" size={18} color={showBankModal ? colors.primaryGreen : colors.secondaryText} />
+              </TouchableOpacity>
+            </Animated.View>
 
-            <Text style={styles.fieldLabel}>Account Number</Text>
-            <View style={styles.inputWrap}>
-              <Ionicons name="card-outline" size={18} color={colors.secondaryText} style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter account number"
-                placeholderTextColor={colors.secondaryText}
-                keyboardType="numeric"
-                maxLength={16}
-                value={accountNumber}
-                onChangeText={setAccountNumber}
-              />
-              {verifyingBank && <ActivityIndicator size="small" color={colors.primaryGreen} />}
-            </View>
+            <Text style={[styles.fieldLabel, { marginTop: 20 }]}>Account Number</Text>
+            <Animated.View style={{ transform: [{ scale: accountScaleAnim }] }}>
+              <View style={[styles.inputWrap, accountInputFocused && { borderWidth: 1.5, borderColor: colors.primaryGreen }]}>
+                <Ionicons name="card-outline" size={18} color={accountInputFocused ? colors.primaryGreen : colors.secondaryText} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter account number"
+                  placeholderTextColor={colors.secondaryText}
+                  keyboardType="numeric"
+                  maxLength={16}
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                  onFocus={handleAccountFocus}
+                  onBlur={handleAccountBlur}
+                />
+                {verifyingBank && <ActivityIndicator size="small" color={colors.primaryGreen} />}
+              </View>
+            </Animated.View>
 
             {accountName ? (
               <View style={styles.verifiedRow}>
@@ -687,9 +713,9 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
-      <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
+      <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={[styles.header, { paddingTop: insets.top + 14 }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.headerBack}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </Pressable>
@@ -738,7 +764,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
       />
       <BankPickerModal
         visible={showBankModal}
-        onClose={() => setShowBankModal(false)}
+        onClose={handleBankClose}
         onSelect={(bank) => { setSelectedBank(bank); setAccountNumber(''); setAccountName(''); }}
         colors={colors}
         isDarkMode={isDarkMode}
@@ -750,7 +776,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
 function createStyles(colors: ThemeColors, isDarkMode: boolean) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14 },
     headerBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff', flex: 1, textAlign: 'center' },
 
