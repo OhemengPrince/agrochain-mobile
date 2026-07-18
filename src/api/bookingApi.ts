@@ -47,6 +47,17 @@ export async function getMyBookings(): Promise<Booking[]> {
   return result;
 }
 
+export async function getBookingById(bookingId: string): Promise<Booking> {
+  if (USE_MOCK_DATA) {
+    const found = MOCK_BOOKINGS.find(b => b.id === bookingId);
+    if (!found) throw new Error('Booking not found');
+    return mockDelay({ ...found });
+  }
+  console.log('[API] GET /bookings/' + bookingId);
+  const { data } = await apiClient.get<Booking>(`/bookings/${bookingId}`);
+  return data;
+}
+
 export async function getIncomingBookings(): Promise<Booking[]> {
   if (USE_MOCK_DATA) {
     const user = await getUser();
@@ -94,8 +105,14 @@ export async function completeBooking(bookingId: string): Promise<Booking> {
 
 export async function submitReview(payload: ReviewPayload): Promise<void> {
   if (USE_MOCK_DATA) {
+    const index = MOCK_BOOKINGS.findIndex(b => b.id === payload.bookingId);
+    if (index !== -1) MOCK_BOOKINGS[index] = { ...MOCK_BOOKINGS[index], reviewed: true };
     await mockDelay(undefined);
     return;
   }
-  await apiClient.post('/bookings/reviews', payload);
+  console.log('[API] POST /bookings/' + payload.bookingId + '/review');
+  await apiClient.post(`/bookings/${payload.bookingId}/review`, {
+    rating: payload.rating,
+    comment: payload.comment,
+  });
 }

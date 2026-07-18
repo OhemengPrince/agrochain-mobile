@@ -24,6 +24,7 @@ import {
   Booking,
 } from '../../types';
 import {
+  getBookingById,
   getMyBookings,
   getIncomingBookings,
   confirmBooking,
@@ -252,9 +253,16 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const loadBooking = async () => {
     setError(null);
     try {
-      const list = isOwner ? await getIncomingBookings() : await getMyBookings();
-      const found = list.find((b) => b.id === bookingId) ?? null;
+      let found: Booking | null = null;
+      try {
+        found = await getBookingById(bookingId);
+      } catch {
+        // fallback to list if single-booking endpoint not available
+        const list = isOwner ? await getIncomingBookings() : await getMyBookings();
+        found = list.find((b) => b.id === bookingId) ?? null;
+      }
       setBooking(found);
+      if (found?.reviewed) setReviewSubmitted(true);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load booking.');
     }
@@ -294,6 +302,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
       await submitReview({ bookingId, rating, comment: comment.trim() || undefined });
       setReviewModalVisible(false);
       setReviewSubmitted(true);
+      setBooking(prev => prev ? { ...prev, reviewed: true } : prev);
       Alert.alert('Thank you!', 'Your review has been submitted.');
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.message ?? 'Failed to submit review.');

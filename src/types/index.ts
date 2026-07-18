@@ -132,6 +132,7 @@ export interface Booking {
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   createdAt: string;
+  reviewed?: boolean;
 }
 
 export interface CreateBookingPayload {
