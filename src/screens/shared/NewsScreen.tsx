@@ -1,14 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Pressable,
+  ActivityIndicator, RefreshControl, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { fetchGhanaAgricultureNews, NewsItem, NewsTopicChip } from '../../services/newsService';
+import { fetchGhanaAgricultureNews, searchGuardianNews, NewsItem, NewsTopicChip } from '../../services/newsService';
+
+const POPULAR_SEARCHES = ['Cocoa Ghana', 'Maize prices', 'Rice harvest', 'Farm equipment', 'Fertiliser'];
 
 const PLACEHOLDER_ICONS: Record<NewsTopicChip, string> = {
   All: '🌾',
@@ -41,6 +43,39 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [activeTopic, setActiveTopic] = useState<NewsTopicChip>('All');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<NewsItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchReqId = useRef(0);
+
+  const isSearchActive = searchQuery.trim().length >= 2;
+
+  const searchNews = useCallback(async (query: string) => {
+    const reqId = ++searchReqId.current;
+    setSearching(true);
+    try {
+      const results = await searchGuardianNews(query);
+      if (reqId === searchReqId.current) setSearchResults(results);
+    } catch {
+      if (reqId === searchReqId.current) setSearchResults([]);
+    } finally {
+      if (reqId === searchReqId.current) setSearching(false);
+    }
+  }, []);
+
+  // Debounce — wait 500ms after the user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchNews(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchNews]);
 
   const load = useCallback(async () => {
     setError(false);
@@ -100,36 +135,84 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
           )}
         </View>
 
-        {/* Topic filter chips — now actually filter the list */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {TOPIC_CHIPS.map((chip) => {
-            const active = activeTopic === chip;
-            const count = topicCounts[chip] ?? 0;
-            return (
-              <TouchableOpacity
-                key={chip}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => setActiveTopic(chip)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.chipIcon}>{CHIP_ICONS[chip]}</Text>
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
-                {count > 0 && (
-                  <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
-                    <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
-                      {count}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {/* Search bar */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={colors.secondaryText} style={{ marginRight: 8 }} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            placeholder="Search agriculture news..."
+            placeholderTextColor={colors.secondaryText}
+            style={styles.searchInput}
+            returnKeyType="search"
+            onSubmitEditing={() => searchNews(searchQuery)}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => { setSearchQuery(''); setSearchResults([]); }} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
+            </Pressable>
+          )}
+          {searching && <ActivityIndicator size="small" color={colors.primaryGreen} style={{ marginLeft: 8 }} />}
+        </View>
+
+        {/* Popular search suggestions — shown when focused with an empty query */}
+        {searchQuery.length === 0 && searchFocused && (
+          <View style={styles.suggestionsWrap}>
+            <Text style={styles.suggestionsLabel}>Popular searches:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {POPULAR_SEARCHES.map((suggestion) => (
+                <Pressable
+                  key={suggestion}
+                  onPress={() => setSearchQuery(suggestion)}
+                  style={styles.suggestionChip}
+                >
+                  <Text style={styles.suggestionChipText}>🔍 {suggestion}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Topic filter chips — hidden while searching */}
+        {searchQuery.length === 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}
+          >
+            {TOPIC_CHIPS.map((chip) => {
+              const active = activeTopic === chip;
+              const count = topicCounts[chip] ?? 0;
+              return (
+                <TouchableOpacity
+                  key={chip}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => setActiveTopic(chip)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.chipIcon}>{CHIP_ICONS[chip]}</Text>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
+                  {count > 0 && (
+                    <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
+                      <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </LinearGradient>
+
+      {isSearchActive && (
+        <Text style={styles.searchResultsHeader}>
+          {searching ? 'Searching...' : `${searchResults.length} results for "${searchQuery}"`}
+        </Text>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -142,7 +225,72 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
           />
         }
       >
-        {loading ? (
+        {isSearchActive ? (
+          searching ? (
+            <View style={styles.centerBox}>
+              <ActivityIndicator size="large" color={colors.primaryGreen} />
+              <Text style={styles.loadingText}>Searching Guardian news…</Text>
+            </View>
+          ) : searchResults.length === 0 ? (
+            <View style={styles.centerBox}>
+              <Ionicons name="newspaper-outline" size={48} color={colors.secondaryText} />
+              <Text style={styles.emptySearchTitle}>No results found</Text>
+              <Text style={styles.emptySearchSubtitle}>
+                Try different keywords like 'cocoa', 'maize' or 'farming Ghana'
+              </Text>
+            </View>
+          ) : (
+            searchResults.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.card}
+                onPress={() => openArticle(item.url, item.headline)}
+                activeOpacity={item.url ? 0.75 : 1}
+              >
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+                ) : (
+                  <LinearGradient
+                    colors={['#14532d', '#16a34a', '#4ade80']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardImagePlaceholder}
+                  >
+                    <Text style={styles.placeholderEmojiLarge}>
+                      {FALLBACK_EMOJIS[index % FALLBACK_EMOJIS.length]}
+                    </Text>
+                  </LinearGradient>
+                )}
+
+                <View style={styles.cardBody}>
+                  <View style={styles.topicPill}>
+                    <Text style={styles.topicPillIcon}>{PLACEHOLDER_ICONS[item.topic]}</Text>
+                    <Text style={styles.topicPillText}>{item.topic}</Text>
+                  </View>
+
+                  <Text style={styles.cardHeadline} numberOfLines={3}>{item.headline}</Text>
+                  {item.summary ? (
+                    <Text style={styles.cardSummary} numberOfLines={3}>{item.summary}</Text>
+                  ) : null}
+                  <View style={styles.cardMeta}>
+                    <Ionicons name="newspaper-outline" size={12} color={colors.primaryGreen} />
+                    <Text style={styles.cardSource}>{item.source}</Text>
+                    <Text style={styles.cardDot}>•</Text>
+                    <Text style={styles.cardTime}>{item.time}</Text>
+                    {item.url ? (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={12}
+                        color={colors.secondaryText}
+                        style={{ marginLeft: 4 }}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )
+        ) : loading ? (
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color={colors.primaryGreen} />
             <Text style={styles.loadingText}>Fetching Ghana agriculture news…</Text>
@@ -247,6 +395,55 @@ function createStyles(colors: ThemeColors) {
     },
     liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ade80' },
     liveText: { fontSize: 12, fontWeight: '700', color: colors.white },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      marginTop: 14,
+      height: 44,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      elevation: 2,
+    },
+    searchInput: { flex: 1, fontSize: 14, color: colors.text },
+    suggestionsWrap: { marginTop: 12 },
+    suggestionsLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginBottom: 8 },
+    suggestionChip: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+    },
+    suggestionChipText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+    searchResultsHeader: {
+      color: colors.secondaryText,
+      fontSize: 12,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: -4,
+    },
+    emptySearchTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.secondaryText,
+      marginTop: 12,
+    },
+    emptySearchSubtitle: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      opacity: 0.7,
+      textAlign: 'center',
+      marginTop: 6,
+      paddingHorizontal: 20,
+    },
     chipsRow: { flexDirection: 'row', gap: 8, marginTop: 14, paddingRight: 4 },
     chip: {
       flexDirection: 'row',

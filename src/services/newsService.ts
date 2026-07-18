@@ -132,6 +132,21 @@ async function guardianFetch(q: string, pageSize: number): Promise<GuardianArtic
   return data.response.results;
 }
 
+// Real-time search against the Guardian API, scoped to agriculture + Ghana
+export async function searchGuardianNews(query: string): Promise<NewsItem[]> {
+  const params = new URLSearchParams({
+    q: `${query} agriculture ghana`,
+    'show-fields': 'thumbnail,trailText,byline',
+    'page-size': '20',
+    'order-by': 'relevance',
+    'api-key': GUARDIAN_API_KEY,
+  });
+  const res = await fetch(`${BASE}?${params}`);
+  if (!res.ok) throw new Error(`Guardian ${res.status}`);
+  const data: GuardianResponse = await res.json();
+  return data.response.results.map(toNewsItem);
+}
+
 // Four parallel queries to maximise variety and volume
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
   const [crops, fertilizers, livestock, markets] = await Promise.all([
