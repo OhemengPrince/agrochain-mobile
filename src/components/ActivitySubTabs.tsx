@@ -1,13 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, ActivityIndicator,
+  View, Text, ScrollView, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { EarningsSummary, Transaction, getTransactions } from '../api/earningsApi';
-import { Booking } from '../types';
+import { Booking, MarketplacePurchase, ProducePurchase, PurchaseStatus } from '../types';
 import { getMyBookings, getIncomingBookings } from '../api/bookingApi';
+import {
+  getMyMarketplacePurchases,
+  getIncomingMarketplacePurchases,
+  getMyProducePurchases,
+  getIncomingProducePurchases,
+  markMarketplaceShipped,
+  markProduceDelivered,
+  confirmMarketplaceReceipt,
+  confirmProduceReceipt,
+  cancelMarketplacePurchase,
+  cancelProducePurchase,
+} from '../api/purchaseApi';
 import { formatDate } from '../utils/formatters';
+
+type UnifiedOrder = {
+  id: string;
+  kind: 'marketplace' | 'produce';
+  itemName: string;
+  counterpartyName: string;
+  amount: number;
+  status: PurchaseStatus;
+  createdAt: string;
+};
+
+function toUnified(list: (MarketplacePurchase | ProducePurchase)[], kind: 'marketplace' | 'produce', direction: 'buyer' | 'seller'): UnifiedOrder[] {
+  return list.map((p: any) => ({
+    id: p.id,
+    kind,
+    itemName: kind === 'marketplace' ? p.listingName : p.cropName,
+    counterpartyName: direction === 'buyer'
+      ? (kind === 'marketplace' ? p.sellerName : p.farmerName)
+      : p.buyerName,
+    amount: p.totalAmount,
+    status: p.status,
+    createdAt: p.createdAt,
+  }));
+}
 
 const GREEN = '#1A6B2E';
 
@@ -31,10 +67,47 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [incomingBookings, setIncomingBookings] = useState<Booking[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [purchases, setPurchases] = useState<UnifiedOrder[]>([]);
+  const [sales, setSales] = useState<UnifiedOrder[]>([]);
   const [bookingsLoaded, setBookingsLoaded] = useState(false);
   const [txLoaded, setTxLoaded] = useState(false);
+  const [purchasesLoaded, setPurchasesLoaded] = useState(false);
+  const [salesLoaded, setSalesLoaded] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [txLoading, setTxLoading] = useState(false);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [salesLoading, setSalesLoading] = useState(false);
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  const loadPurchases = () => {
+    setPurchasesLoading(true);
+    Promise.all([getMyMarketplacePurchases(), getMyProducePurchases()])
+      .then(([mkt, prod]) => {
+        const merged = [
+          ...toUnified(mkt, 'marketplace', 'buyer'),
+          ...toUnified(prod, 'produce', 'buyer'),
+        ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setPurchases(merged);
+        setPurchasesLoaded(true);
+      })
+      .catch(() => {})
+      .finally(() => setPurchasesLoading(false));
+  };
+
+  const loadSales = () => {
+    setSalesLoading(true);
+    Promise.all([getIncomingMarketplacePurchases(), getIncomingProducePurchases()])
+      .then(([mkt, prod]) => {
+        const merged = [
+          ...toUnified(mkt, 'marketplace', 'seller'),
+          ...toUnified(prod, 'produce', 'seller'),
+        ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setSales(merged);
+        setSalesLoaded(true);
+      })
+      .catch(() => {})
+      .finally(() => setSalesLoading(false));
+  };
 
   useEffect(() => {
     if (activeSubTab === 'Bookings' && !bookingsLoaded && !bookingsLoading) {
@@ -48,7 +121,13 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
         .catch(() => {})
         .finally(() => setBookingsLoading(false));
     }
-    if (['Purchases', 'Sales', 'Transactions'].includes(activeSubTab) && !txLoaded && !txLoading) {
+    if (activeSubTab === 'Purchases' && !purchasesLoaded && !purchasesLoading) {
+      loadPurchases();
+    }
+    if (activeSubTab === 'Sales' && !salesLoaded && !salesLoading) {
+      loadSales();
+    }
+    if (activeSubTab === 'Transactions' && !txLoaded && !txLoading) {
       setTxLoading(true);
       getTransactions(0)
         .then(r => {
@@ -60,16 +139,49 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
     }
   }, [activeSubTab]);
 
-  const purchases = transactions.filter(t =>
-    t.type?.includes('PURCHASE') || t.type?.includes('BUY')
-  );
-  const sales = transactions.filter(t =>
-    t.type?.includes('INCOME') || t.type?.includes('SALE')
-  );
+  const handleConfirmReceipt = async (order: UnifiedOrder) => {
+    setActioningId(order.id);
+    try {
+      if (order.kind === 'marketplace') await confirmMarketplaceReceipt(order.id);
+      else await confirmProduceReceipt(order.id);
+      loadPurchases();
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Failed to confirm receipt.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleCancelPurchase = async (order: UnifiedOrder) => {
+    setActioningId(order.id);
+    try {
+      if (order.kind === 'marketplace') await cancelMarketplacePurchase(order.id);
+      else await cancelProducePurchase(order.id);
+      loadPurchases();
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Failed to cancel order.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleMarkShippedOrDelivered = async (order: UnifiedOrder) => {
+    setActioningId(order.id);
+    try {
+      if (order.kind === 'marketplace') await markMarketplaceShipped(order.id);
+      else await markProduceDelivered(order.id);
+      loadSales();
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Failed to update order.');
+    } finally {
+      setActioningId(null);
+    }
+  };
 
   const statusColor = (status: string) => {
     if (status === 'CONFIRMED' || status === 'COMPLETED') return { bg: '#E8F5E9', text: '#16A34A' };
-    if (status === 'PENDING') return { bg: '#FFF9E6', text: '#FF8F00' };
+    if (status === 'PAID' || status === 'SHIPPED' || status === 'DELIVERED') return { bg: '#E3F2FD', text: '#1565C0' };
+    if (status === 'PENDING' || status === 'PENDING_PAYMENT') return { bg: '#FFF9E6', text: '#FF8F00' };
     return { bg: '#FEE2E2', text: '#DC2626' };
   };
 
@@ -190,7 +302,7 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
 
   // ── Purchases ─────────────────────────────────────────────────────────────
   const renderPurchases = () => {
-    if (txLoading) {
+    if (purchasesLoading) {
       return <ActivityIndicator color={GREEN} style={{ marginVertical: 32 }} />;
     }
     if (purchases.length === 0) {
@@ -198,39 +310,63 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
     }
     return (
       <View style={{ padding: 16, gap: 10 }}>
-        {purchases.map(t => (
-          <View key={t.id} style={{ backgroundColor: colors.inputBackground, borderRadius: 12, padding: 14, borderWidth: 0.5, borderColor: colors.divider }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: '#F0FFF4', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="storefront-outline" size={22} color={GREEN} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
-                  {t.description}
-                </Text>
-                <Text style={{ color: colors.secondaryText, fontSize: 12 }}>From: {t.counterpartyName}</Text>
-                <Text style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(t.createdAt)}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '700' }}>
-                  -GHS {t.amount?.toFixed(2)}
-                </Text>
-                <View style={{ backgroundColor: t.status === 'COMPLETED' ? '#E8F5E9' : '#FFF9E6', borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 }}>
-                  <Text style={{ fontSize: 9, color: t.status === 'COMPLETED' ? '#16A34A' : '#FF8F00', fontWeight: '700' }}>
-                    {t.status}
+        {purchases.map(o => {
+          const sc = statusColor(o.status);
+          const busy = actioningId === o.id;
+          return (
+            <View key={`${o.kind}-${o.id}`} style={{ backgroundColor: colors.inputBackground, borderRadius: 12, padding: 14, borderWidth: 0.5, borderColor: colors.divider }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: '#F0FFF4', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={o.kind === 'produce' ? 'leaf-outline' : 'storefront-outline'} size={22} color={GREEN} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
+                    {o.itemName}
                   </Text>
+                  <Text style={{ color: colors.secondaryText, fontSize: 12 }}>From: {o.counterpartyName}</Text>
+                  <Text style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(o.createdAt)}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: '#DC2626', fontSize: 14, fontWeight: '700' }}>
+                    -GHS {o.amount?.toFixed(2)}
+                  </Text>
+                  <View style={{ backgroundColor: sc.bg, borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 }}>
+                    <Text style={{ fontSize: 9, color: sc.text, fontWeight: '700' }}>{o.status}</Text>
+                  </View>
                 </View>
               </View>
+              {(o.status === 'DELIVERED' || o.status === 'PAID') && (
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                  {o.status === 'DELIVERED' && (
+                    <Pressable
+                      disabled={busy}
+                      onPress={() => handleConfirmReceipt(o)}
+                      style={{ flex: 1, backgroundColor: GREEN, borderRadius: 10, paddingVertical: 9, alignItems: 'center', opacity: busy ? 0.6 : 1 }}
+                    >
+                      {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Confirm Receipt</Text>}
+                    </Pressable>
+                  )}
+                  {o.status === 'PAID' && (
+                    <Pressable
+                      disabled={busy}
+                      onPress={() => handleCancelPurchase(o)}
+                      style={{ flex: 1, borderWidth: 1, borderColor: '#DC2626', borderRadius: 10, paddingVertical: 9, alignItems: 'center', opacity: busy ? 0.6 : 1 }}
+                    >
+                      {busy ? <ActivityIndicator size="small" color="#DC2626" /> : <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '700' }}>Cancel Order</Text>}
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     );
   };
 
   // ── Sales ─────────────────────────────────────────────────────────────────
   const renderSales = () => {
-    if (txLoading) {
+    if (salesLoading) {
       return <ActivityIndicator color={GREEN} style={{ marginVertical: 32 }} />;
     }
     if (sales.length === 0) {
@@ -238,35 +374,47 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
     }
     return (
       <View style={{ padding: 16, gap: 10 }}>
-        {sales.map(t => (
-          <View key={t.id} style={{ backgroundColor: colors.inputBackground, borderRadius: 12, padding: 14, borderWidth: 0.5, borderColor: colors.divider }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="arrow-up-circle-outline" size={22} color="#16A34A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
-                  {t.description}
-                </Text>
-                <Text style={{ color: colors.secondaryText, fontSize: 12 }}>To: {t.counterpartyName}</Text>
-                <Text style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(t.createdAt)}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: '#16A34A', fontSize: 14, fontWeight: '700' }}>
-                  +GHS {t.netAmount?.toFixed(2)}
-                </Text>
-                <Text style={{ color: '#9CA3AF', fontSize: 10 }}>
-                  fee: {t.agrochainFee?.toFixed(2)}
-                </Text>
-                <View style={{ backgroundColor: t.status === 'COMPLETED' ? '#E8F5E9' : '#FFF9E6', borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 }}>
-                  <Text style={{ fontSize: 9, color: t.status === 'COMPLETED' ? '#16A34A' : '#FF8F00', fontWeight: '700' }}>
-                    {t.status}
+        {sales.map(o => {
+          const sc = statusColor(o.status);
+          const busy = actioningId === o.id;
+          return (
+            <View key={`${o.kind}-${o.id}`} style={{ backgroundColor: colors.inputBackground, borderRadius: 12, padding: 14, borderWidth: 0.5, borderColor: colors.divider }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={o.kind === 'produce' ? 'leaf-outline' : 'arrow-up-circle-outline'} size={22} color="#16A34A" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
+                    {o.itemName}
                   </Text>
+                  <Text style={{ color: colors.secondaryText, fontSize: 12 }}>To: {o.counterpartyName}</Text>
+                  <Text style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(o.createdAt)}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: '#16A34A', fontSize: 14, fontWeight: '700' }}>
+                    +GHS {o.amount?.toFixed(2)}
+                  </Text>
+                  <View style={{ backgroundColor: sc.bg, borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 }}>
+                    <Text style={{ fontSize: 9, color: sc.text, fontWeight: '700' }}>{o.status}</Text>
+                  </View>
                 </View>
               </View>
+              {o.status === 'PAID' && (
+                <Pressable
+                  disabled={busy}
+                  onPress={() => handleMarkShippedOrDelivered(o)}
+                  style={{ marginTop: 12, backgroundColor: GREEN, borderRadius: 10, paddingVertical: 9, alignItems: 'center', opacity: busy ? 0.6 : 1 }}
+                >
+                  {busy ? <ActivityIndicator size="small" color="#fff" /> : (
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                      {o.kind === 'produce' ? 'Mark Delivered' : 'Mark Shipped'}
+                    </Text>
+                  )}
+                </Pressable>
+              )}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     );
   };

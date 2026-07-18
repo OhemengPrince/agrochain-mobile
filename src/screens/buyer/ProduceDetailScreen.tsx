@@ -251,6 +251,23 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
         {/* ACTION BUTTONS */}
         <View style={styles.actionsSection}>
+          {batch.pricePerKg !== undefined && (
+            <AppButton
+              title={`Buy Now — ${formatCurrency(batch.pricePerKg)}/kg`}
+              onPress={() =>
+                (navigation as any).navigate('MarketplacePayment', {
+                  listingId: batch.id,
+                  listingName: batch.cropName,
+                  price: batch.pricePerKg,
+                  sellerId: batch.farmerId,
+                  sellerName: batch.farmerName,
+                  kind: 'produce',
+                  quantityUnit: 'kg',
+                })
+              }
+              style={styles.actionButton}
+            />
+          )}
           <AppButton title="Contact Farmer" onPress={handleContact} style={styles.actionButton} />
           <AppButton
             title="Download PDF Report"

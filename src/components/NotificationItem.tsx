@@ -17,6 +17,17 @@ const TYPE_ICON: Record<AppNotification['type'], keyof typeof Ionicons.glyphMap>
   PAYMENT: 'cash',
   BATCH: 'leaf',
   SYSTEM: 'information-circle',
+  NEW_EQUIPMENT: 'construct-outline',
+  NEW_LISTING: 'storefront-outline',
+  NEW_PRODUCE: 'leaf-outline',
+  PRICE_CHANGE: 'pricetag-outline',
+  BOOKING_ACCEPTED: 'checkmark-circle-outline',
+  NEW_FOLLOWER: 'person-add-outline',
+  NEW_ORDER: 'cart-outline',
+  ORDER_SHIPPED: 'cube-outline',
+  ORDER_COMPLETED: 'checkmark-done-outline',
+  ORDER_CANCELLED: 'close-circle-outline',
+  PAYMENT_RELEASED: 'wallet-outline',
 };
 
 export default function NotificationItem({ notification, onPress }: NotificationItemProps) {

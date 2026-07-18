@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MarketplaceStackParamList } from '../../types';
-import { purchaseMarketplaceListing } from '../../api/produceApi';
+import { initiateMarketplacePurchase, initiateProducePurchase } from '../../api/purchaseApi';
 import { verifyBankAccount } from '../../api/earningsApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -140,7 +140,8 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, isDarkMode), [colors, isDarkMode]);
 
-  const { listingId, listingName, price, sellerId, sellerName, imageUrl } = route.params;
+  const { listingId, listingName, price, sellerId, sellerName, imageUrl, kind = 'listing', quantityUnit } = route.params;
+  const isProduce = kind === 'produce';
 
   // ── Step state ──────────────────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -225,7 +226,7 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      const result = await purchaseMarketplaceListing(listingId, {
+      const payload = {
         quantity,
         paymentMethod: payMethod,
         network: payMethod === 'MOMO' ? selectedNetwork : undefined,
@@ -233,8 +234,11 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
         bankCode: payMethod === 'BANK' ? selectedBank?.code : undefined,
         accountNumber: payMethod === 'BANK' ? accountNumber : undefined,
         accountName: payMethod === 'BANK' ? accountName : undefined,
-      });
-      setOrderId(result.orderId);
+      };
+      const result = isProduce
+        ? await initiateProducePurchase(listingId, payload)
+        : await initiateMarketplacePurchase(listingId, payload);
+      setOrderId(result.id);
       setResultSuccess(true);
       setStep(4);
     } catch (err: any) {
@@ -266,15 +270,15 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
         </View>
         <View style={styles.listingMiddle}>
           <Text style={styles.listingName} numberOfLines={2}>{listingName}</Text>
-          <Text style={styles.listingSeller}>Seller: {sellerName}</Text>
-          <Text style={styles.listingPrice}>{formatCurrency(price)} per unit</Text>
+          <Text style={styles.listingSeller}>{isProduce ? 'Farmer' : 'Seller'}: {sellerName}</Text>
+          <Text style={styles.listingPrice}>{formatCurrency(price)} per {quantityUnit ?? 'unit'}</Text>
         </View>
       </View>
 
       <Text style={styles.sectionLabel}>Order Summary</Text>
 
       <View style={styles.quantityCard}>
-        <Text style={styles.quantityLabel}>Quantity</Text>
+        <Text style={styles.quantityLabel}>Quantity{quantityUnit ? ` (${quantityUnit})` : ''}</Text>
         <View style={styles.quantityRow}>
           <TouchableOpacity
             style={[styles.qtyBtn, quantity <= 1 && { opacity: 0.4 }]}
@@ -524,10 +528,10 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
           </View>
           <TouchableOpacity
             style={[styles.resultBtn, { backgroundColor: colors.primaryGreen }]}
-            onPress={() => navigation.navigate('MarketplaceList')}
+            onPress={() => navigation.popToTop()}
             activeOpacity={0.85}
           >
-            <Text style={styles.resultBtnText}>Back to Marketplace</Text>
+            <Text style={styles.resultBtnText}>{isProduce ? 'Back to Produce' : 'Back to Marketplace'}</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -594,7 +598,7 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>
-          {step === 4 ? (resultSuccess ? 'Order Confirmed' : 'Payment Failed') : 'Purchase Item'}
+          {step === 4 ? (resultSuccess ? 'Order Confirmed' : 'Payment Failed') : (isProduce ? 'Purchase Produce' : 'Purchase Item')}
         </Text>
         <View style={{ width: 40 }} />
       </LinearGradient>

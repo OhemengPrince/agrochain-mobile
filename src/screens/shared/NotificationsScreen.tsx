@@ -32,6 +32,11 @@ const TYPE_ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   PRICE_CHANGE: 'pricetag-outline',
   BOOKING_ACCEPTED: 'checkmark-circle-outline',
   NEW_FOLLOWER: 'person-add-outline',
+  NEW_ORDER: 'cart-outline',
+  ORDER_SHIPPED: 'cube-outline',
+  ORDER_COMPLETED: 'checkmark-done-outline',
+  ORDER_CANCELLED: 'close-circle-outline',
+  PAYMENT_RELEASED: 'wallet-outline',
 };
 
 function getTypeColor(type: NotificationType, colors: ThemeColors): string {
@@ -51,6 +56,15 @@ function getTypeColor(type: NotificationType, colors: ThemeColors): string {
       return '#FF8F00';
     case 'PRICE_CHANGE':
       return '#7B1FA2';
+    case 'NEW_ORDER':
+      return '#1565C0';
+    case 'ORDER_SHIPPED':
+      return '#FF8F00';
+    case 'ORDER_COMPLETED':
+    case 'PAYMENT_RELEASED':
+      return '#16A34A';
+    case 'ORDER_CANCELLED':
+      return '#DC2626';
     case 'SYSTEM':
     default:
       return colors.secondaryText;

@@ -249,7 +249,12 @@ export type NotificationType =
   | 'NEW_PRODUCE'
   | 'PRICE_CHANGE'
   | 'BOOKING_ACCEPTED'
-  | 'NEW_FOLLOWER';
+  | 'NEW_FOLLOWER'
+  | 'NEW_ORDER'
+  | 'ORDER_SHIPPED'
+  | 'ORDER_COMPLETED'
+  | 'ORDER_CANCELLED'
+  | 'PAYMENT_RELEASED';
 
 export interface AppNotification {
   id: string;
@@ -314,6 +319,79 @@ export interface MarketplaceListingOrder {
   createdAt: string;
 }
 
+// ===== Purchases (Marketplace & Produce) =====
+
+export type PurchaseStatus =
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export interface InitiatePurchasePayload {
+  quantity: number;
+  paymentMethod: 'MOMO' | 'BANK';
+  network?: string;
+  phoneNumber?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+}
+
+export interface MarketplacePurchase {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  listingId: string;
+  listingName: string;
+  sellerId: string;
+  sellerName: string;
+  quantity: number;
+  unitPrice: number;
+  baseAmount: number;
+  totalAmount: number;
+  agrochainFee: number;
+  sellerNet: number;
+  status: PurchaseStatus;
+  paystackReference?: string;
+  paymentMethod?: string;
+  paidAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  buyerConfirmedAt?: string;
+  autoConfirmAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface ProducePurchase {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  batchId: string;
+  cropName: string;
+  farmerId: string;
+  farmerName: string;
+  quantityKg: number;
+  pricePerKg: number;
+  baseAmount: number;
+  totalAmount: number;
+  agrochainFee: number;
+  sellerNet: number;
+  status: PurchaseStatus;
+  paystackReference?: string;
+  paymentMethod?: string;
+  paidAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  buyerConfirmedAt?: string;
+  autoConfirmAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
 // ===== Navigation =====
 
 export type AuthStackParamList = {
@@ -351,6 +429,8 @@ export type MarketplacePaymentParams = {
   sellerId: string;
   sellerName: string;
   imageUrl?: string;
+  kind?: 'listing' | 'produce';
+  quantityUnit?: string;
 };
 
 export type MarketplaceStackParamList = {
