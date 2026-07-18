@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Pressable,
   Animated,
   TextInput,
@@ -22,6 +21,7 @@ import {
   FarmerStackParamList,
   OwnerStackParamList,
   Booking,
+  Equipment,
 } from '../../types';
 import {
   getBookingById,
@@ -32,6 +32,7 @@ import {
   completeBooking,
   submitReview,
 } from '../../api/bookingApi';
+import { getEquipmentById } from '../../api/equipmentApi';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency, formatDate, daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -39,6 +40,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import EquipmentImage from '../../components/EquipmentImage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList | OwnerStackParamList, 'BookingDetail'>;
 
@@ -240,6 +242,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const styles = createStyles(colors);
   const isOwner = user?.role === 'EQUIPMENT_OWNER';
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,6 +266,14 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
       }
       setBooking(found);
       if (found?.reviewed) setReviewSubmitted(true);
+      if (found?.equipmentId) {
+        try {
+          const eq = await getEquipmentById(found.equipmentId);
+          setEquipment(eq);
+        } catch {
+          setEquipment(null);
+        }
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load booking.');
     }
@@ -360,8 +371,9 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         <ErrorMessage message={error} />
 
         <View style={styles.card}>
-          <Image
-            source={require('../../assets/equipment/tractor.jpg')}
+          <EquipmentImage
+            category={equipment?.category ?? 'OTHER'}
+            imageUrl={equipment?.imageUrl}
             style={styles.equipmentImage}
             resizeMode="cover"
           />
