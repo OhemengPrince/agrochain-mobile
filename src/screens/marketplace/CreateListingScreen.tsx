@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import {
   MarketplacePriceType,
   MarketplaceContactPreference,
 } from '../../types';
-import { createMarketplaceListing } from '../../api/produceApi';
+import { createMarketplaceListing, updateMarketplaceListing, getMarketplaceListingById } from '../../api/produceApi';
 import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -168,9 +168,12 @@ function LocationButton({
   );
 }
 
-export default function CreateListingScreen({ navigation }: Props) {
+export default function CreateListingScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+
+  const editingListingId = route.params?.listingId;
+  const isEditing = !!editingListingId;
 
   const [category, setCategory] = useState<MarketplaceCategory>('PRODUCE');
   const [name, setName] = useState('');
@@ -179,6 +182,7 @@ export default function CreateListingScreen({ navigation }: Props) {
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>([]);
   const [region, setRegion] = useState('');
   const [district, setDistrict] = useState('');
   const [capturingLocation, setCapturingLocation] = useState(false);
@@ -187,6 +191,30 @@ export default function CreateListingScreen({ navigation }: Props) {
   const [loadingText, setLoadingText] = useState('Posting...');
   const [error, setError] = useState<string | null>(null);
   const [showTnC, setShowTnC] = useState(false);
+  const [prefilling, setPrefilling] = useState(isEditing);
+
+  useEffect(() => {
+    if (!editingListingId) return;
+    (async () => {
+      try {
+        const listing = await getMarketplaceListingById(editingListingId);
+        setCategory(listing.category);
+        setName(listing.name);
+        setDescription(listing.description);
+        setPriceType(listing.priceType);
+        setPrice(listing.priceType === 'NEGOTIABLE' ? '' : String(listing.price));
+        setQuantity(listing.quantity ?? '');
+        setExistingPhotoUrls(listing.photoUrls ?? []);
+        setRegion(listing.region);
+        setDistrict(listing.district);
+        setContactPreference(listing.contactPreference);
+      } catch (err: any) {
+        setError(err?.response?.data?.message ?? 'Failed to load listing for editing.');
+      } finally {
+        setPrefilling(false);
+      }
+    })();
+  }, [editingListingId]);
 
   const submitAnim = usePressAnimation();
   const addPhotoAnim = usePressAnimation();
@@ -200,8 +228,10 @@ export default function CreateListingScreen({ navigation }: Props) {
     }, 1200);
   };
 
+  const totalPhotoCount = photos.length + existingPhotoUrls.length;
+
   const handleAddPhoto = async () => {
-    if (photos.length >= MAX_PHOTOS) return;
+    if (totalPhotoCount >= MAX_PHOTOS) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Permission needed', 'Allow photo library access to add listing photos.');
@@ -220,6 +250,10 @@ export default function CreateListingScreen({ navigation }: Props) {
 
   const handleRemovePhoto = (uri: string) => {
     setPhotos((prev) => prev.filter((p) => p !== uri));
+  };
+
+  const handleRemoveExistingPhoto = (url: string) => {
+    setExistingPhotoUrls((prev) => prev.filter((p) => p !== url));
   };
 
   const handleShowTnC = () => {
@@ -272,38 +306,64 @@ export default function CreateListingScreen({ navigation }: Props) {
 
     setLoading(true);
 
-    let uploadedUrls: string[] = [];
+    let newlyUploadedUrls: string[] = [];
     if (photos.length > 0) {
       setLoadingText('Uploading photos...');
       const results = await Promise.allSettled(photos.map((uri) => uploadImage(uri)));
-      uploadedUrls = results
+      newlyUploadedUrls = results
         .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
         .map((r) => r.value);
     }
+    const photoUrls = [...existingPhotoUrls, ...newlyUploadedUrls];
 
-    setLoadingText('Posting...');
+    setLoadingText(isEditing ? 'Saving changes...' : 'Posting...');
     try {
-      await createMarketplaceListing({
+      const payload = {
         category,
         name: name.trim(),
         description: description.trim(),
         priceType,
         price: hasValidPrice ? parsedPrice : 0,
         quantity: quantity.trim() ? quantity.trim() : undefined,
-        photoUrls: uploadedUrls,
+        photoUrls,
         region,
         district,
         contactPreference,
-      });
-      Alert.alert('Listing posted', 'Your item is now live on the marketplace.', [
-        { text: 'OK', onPress: () => navigation.navigate('MyMarketplaceListings') },
-      ]);
+      };
+      if (isEditing) {
+        await updateMarketplaceListing(editingListingId!, payload);
+        Alert.alert('Listing updated', 'Your changes have been saved.', [
+          { text: 'OK', onPress: () => navigation.navigate('MyMarketplaceListings') },
+        ]);
+      } else {
+        await createMarketplaceListing(payload);
+        Alert.alert('Listing posted', 'Your item is now live on the marketplace.', [
+          { text: 'OK', onPress: () => navigation.navigate('MyMarketplaceListings') },
+        ]);
+      }
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to post listing.');
+      setError(err?.response?.data?.message ?? `Failed to ${isEditing ? 'update' : 'post'} listing.`);
     } finally {
       setLoading(false);
     }
   };
+
+  if (prefilling) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Edit Listing</Text>
+          <View style={styles.backButtonSpacer} />
+        </LinearGradient>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: colors.secondaryText }}>Loading listing...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -311,7 +371,7 @@ export default function CreateListingScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text style={styles.headerTitle}>List an Item</Text>
+        <Text style={styles.headerTitle}>{isEditing ? 'Edit Listing' : 'List an Item'}</Text>
         <View style={styles.backButtonSpacer} />
       </LinearGradient>
 
@@ -399,8 +459,16 @@ export default function CreateListingScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Photos ({photos.length}/{MAX_PHOTOS})</Text>
+          <Text style={styles.label}>Photos ({totalPhotoCount}/{MAX_PHOTOS})</Text>
           <View style={styles.photoGrid}>
+            {existingPhotoUrls.map((url) => (
+              <View key={url} style={styles.photoTile}>
+                <Image source={{ uri: url }} style={styles.photoImage} resizeMode="cover" />
+                <Pressable style={styles.photoRemoveButton} onPress={() => handleRemoveExistingPhoto(url)}>
+                  <Ionicons name="close" size={14} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            ))}
             {photos.map((uri) => (
               <View key={uri} style={styles.photoTile}>
                 <Image source={{ uri }} style={styles.photoImage} resizeMode="cover" />
@@ -409,7 +477,7 @@ export default function CreateListingScreen({ navigation }: Props) {
                 </Pressable>
               </View>
             ))}
-            {photos.length < MAX_PHOTOS && (
+            {totalPhotoCount < MAX_PHOTOS && (
               <Animated.View style={{ transform: [{ scale: addPhotoAnim.scale }], opacity: addPhotoAnim.opacity }}>
                 <Pressable
                   style={styles.addPhotoTile}
@@ -462,7 +530,7 @@ export default function CreateListingScreen({ navigation }: Props) {
             disabled={loading}
           >
             <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.submitButton}>
-              <Text style={styles.submitButtonText}>{loading ? loadingText : 'Post Listing'}</Text>
+              <Text style={styles.submitButtonText}>{loading ? loadingText : (isEditing ? 'Save Changes' : 'Post Listing')}</Text>
             </LinearGradient>
           </Pressable>
         </Animated.View>
@@ -511,7 +579,7 @@ export default function CreateListingScreen({ navigation }: Props) {
               </TouchableOpacity>
               <TouchableOpacity style={styles.tncAcceptBtn} onPress={handleSubmit}>
                 <LinearGradient colors={[colors.primaryGreen, '#1B8B50']} style={styles.tncAcceptGradient}>
-                  <Text style={styles.tncAcceptText}>I Agree & Post</Text>
+                  <Text style={styles.tncAcceptText}>{isEditing ? 'I Agree & Save' : 'I Agree & Post'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

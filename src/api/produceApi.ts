@@ -205,6 +205,23 @@ export async function createMarketplaceListing(
   return data;
 }
 
+export async function updateMarketplaceListing(
+  listingId: string,
+  payload: CreateMarketplaceListingPayload
+): Promise<MarketplaceListing> {
+  if (USE_MOCK_DATA) {
+    const index = MOCK_MARKETPLACE_LISTINGS.findIndex((l) => l.id === listingId);
+    if (index === -1) throw new Error('Listing not found');
+    MOCK_MARKETPLACE_LISTINGS[index] = { ...MOCK_MARKETPLACE_LISTINGS[index], ...payload };
+    return mockDelay(MOCK_MARKETPLACE_LISTINGS[index]);
+  }
+  const { data } = await apiClient.put<MarketplaceListing>(
+    `/marketplace/listings/${listingId}`,
+    payload
+  );
+  return data;
+}
+
 export async function updateMarketplaceListingStatus(
   listingId: string,
   status: MarketplaceListingStatus

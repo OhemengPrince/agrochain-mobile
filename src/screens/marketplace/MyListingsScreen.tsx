@@ -217,9 +217,9 @@ export default function MarketplaceMyListingsScreen({ navigation }: Props) {
     try { await loadListings(); } finally { setRefreshing(false); }
   };
 
-  const handleEdit = useCallback(() => {
-    Alert.alert('Coming soon', 'Editing listings is not available yet.');
-  }, []);
+  const handleEdit = useCallback((listingId: string) => {
+    navigation.navigate('CreateListing', { listingId });
+  }, [navigation]);
 
   const handleMarkSold = useCallback(
     (listingId: string) => {
@@ -359,7 +359,7 @@ export default function MarketplaceMyListingsScreen({ navigation }: Props) {
               listing={listing}
               colors={colors}
               styles={styles}
-              onEdit={handleEdit}
+              onEdit={() => handleEdit(listing.id)}
               onMarkSold={() => handleMarkSold(listing.id)}
               onDelete={() => handleDelete(listing.id, listing.name)}
             />

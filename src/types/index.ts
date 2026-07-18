@@ -436,7 +436,7 @@ export type MarketplacePaymentParams = {
 export type MarketplaceStackParamList = {
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
-  CreateListing: undefined;
+  CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   Map: MapRouteParams;
   Chat: { name: string; role?: string; otherUserId?: string };
@@ -465,7 +465,7 @@ export type FarmerStackParamList = {
   FarmerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
-  CreateListing: undefined;
+  CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   FarmerNews: undefined;
   NewsMain: undefined;
@@ -499,7 +499,7 @@ export type OwnerStackParamList = {
   OwnerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
-  CreateListing: undefined;
+  CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   OwnerNews: undefined;
   NewsMain: undefined;
@@ -531,7 +531,7 @@ export type BuyerStackParamList = {
   BuyerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
-  CreateListing: undefined;
+  CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   BuyerNews: undefined;
   NewsMain: undefined;
@@ -560,7 +560,7 @@ export type GeneralStackParamList = {
   GeneralProfileMain: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
-  CreateListing: undefined;
+  CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   GeneralNews: undefined;
   NewsMain: undefined;
