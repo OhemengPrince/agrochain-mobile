@@ -166,7 +166,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
               <Ionicons name="search-outline" size={22} color={colors.white} />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.greeting}>Welcome, {firstName} 👋</Text>
+              <Text style={styles.greeting}>{firstName} 👋</Text>
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
@@ -225,6 +225,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
         <MarketNewsFeed
           maxItems={3}
+          refreshKey={marketKey}
           onSeeAll={() => (navigation.getParent() as any)?.navigate('GeneralNews')}
         />
       </ScrollView>

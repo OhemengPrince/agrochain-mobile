@@ -164,18 +164,11 @@ function MiniEquipmentCard({
   );
 }
 
-function getTimeOfDayGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'afternoon';
-  return 'evening';
-}
 
 export default function OwnerDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
   const firstName = user?.firstName ?? 'Nana';
   const locationLabel = (user as any)?.location ?? 'Ejisu, Ashanti';
-  const greeting = getTimeOfDayGreeting();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [listings, setListings] = useState<Equipment[]>([]);
@@ -365,7 +358,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={22} color="#FFFFFF" />
           </Pressable>
           <View style={styles.headerTextWrap}>
-            <Text style={styles.headerGreeting}>Good {greeting}, {firstName} 👋</Text>
+            <Text style={styles.headerGreeting}>{firstName} 👋</Text>
             <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
           </View>
           <View style={styles.headerActions}>
@@ -500,6 +493,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
       <MarketNewsFeed
         maxItems={3}
+        refreshKey={marketKey}
         onSeeAll={() => (navigation.getParent() as any)?.navigate('OwnerNews')}
       />
     </ScrollView>

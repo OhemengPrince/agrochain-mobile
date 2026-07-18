@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppNotification, NotificationType } from '../../types';
 import { getNotifications, markAsRead, markAllRead } from '../../api/notificationApi';
+import { getDismissedNotificationIds, addDismissedNotificationId } from '../../utils/storage';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -185,8 +186,12 @@ export default function NotificationsScreen({ navigation }: { navigation?: any }
   const loadNotifications = useCallback(async () => {
     setError(null);
     try {
-      const data = await getNotifications();
-      setNotifications(data);
+      const [data, dismissed] = await Promise.all([
+        getNotifications(),
+        getDismissedNotificationIds(),
+      ]);
+      const dismissedSet = new Set(dismissed);
+      setNotifications(data.filter(n => !dismissedSet.has(String(n.id))));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load notifications.');
     }
@@ -214,6 +219,8 @@ export default function NotificationsScreen({ navigation }: { navigation?: any }
   const handleMarkAllRead = async () => {
     try {
       await markAllRead();
+      const ids = notifications.map(n => String(n.id));
+      await Promise.all(ids.map(id => addDismissedNotificationId(id)));
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to mark all as read.');
@@ -257,6 +264,7 @@ export default function NotificationsScreen({ navigation }: { navigation?: any }
   };
 
   const handleDeleteNotification = (id: string) => {
+    addDismissedNotificationId(String(id)).catch(() => {});
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 

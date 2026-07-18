@@ -181,18 +181,11 @@ function notificationColor(type: AppNotification['type'], colors: ThemeColors): 
   }
 }
 
-function getTimeOfDayGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'afternoon';
-  return 'evening';
-}
 
 export default function FarmerHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const firstName = user?.firstName ?? 'Kwame';
   const locationLabel = (user as any)?.location ?? 'Kumasi, Ashanti';
-  const greeting = getTimeOfDayGreeting();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -330,7 +323,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
               <Ionicons name="search-outline" size={22} color={colors.white} />
             </Pressable>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.greeting}>Good {greeting}, {firstName} 👋</Text>
+              <Text style={styles.greeting}>{firstName} 👋</Text>
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
                 <Text style={styles.locationText}> {locationLabel}</Text>
@@ -440,6 +433,7 @@ export default function FarmerHomeScreen({ navigation }: Props) {
 
         <MarketNewsFeed
           maxItems={3}
+          refreshKey={marketKey}
           onSeeAll={() => (navigation.getParent() as any)?.navigate('FarmerNews')}
         />
 

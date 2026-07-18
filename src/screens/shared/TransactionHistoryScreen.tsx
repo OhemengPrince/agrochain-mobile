@@ -168,9 +168,9 @@ export default function TransactionHistoryScreen({ navigation }: any) {
           >
             <Ionicons
               name={FILTER_ICONS[f]}
-              size={13}
+              size={11}
               color={activeFilter === f ? '#fff' : colors.secondaryText}
-              style={{ marginRight: 4 }}
+              style={{ marginRight: 3 }}
             />
             <Text style={[s.filterChipText, activeFilter === f && s.filterChipTextActive]}>{f}</Text>
           </Pressable>
@@ -292,16 +292,16 @@ function createStyles(colors: ThemeColors) {
     summaryValue: { fontSize: 15, fontWeight: '800', marginTop: 2 },
     summaryDivider: { width: 1, height: 36, backgroundColor: colors.divider, marginHorizontal: 12 },
 
-    filterScroll: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
+    filterScroll: { paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
     filterChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 14, paddingVertical: 7,
-      borderRadius: 20, borderWidth: 1.5, borderColor: colors.border,
+      paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: 16, borderWidth: 1, borderColor: colors.border,
       backgroundColor: colors.inputBackground,
     },
     filterChipActive: { backgroundColor: '#1A6B2E', borderColor: '#1A6B2E' },
-    filterChipText: { fontSize: 12, fontWeight: '600', color: colors.secondaryText },
+    filterChipText: { fontSize: 11, fontWeight: '600', color: colors.secondaryText },
     filterChipTextActive: { color: '#fff' },
 
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },

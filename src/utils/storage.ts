@@ -6,6 +6,7 @@ const TOKEN_KEY = '@agrochain/token';
 const USER_KEY = '@agrochain/user';
 const THEME_KEY = '@agrochain/theme';
 const ONBOARDING_KEY = '@agrochain/hasSeenOnboarding';
+const DISMISSED_NOTIFS_KEY = '@agrochain/dismissed_notifications';
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -89,6 +90,26 @@ export async function setHasSeenOnboarding(): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+}
+
+export async function getDismissedNotificationIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[DISMISSED_NOTIFS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(DISMISSED_NOTIFS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function addDismissedNotificationId(id: string): Promise<void> {
+  const ids = await getDismissedNotificationIds();
+  if (ids.includes(id)) return;
+  const updated = JSON.stringify([...ids, id]);
+  if (USE_MOCK_DATA) {
+    memoryStore[DISMISSED_NOTIFS_KEY] = updated;
+    return;
+  }
+  await AsyncStorage.setItem(DISMISSED_NOTIFS_KEY, updated);
 }
 
 export async function clearAll(): Promise<void> {

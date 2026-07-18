@@ -17,12 +17,22 @@ const FALLBACK_NEWS: NewsItem[] = [
 
 const PLACEHOLDER_ICONS = ['🌾', '🍫', '🌽', '🍅', '🥬', '🚜', '🌱', '🍠'];
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 interface Props {
   maxItems?: number;
   onSeeAll?: () => void;
+  refreshKey?: number;
 }
 
-export default function MarketNewsFeed({ maxItems = 3, onSeeAll }: Props) {
+export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
@@ -38,20 +48,21 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll }: Props) {
     fetchGhanaAgricultureNews()
       .then((items) => {
         if (!cancelled) {
-          setNews(items.length > 0 ? items : FALLBACK_NEWS);
+          const base = items.length > 0 ? items : FALLBACK_NEWS;
+          setNews(shuffleArray(base));
           setLoading(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setNews(FALLBACK_NEWS);
+          setNews(shuffleArray(FALLBACK_NEWS));
           setError(true);
           setLoading(false);
         }
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
 
   const openArticle = (url: string) => { if (url) Linking.openURL(url); };
   const displayedNews = news.slice(0, maxItems);

@@ -334,6 +334,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
 
             <MarketNewsFeed
               maxItems={3}
+              refreshKey={marketKey}
               onSeeAll={() => (navigation.getParent() as any)?.navigate('BuyerNews')}
             />
           </View>
