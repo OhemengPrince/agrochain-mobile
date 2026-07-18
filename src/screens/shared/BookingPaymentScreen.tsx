@@ -259,46 +259,13 @@ function BankPickerModal({
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepIndicator({ step }: { step: number }) {
-  const labels = ['Dates', 'Payment', 'Review'];
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 32, paddingTop: 18, paddingBottom: 6 }}>
-      {[1, 2, 3].map((s, i) => (
-        <React.Fragment key={s}>
-          <View style={{ alignItems: 'center', width: 52 }}>
-            <View style={{
-              width: 34, height: 34, borderRadius: 17,
-              backgroundColor: s < step ? GREEN : s === step ? GREEN : 'transparent',
-              borderWidth: s > step ? 2 : 0,
-              borderColor: '#D1D5DB',
-              alignItems: 'center', justifyContent: 'center',
-              shadowColor: GREEN,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: s === step ? 0.4 : 0,
-              shadowRadius: 8,
-              elevation: s === step ? 5 : 0,
-            }}>
-              {s < step
-                ? <Ionicons name="checkmark" size={17} color="#fff" />
-                : <Text style={{ fontSize: 13, fontWeight: '800', color: s === step ? '#fff' : '#9CA3AF' }}>{s}</Text>
-              }
-            </View>
-            <Text style={{
-              fontSize: 10, fontWeight: s <= step ? '700' : '500',
-              color: s <= step ? GREEN : '#9CA3AF',
-              marginTop: 6, letterSpacing: 0.3,
-            }}>
-              {labels[i]}
-            </Text>
-          </View>
-          {i < 2 && (
-            <View style={{
-              flex: 1,
-              height: 2,
-              backgroundColor: s < step ? GREEN : '#E5E7EB',
-              marginTop: 16,
-            }} />
-          )}
-        </React.Fragment>
+    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 12 }}>
+      {[1, 2, 3].map(s => (
+        <View key={s} style={{
+          width: s === step ? 24 : 8, height: 8, borderRadius: 4,
+          backgroundColor: s <= step ? GREEN : '#D1D5DB',
+        }} />
       ))}
     </View>
   );
@@ -701,10 +668,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
 
         {/* Total strip */}
         <LinearGradient colors={[GREEN, GREEN2]} style={styles.receiptTotal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="wallet" size={16} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.receiptTotalKey}>Total to Pay</Text>
-          </View>
+          <Text style={styles.receiptTotalKey}>TOTAL TO PAY</Text>
           <Text style={styles.receiptTotalVal}>{formatCurrency(total)}</Text>
         </LinearGradient>
 
@@ -1102,11 +1066,10 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     receiptKey: { fontSize: 13, color: colors.secondaryText },
     receiptVal: { fontSize: 13, fontWeight: '700', color: colors.text },
     receiptTotal: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: 18, paddingVertical: 16,
+      alignItems: 'center', paddingVertical: 22,
     },
-    receiptTotalKey: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.88)' },
-    receiptTotalVal: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    receiptTotalKey: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.72)', letterSpacing: 1.6, marginBottom: 6 },
+    receiptTotalVal: { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
     receiptPayRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       paddingHorizontal: 18, paddingVertical: 14,
