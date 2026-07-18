@@ -239,7 +239,8 @@ export default function CatalogueScreen({ navigation }: Props) {
 
       <ErrorMessage message={error} />
       <FlatList
-        removeClippedSubviews
+        style={styles.listFlex}
+        removeClippedSubviews={false}
         maxToRenderPerBatch={10}
         windowSize={5}
         initialNumToRender={5}
@@ -354,6 +355,9 @@ function createStyles(colors: ThemeColors) {
     },
     sortChipTextActive: {
       color: colors.white,
+    },
+    listFlex: {
+      flex: 1,
     },
     list: {
       paddingHorizontal: 14,

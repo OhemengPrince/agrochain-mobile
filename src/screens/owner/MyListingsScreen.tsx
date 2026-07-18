@@ -210,7 +210,8 @@ export default function MyListingsScreen({ navigation }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
-        removeClippedSubviews
+        style={styles.listFlex}
+        removeClippedSubviews={false}
         maxToRenderPerBatch={10}
         windowSize={5}
         initialNumToRender={5}
@@ -281,6 +282,9 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       ...cardShadow,
+    },
+    listFlex: {
+      flex: 1,
     },
     list: {
       padding: 14,

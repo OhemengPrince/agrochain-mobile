@@ -315,7 +315,8 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <ErrorMessage message={error} />
 
       <FlatList
-        removeClippedSubviews
+        style={styles.listFlex}
+        removeClippedSubviews={false}
         maxToRenderPerBatch={10}
         windowSize={5}
         initialNumToRender={5}
@@ -592,6 +593,9 @@ function createStyles(colors: ThemeColors) {
     },
     chipTextActive: {
       color: '#FFFFFF',
+    },
+    listFlex: {
+      flex: 1,
     },
     list: {
       paddingBottom: 120,
