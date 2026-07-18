@@ -49,6 +49,7 @@ export function extractArray<T>(raw: any): T[] {
   if (raw?.content && Array.isArray(raw.content)) return raw.content;
   if (raw?.data && Array.isArray(raw.data)) return raw.data;
   if (raw?.items && Array.isArray(raw.items)) return raw.items;
+  if (raw?.notifications && Array.isArray(raw.notifications)) return raw.notifications;
   return [];
 }
 

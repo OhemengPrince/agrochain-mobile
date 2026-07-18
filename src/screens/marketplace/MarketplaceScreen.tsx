@@ -280,7 +280,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={22} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>AgroChain Marketplace</Text>
-          <HeaderAddButton onPress={() => navigation.navigate('CreateListing')} />
+          <View style={{ width: 44 }} />
         </View>
 
         <View style={styles.searchRow}>

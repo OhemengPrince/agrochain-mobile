@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import apiClient from '../../api/axios';
+import { getNotifications } from '../../api/notificationApi';
 import {
   View,
   Text,
@@ -107,8 +107,8 @@ export default function GeneralHomeScreen({ navigation }: Props) {
     useCallback(() => {
       const fetchUnreadCount = async () => {
         try {
-          const response = await apiClient.get('/notifications');
-          setUnreadCount(response.data.unreadCount ?? 0);
+          const notifs = await getNotifications();
+          setUnreadCount(notifs.filter(n => !n.isRead).length);
         } catch (e) {}
       };
       fetchUnreadCount();

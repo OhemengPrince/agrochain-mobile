@@ -10,6 +10,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -35,7 +36,6 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
-import AppButton from '../../components/AppButton';
 
 type Props = NativeStackScreenProps<FarmerStackParamList | OwnerStackParamList, 'BookingDetail'>;
 
@@ -75,53 +75,137 @@ function PressableScale({ onPress, style, children }: PressableScaleProps) {
   );
 }
 
-function GradientActionButton({
-  onPress,
-  label,
-  icon,
-  gradient,
-  height,
-  shadowColor,
-  styles,
-}: {
-  onPress: () => void;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  gradient: [string, string];
-  height: number;
-  shadowColor: string;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const { scale, onPressIn, onPressOut } = usePressAnimation();
-  return (
-    <Animated.View style={[styles.gradientButtonShadow, { shadowColor, transform: [{ scale }] }]}>
-      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <LinearGradient colors={gradient} style={[styles.gradientButton, { height }]}>
-          <Ionicons name={icon} size={20} color="#FFFFFF" style={styles.gradientButtonIcon} />
-          <Text style={styles.gradientButtonText}>{label}</Text>
-        </LinearGradient>
-      </Pressable>
-    </Animated.View>
-  );
-}
+type GlassVariant = 'primary' | 'danger' | 'message' | 'amber' | 'outline' | 'ghost';
 
-function OutlineDangerButton({
+const GLASS_VARIANTS: Record<GlassVariant, {
+  gradient: [string, string];
+  border: string;
+  shadow: string;
+  iconColor: string;
+  textColor: string;
+}> = {
+  primary: {
+    gradient: ['#1A6B2E', '#2E8B4A'],
+    border: 'rgba(78,175,100,0.45)',
+    shadow: '#1A6B2E',
+    iconColor: '#fff',
+    textColor: '#fff',
+  },
+  danger: {
+    gradient: ['#DC2626', '#B91C1C'],
+    border: 'rgba(248,113,113,0.4)',
+    shadow: '#DC2626',
+    iconColor: '#fff',
+    textColor: '#fff',
+  },
+  message: {
+    gradient: ['#1565C0', '#0D47A1'],
+    border: 'rgba(96,165,250,0.4)',
+    shadow: '#1565C0',
+    iconColor: '#fff',
+    textColor: '#fff',
+  },
+  amber: {
+    gradient: ['#D97706', '#B45309'],
+    border: 'rgba(251,191,36,0.4)',
+    shadow: '#D97706',
+    iconColor: '#fff',
+    textColor: '#fff',
+  },
+  outline: {
+    gradient: ['rgba(220,38,38,0.07)', 'rgba(220,38,38,0.04)'],
+    border: 'rgba(220,38,38,0.5)',
+    shadow: 'transparent',
+    iconColor: '#DC2626',
+    textColor: '#DC2626',
+  },
+  ghost: {
+    gradient: ['rgba(26,107,46,0.08)', 'rgba(46,139,74,0.05)'],
+    border: 'rgba(26,107,46,0.4)',
+    shadow: 'transparent',
+    iconColor: '#1A6B2E',
+    textColor: '#1A6B2E',
+  },
+};
+
+function GlassButton({
   onPress,
   label,
   icon,
-  styles,
+  variant = 'primary',
+  loading = false,
+  fullWidth = true,
 }: {
   onPress: () => void;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  styles: ReturnType<typeof createStyles>;
+  variant?: GlassVariant;
+  loading?: boolean;
+  fullWidth?: boolean;
 }) {
   const { scale, onPressIn, onPressOut } = usePressAnimation();
+  const v = GLASS_VARIANTS[variant];
+  const hasShadow = v.shadow !== 'transparent';
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <Pressable style={styles.dangerOutlineButton} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <Ionicons name={icon} size={18} color="#DC2626" style={styles.gradientButtonIcon} />
-        <Text style={styles.dangerOutlineButtonText}>{label}</Text>
+    <Animated.View style={[
+      {
+        transform: [{ scale }],
+        borderRadius: 18,
+        marginBottom: 12,
+        ...(hasShadow ? {
+          shadowColor: v.shadow,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.3,
+          shadowRadius: 14,
+          elevation: 8,
+        } : {}),
+      },
+      fullWidth && { alignSelf: 'stretch' },
+    ]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={{ borderRadius: 18, overflow: 'hidden' }}
+      >
+        <LinearGradient
+          colors={v.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 58,
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: v.border,
+            paddingHorizontal: 24,
+            gap: 10,
+          }}
+        >
+          {/* Glass sheen top highlight */}
+          <View style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            height: 28,
+            backgroundColor: 'rgba(255,255,255,0.09)',
+            borderTopLeftRadius: 17,
+            borderTopRightRadius: 17,
+          }} />
+          {loading
+            ? <ActivityIndicator size="small" color={v.iconColor} />
+            : <Ionicons name={icon} size={20} color={v.iconColor} />
+          }
+          <Text style={{
+            fontSize: 15,
+            fontWeight: '700',
+            color: v.textColor,
+            letterSpacing: 0.3,
+          }}>
+            {label}
+          </Text>
+        </LinearGradient>
       </Pressable>
     </Animated.View>
   );
@@ -335,70 +419,74 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
 
         {derivedStatus === 'ACTIVE' && (
           <View style={styles.actionGroup}>
-            <PressableScale
-              style={[styles.primaryActionButton, { backgroundColor: colors.primaryGreen }]}
+            <GlassButton
+              variant="primary"
+              icon="checkmark-circle-outline"
+              label="Confirm Return"
+              loading={actionLoading}
               onPress={() =>
                 isOwner
                   ? runAction(completeBooking)
                   : handlePlaceholder('The owner will confirm the return shortly.')
               }
-            >
-              <Text style={styles.primaryActionButtonText}>Confirm Return</Text>
-            </PressableScale>
-            <PressableScale
-              style={styles.outlineActionButton}
+            />
+            <GlassButton
+              variant="ghost"
+              icon="camera-outline"
+              label="Upload Photos"
               onPress={() => handlePlaceholder('Photo upload will be available soon.')}
-            >
-              <Text style={styles.outlineActionButtonText}>Upload Photos</Text>
-            </PressableScale>
+            />
           </View>
         )}
 
         {isOwner && booking.status === 'PENDING' && (
-          <AppButton
-            title="Confirm Booking"
-            onPress={() => runAction(confirmBooking)}
-            loading={actionLoading}
-            style={styles.button}
-          />
+          <View style={styles.actionGroup}>
+            <GlassButton
+              variant="primary"
+              icon="checkmark-done-outline"
+              label="Confirm Booking"
+              loading={actionLoading}
+              onPress={() => runAction(confirmBooking)}
+            />
+          </View>
         )}
         {isOwner && booking.status === 'CONFIRMED' && (
-          <AppButton
-            title="Mark as Completed"
-            onPress={() => runAction(completeBooking)}
-            loading={actionLoading}
-            style={styles.button}
-          />
+          <View style={styles.actionGroup}>
+            <GlassButton
+              variant="primary"
+              icon="trophy-outline"
+              label="Mark as Completed"
+              loading={actionLoading}
+              onPress={() => runAction(completeBooking)}
+            />
+          </View>
         )}
 
         {booking.status === 'COMPLETED' && !reviewSubmitted && (
-          <PressableScale
-            style={[styles.primaryActionButton, { backgroundColor: colors.accentAmber }]}
-            onPress={() => setReviewModalVisible(true)}
-          >
-            <Text style={styles.primaryActionButtonText}>Leave a Review</Text>
-          </PressableScale>
+          <View style={styles.actionGroup}>
+            <GlassButton
+              variant="amber"
+              icon="star-outline"
+              label="Leave a Review"
+              onPress={() => setReviewModalVisible(true)}
+            />
+          </View>
         )}
 
         <View style={styles.bottomActionsGroup}>
           {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
-            <GradientActionButton
-              label="Cancel Booking"
+            <GlassButton
+              variant="danger"
               icon="log-out-outline"
-              gradient={['#DC2626', '#991B1B']}
-              height={56}
-              shadowColor="#DC2626"
-              styles={styles}
+              label="Cancel Booking"
+              loading={actionLoading}
               onPress={() => runAction(cancelBooking)}
             />
           )}
-          <GradientActionButton
-            label={isOwner ? 'Message Farmer' : 'Message Owner'}
+          <GlassButton
+            variant="message"
             icon="chatbubble-ellipses-outline"
-            gradient={[colors.primaryGreen, colors.primaryGreenLight]}
-            height={56}
-            shadowColor={colors.primaryGreen}
-            styles={styles}
+            label={isOwner ? 'Message Farmer' : 'Message Owner'}
             onPress={() =>
               (navigation as any).navigate('Chat', {
                 name: isOwner
@@ -409,10 +497,10 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
               })
             }
           />
-          <OutlineDangerButton
-            label="Report Issue"
+          <GlassButton
+            variant="outline"
             icon="warning-outline"
-            styles={styles}
+            label="Report Issue"
             onPress={() => handlePlaceholder('Issue reporting will be available soon.')}
           />
         </View>
@@ -449,11 +537,12 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
               value={comment}
               onChangeText={setComment}
             />
-            <AppButton
-              title="Submit Review"
-              onPress={handleSubmitReview}
+            <GlassButton
+              variant="amber"
+              icon="send-outline"
+              label="Submit Review"
               loading={reviewLoading}
-              style={styles.button}
+              onPress={handleSubmitReview}
             />
           </View>
         </View>

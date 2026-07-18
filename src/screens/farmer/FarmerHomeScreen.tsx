@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import apiClient from '../../api/axios';
 import {
   View,
   Text,
@@ -208,8 +207,8 @@ export default function FarmerHomeScreen({ navigation }: Props) {
     useCallback(() => {
       const fetchUnreadCount = async () => {
         try {
-          const response = await apiClient.get('/notifications');
-          setUnreadCount(response.data.unreadCount ?? 0);
+          const notifs = await getNotifications();
+          setUnreadCount(notifs.filter(n => !n.isRead).length);
         } catch (e) {}
       };
       fetchUnreadCount();

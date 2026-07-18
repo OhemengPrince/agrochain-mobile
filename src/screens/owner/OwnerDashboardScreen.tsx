@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import apiClient from '../../api/axios';
+import { getNotifications } from '../../api/notificationApi';
 import {
   View,
   Text,
@@ -191,8 +191,8 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     useCallback(() => {
       const fetchUnreadCount = async () => {
         try {
-          const response = await apiClient.get('/notifications');
-          setUnreadCount(response.data.unreadCount ?? 0);
+          const notifs = await getNotifications();
+          setUnreadCount(notifs.filter(n => !n.isRead).length);
         } catch (e) {}
       };
       fetchUnreadCount();
@@ -318,9 +318,6 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     parent?.navigate('OwnerEquipment', { screen: 'OwnerEquipmentList' });
   }, [navigation]);
 
-  const handleEarningsPress = useCallback(() => {
-    Alert.alert('Coming soon', 'A dedicated earnings screen is coming soon.');
-  }, []);
 
   const handleListItem = useCallback(() => {
     const parent = navigation.getParent() as any;
@@ -446,13 +443,6 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
           icon="construct"
           colorsRange={['#1E88E5', '#1565C0']}
           onPress={handleGoToMyEquipment}
-          styles={styles}
-        />
-        <QuickActionButton
-          label="Earnings"
-          icon="cash"
-          colorsRange={['#8E24AA', '#6A1B9A']}
-          onPress={handleEarningsPress}
           styles={styles}
         />
         <QuickActionButton
