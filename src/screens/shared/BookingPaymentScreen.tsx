@@ -420,84 +420,58 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
   const renderStep1 = () => (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
 
-      {/* Equipment hero card */}
+      {/* Equipment card */}
       <View style={styles.equipCard}>
-        <LinearGradient colors={[GREEN, GREEN2]} style={styles.equipGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={{ fontSize: 48 }}>🚜</Text>
-          <View style={styles.equipRateBadge}>
-            <Text style={styles.equipRateBadgeText}>{formatCurrency(dailyRate)}</Text>
-            <Text style={styles.equipRateBadgeSub}>/day</Text>
-          </View>
-        </LinearGradient>
-        <View style={styles.equipBody}>
+        <View style={styles.equipAvatar}>
+          <Text style={{ fontSize: 28 }}>🚜</Text>
+        </View>
+        <View style={styles.equipMiddle}>
           <Text style={styles.equipName} numberOfLines={2}>{equipmentName}</Text>
-          <View style={styles.equipOwnerRow}>
-            <View style={styles.equipOwnerAvatar}>
-              <Text style={styles.equipOwnerInitial}>{ownerInitial}</Text>
-            </View>
-            <View>
-              <Text style={styles.equipOwnerLabel}>Owner</Text>
-              <Text style={styles.equipOwnerName}>{ownerName}</Text>
-            </View>
-          </View>
+          <Text style={styles.equipOwner}>Owner: {ownerName}</Text>
+          <Text style={styles.equipRate}>{formatCurrency(dailyRate)} / day</Text>
         </View>
       </View>
 
-      {/* Dates */}
-      <Text style={styles.sectionLabel}>Rental Period</Text>
+      <Text style={styles.sectionLabel}>Select Rental Dates</Text>
+
       <View style={styles.datesRow}>
         <TouchableOpacity style={styles.dateBox} onPress={() => setDateTarget('start')} activeOpacity={0.8}>
-          <View style={styles.dateBoxIconWrap}>
-            <Ionicons name="calendar" size={18} color={GREEN} />
+          <View style={styles.dateBoxIcon}>
+            <Ionicons name="calendar-outline" size={18} color={colors.primaryGreen} />
           </View>
-          <Text style={styles.dateBoxLabel}>Start Date</Text>
-          <Text style={styles.dateBoxValue}>{formatDisplayDate(startDate)}</Text>
+          <View style={styles.dateBoxText}>
+            <Text style={styles.dateBoxLabel}>Start Date</Text>
+            <Text style={styles.dateBoxValue}>{formatDisplayDate(startDate)}</Text>
+          </View>
         </TouchableOpacity>
-
-        <View style={styles.datesSeparator}>
-          <View style={styles.datesSepLine} />
-          <View style={styles.durationPill}>
-            <Text style={styles.durationPillText}>{numDays}d</Text>
-          </View>
-          <View style={styles.datesSepLine} />
-        </View>
 
         <TouchableOpacity style={styles.dateBox} onPress={() => setDateTarget('end')} activeOpacity={0.8}>
-          <View style={styles.dateBoxIconWrap}>
-            <Ionicons name="calendar" size={18} color={GREEN} />
+          <View style={styles.dateBoxIcon}>
+            <Ionicons name="calendar-outline" size={18} color={colors.primaryGreen} />
           </View>
-          <Text style={styles.dateBoxLabel}>End Date</Text>
-          <Text style={styles.dateBoxValue}>{formatDisplayDate(endDate)}</Text>
+          <View style={styles.dateBoxText}>
+            <Text style={styles.dateBoxLabel}>End Date</Text>
+            <Text style={styles.dateBoxValue}>{formatDisplayDate(endDate)}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      {/* Cost card */}
-      <View style={styles.costCard}>
+      <View style={styles.costSummaryCard}>
         <View style={styles.costRow}>
-          <View style={styles.costRowLeft}>
-            <Ionicons name="time-outline" size={15} color={colors.secondaryText} />
-            <Text style={styles.costLabel}>Duration</Text>
-          </View>
+          <Text style={styles.costLabel}>Duration</Text>
           <Text style={styles.costValue}>{numDays} day{numDays !== 1 ? 's' : ''}</Text>
         </View>
-        <View style={styles.costDivider} />
         <View style={styles.costRow}>
-          <View style={styles.costRowLeft}>
-            <Ionicons name="pricetag-outline" size={15} color={colors.secondaryText} />
-            <Text style={styles.costLabel}>Daily Rate</Text>
-          </View>
+          <Text style={styles.costLabel}>Daily Rate</Text>
           <Text style={styles.costValue}>{formatCurrency(dailyRate)}</Text>
         </View>
-        <LinearGradient colors={[GREEN, GREEN2]} style={styles.costTotalRow} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-          <View style={styles.costRowLeft}>
-            <Ionicons name="wallet-outline" size={15} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.costTotalLabel}>Estimated Total</Text>
-          </View>
+        <View style={[styles.costRow, styles.costTotal]}>
+          <Text style={styles.costTotalLabel}>Estimated Total</Text>
           <Text style={styles.costTotalValue}>{formatCurrency(subtotal)}</Text>
-        </LinearGradient>
+        </View>
       </View>
 
-      <Text style={styles.noteText}>Prices include all applicable charges</Text>
+      <Text style={styles.noteText}>* AgroChain fee (5%) will be shown at confirmation.</Text>
     </ScrollView>
   );
 
@@ -987,83 +961,31 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
 
     // ── Equipment card ───────────────────────────────────────────────────
-    equipCard: {
-      backgroundColor: colors.card, borderRadius: 22, overflow: 'hidden',
-      marginBottom: 24,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: isDarkMode ? 0.3 : 0.1, shadowRadius: 16, elevation: 6,
-      borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-    },
-    equipGradient: {
-      height: 118, flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'space-between', paddingHorizontal: 22,
-    },
-    equipRateBadge: {
-      backgroundColor: 'rgba(255,255,255,0.22)',
-      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8,
-      alignItems: 'center',
-    },
-    equipRateBadgeText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-    equipRateBadgeSub: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 },
-    equipBody: { padding: 18 },
-    equipName: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 12 },
-    equipOwnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    equipOwnerAvatar: {
-      width: 34, height: 34, borderRadius: 17,
-      backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center',
-    },
-    equipOwnerInitial: { color: '#fff', fontWeight: '800', fontSize: 14 },
-    equipOwnerLabel: { fontSize: 10, color: colors.secondaryText, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-    equipOwnerName: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: 1 },
+    equipCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: colors.divider },
+    equipAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+    equipMiddle: { flex: 1 },
+    equipName: { fontSize: 16, fontWeight: '700', color: colors.text },
+    equipOwner: { fontSize: 13, color: colors.secondaryText, marginTop: 2 },
+    equipRate: { fontSize: 14, fontWeight: '700', color: colors.primaryGreen, marginTop: 4 },
 
     // ── Dates ────────────────────────────────────────────────────────────
-    datesRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    dateBox: {
-      flex: 1, backgroundColor: colors.card, borderRadius: 18,
-      padding: 16, alignItems: 'center',
-      borderWidth: 1.5, borderColor: GREEN,
-      shadowColor: GREEN, shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.12, shadowRadius: 8, elevation: 3,
-    },
-    dateBoxIconWrap: {
-      width: 34, height: 34, borderRadius: 17,
-      backgroundColor: isDarkMode ? 'rgba(26,107,46,0.25)' : '#E8F5E9',
-      alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    },
-    dateBoxLabel: { fontSize: 10, fontWeight: '800', color: GREEN, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
-    dateBoxValue: { fontSize: 12, fontWeight: '800', color: colors.text, textAlign: 'center', lineHeight: 17 },
-    datesSeparator: { alignItems: 'center', width: 40 },
-    datesSepLine: { width: 1.5, height: 14, backgroundColor: colors.divider },
-    durationPill: {
-      backgroundColor: GREEN, borderRadius: 10,
-      paddingHorizontal: 8, paddingVertical: 4, marginVertical: 3,
-      shadowColor: GREEN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 4, elevation: 3,
-    },
-    durationPillText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+    datesRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    dateBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.primaryGreen, borderRadius: 14, padding: 12 },
+    dateBoxIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' },
+    dateBoxText: { flex: 1 },
+    dateBoxLabel: { fontSize: 11, color: colors.secondaryText, fontWeight: '600' },
+    dateBoxValue: { fontSize: 12, fontWeight: '800', color: colors.text, marginTop: 2 },
 
-    // ── Cost card ────────────────────────────────────────────────────────
-    costCard: {
-      backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden',
-      marginBottom: 14, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: isDarkMode ? 0.2 : 0.07, shadowRadius: 10, elevation: 3,
-    },
-    costRow: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: 18, paddingVertical: 14,
-    },
-    costRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    // ── Cost summary ─────────────────────────────────────────────────────
+    costSummaryCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.divider },
+    costRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     costLabel: { fontSize: 14, color: colors.secondaryText },
-    costValue: { fontSize: 14, fontWeight: '700', color: colors.text },
-    costDivider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 18 },
-    costTotalRow: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: 18, paddingVertical: 16,
-    },
-    costTotalLabel: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.88)' },
-    costTotalValue: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    costValue: { fontSize: 14, fontWeight: '600', color: colors.text },
+    costTotal: { borderTopWidth: 1, borderTopColor: colors.divider, marginTop: 6, paddingTop: 12 },
+    costTotalLabel: { fontSize: 15, fontWeight: '700', color: colors.text },
+    costTotalValue: { fontSize: 18, fontWeight: '800', color: colors.primaryGreen },
 
-    noteText: { fontSize: 11, color: colors.secondaryText, textAlign: 'center', fontStyle: 'italic', opacity: 0.7 },
+    noteText: { fontSize: 12, color: colors.secondaryText, textAlign: 'center', fontStyle: 'italic' },
 
     // ── Payment tabs ─────────────────────────────────────────────────────
     tabRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
