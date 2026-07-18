@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Alert, Platform } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Alert, Platform, Modal, Share, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -96,17 +96,20 @@ function usePressAnimation() {
 function BatchListCard({
   batch,
   onPress,
+  onViewQr,
   styles,
   colors,
 }: {
   batch: ProduceBatch;
   onPress: () => void;
+  onViewQr: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
 }) {
   const { scale, opacity, onPressIn, onPressOut, onFocus, onBlur } = usePressAnimation();
   const cropMeta = getCropMeta(batch.cropName);
   const statusMeta = getStatusBadgeMeta(batch.status);
+  const qrValue = batch.qrCodeValue || String(batch.id ?? '') || 'AGROCHAIN-UNKNOWN';
 
   return (
     <Animated.View style={{ transform: [{ scale }], opacity }}>
@@ -137,14 +140,67 @@ function BatchListCard({
 
         <View style={styles.divider} />
 
-        <View style={styles.qrRow}>
+        <Pressable
+          style={styles.qrRow}
+          onPress={(e) => { e.stopPropagation(); onViewQr(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <View style={styles.qrThumb}>
-            <QRCode value={batch.qrCodeValue || batch.id} size={32} backgroundColor={colors.white} />
+            <QRCode value={qrValue} size={32} backgroundColor={colors.white} />
           </View>
           <Text style={styles.viewQrText}>View QR</Text>
-        </View>
+        </Pressable>
       </Pressable>
     </Animated.View>
+  );
+}
+
+function QrViewModal({
+  batch,
+  visible,
+  onClose,
+  styles,
+  colors,
+}: {
+  batch: ProduceBatch | null;
+  visible: boolean;
+  onClose: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
+  if (!batch) return null;
+  const qrValue = batch.qrCodeValue || String(batch.id ?? '') || 'AGROCHAIN-UNKNOWN';
+
+  const handleShare = async () => {
+    try {
+      await Share.share({ message: qrValue });
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.qrModalOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={styles.qrModalSheet} onPress={() => {}}>
+          <Text style={styles.qrModalTitle}>{batch.cropName}</Text>
+          <Text style={styles.qrModalSubtitle}>Scan to verify this batch</Text>
+          <View style={styles.qrModalCodeWrap}>
+            <QRCode value={qrValue} size={200} backgroundColor={colors.white} />
+          </View>
+          <Text style={styles.qrModalId}>{qrValue}</Text>
+          <View style={styles.qrModalActionsRow}>
+            <TouchableOpacity style={styles.qrModalShareBtn} onPress={handleShare}>
+              <Ionicons name="share-social-outline" size={16} color={colors.primaryGreen} />
+              <Text style={styles.qrModalShareText}>Share</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.qrModalCloseBtn} onPress={onClose}>
+              <Text style={styles.qrModalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
   );
 }
 
@@ -171,6 +227,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
+  const [qrBatch, setQrBatch] = useState<ProduceBatch | null>(null);
 
   const loadBatches = useCallback(async () => {
     setError(null);
@@ -294,6 +351,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
           <BatchListCard
             batch={item}
             onPress={() => navigation.navigate('BatchDetail', { batchId: item.id })}
+            onViewQr={() => setQrBatch(item)}
             styles={styles}
             colors={colors}
           />
@@ -308,6 +366,14 @@ export default function MyBatchesScreen({ navigation }: Props) {
       />
 
       <Fab onPress={() => navigation.navigate('CreateBatch')} styles={styles} />
+
+      <QrViewModal
+        batch={qrBatch}
+        visible={qrBatch !== null}
+        onClose={() => setQrBatch(null)}
+        styles={styles}
+        colors={colors}
+      />
     </SafeAreaView>
   );
 }
@@ -509,6 +575,82 @@ function createStyles(colors: ThemeColors) {
       shadowOpacity: 0.3,
       shadowRadius: 10,
       elevation: 8,
+    },
+    qrModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 32,
+    },
+    qrModalSheet: {
+      width: '100%',
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 24,
+      alignItems: 'center',
+    },
+    qrModalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    qrModalSubtitle: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    qrModalCodeWrap: {
+      padding: 16,
+      borderWidth: 2,
+      borderColor: colors.primaryGreen,
+      borderRadius: 18,
+      backgroundColor: colors.white,
+    },
+    qrModalId: {
+      marginTop: 16,
+      fontSize: 12,
+      color: colors.secondaryText,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+      textAlign: 'center',
+    },
+    qrModalActionsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 22,
+      width: '100%',
+    },
+    qrModalShareBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+      borderRadius: 12,
+      height: 48,
+    },
+    qrModalShareText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+    },
+    qrModalCloseBtn: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primaryGreen,
+      borderRadius: 12,
+      height: 48,
+    },
+    qrModalCloseText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
   });
 }

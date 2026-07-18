@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Animated, TextInput,
-  Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image,
+  Modal, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -376,6 +376,29 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleDownloadReceipt = async () => {
+    const receiptText =
+      `AgroChain — Booking Receipt\n` +
+      `────────────────────────────\n` +
+      `Booking ID: ${bookingId}\n` +
+      `Equipment: ${equipmentName}\n` +
+      `Owner: ${ownerName}\n` +
+      `Start Date: ${formatDisplayDate(startDate)}\n` +
+      `End Date: ${formatDisplayDate(endDate)}\n` +
+      `Duration: ${numDays} day${numDays !== 1 ? 's' : ''}\n` +
+      `Daily Rate: ${formatCurrency(dailyRate)}\n` +
+      `Rental Cost: ${formatCurrency(subtotal)}\n` +
+      `AgroChain Fee (5%): ${formatCurrency(fee)}\n` +
+      `────────────────────────────\n` +
+      `Total Paid: ${formatCurrency(total)}\n` +
+      `Payment Method: ${paymentDesc}\n`;
+    try {
+      await Share.share({ message: receiptText, title: 'Booking Receipt' });
+    } catch {
+      // ignore
+    }
+  };
+
   const canProceedStep2 = () => {
     if (payMethod === 'MOMO') return phoneNumber.length >= 10;
     return !!selectedBank && accountNumber.length >= 10;
@@ -667,10 +690,19 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
         </View>
 
         {/* Total strip */}
-        <LinearGradient colors={[GREEN, GREEN2]} style={styles.receiptTotal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-          <Text style={styles.receiptTotalKey}>TOTAL TO PAY</Text>
-          <Text style={styles.receiptTotalVal}>{formatCurrency(total)}</Text>
-        </LinearGradient>
+        <View style={styles.receiptTotalOuter}>
+          <LinearGradient colors={[GREEN, GREEN2]} style={styles.receiptTotal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={styles.receiptTotalIconWrap}>
+              <Ionicons name="wallet" size={22} color="#fff" />
+            </View>
+            <Text style={styles.receiptTotalKey}>TOTAL TO PAY</Text>
+            <Text style={styles.receiptTotalVal}>{formatCurrency(total)}</Text>
+            <View style={styles.receiptTotalFeeChip}>
+              <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.receiptTotalFeeText}>Incl. {formatCurrency(fee)} AgroChain fee (5%)</Text>
+            </View>
+          </LinearGradient>
+        </View>
 
         <View style={styles.receiptDivider} />
 
@@ -747,6 +779,17 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
             <Text style={{ fontSize: 17, color: '#fff', fontWeight: '900' }}>{formatCurrency(total)}</Text>
           </LinearGradient>
         </View>
+      )}
+
+      {resultSuccess && (
+        <TouchableOpacity
+          style={styles.resultDownloadBtn}
+          onPress={handleDownloadReceipt}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="download-outline" size={16} color={GREEN} />
+          <Text style={styles.resultDownloadBtnText}>Download Receipt</Text>
+        </TouchableOpacity>
       )}
 
       <TouchableOpacity
@@ -1005,7 +1048,7 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     inputIconBg: {
       width: 56, height: 58, alignItems: 'center', justifyContent: 'center',
     },
-    input: { flex: 1, fontSize: 15, color: colors.text, paddingRight: 14 },
+    input: { flex: 1, fontSize: 15, color: colors.text, paddingLeft: 12, paddingRight: 14 },
 
     // ── Bank ─────────────────────────────────────────────────────────────
     bankSelector: {
@@ -1065,11 +1108,27 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     },
     receiptKey: { fontSize: 13, color: colors.secondaryText },
     receiptVal: { fontSize: 13, fontWeight: '700', color: colors.text },
-    receiptTotal: {
-      alignItems: 'center', paddingVertical: 22,
+    receiptTotalOuter: {
+      paddingHorizontal: 14, paddingVertical: 14,
     },
-    receiptTotalKey: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.72)', letterSpacing: 1.6, marginBottom: 6 },
-    receiptTotalVal: { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+    receiptTotal: {
+      alignItems: 'center', paddingVertical: 26, borderRadius: 20,
+      shadowColor: GREEN, shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
+    },
+    receiptTotalIconWrap: {
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+    },
+    receiptTotalKey: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.75)', letterSpacing: 1.6, marginBottom: 8 },
+    receiptTotalVal: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+    receiptTotalFeeChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14,
+    },
+    receiptTotalFeeText: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
     receiptPayRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       paddingHorizontal: 18, paddingVertical: 14,
@@ -1131,6 +1190,12 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       paddingHorizontal: 18, paddingVertical: 15,
     },
+    resultDownloadBtn: {
+      width: '100%', height: 52, borderRadius: 18,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1.5, borderColor: GREEN, marginBottom: 12,
+    },
+    resultDownloadBtnText: { fontSize: 15, fontWeight: '700', color: GREEN },
     resultBtn: { width: '100%', borderRadius: 18, overflow: 'hidden' },
     resultBtnInner: {
       height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

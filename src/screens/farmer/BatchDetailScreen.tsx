@@ -170,7 +170,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const handleShareQr = async () => {
     if (!batch) return;
     try {
-      await Share.share({ message: batch.qrCodeValue || batch.id });
+      await Share.share({ message: batch.qrCodeValue || String(batch.id ?? '') || 'AGROCHAIN-UNKNOWN' });
     } catch {
       // ignore
     }
@@ -194,6 +194,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
 
   const cropMeta = getCropMeta(batch.cropName);
   const shortRef = String(batch.id).slice(-6).toUpperCase();
+  const qrValue = batch.qrCodeValue || String(batch.id ?? '') || 'AGROCHAIN-UNKNOWN';
   const showPendingStage =
     (batch.status === 'PROCESSING' || batch.status === 'GROWING' || batch.status === 'HARVESTED') &&
     batch.processingStages.length > 0;
@@ -216,7 +217,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.card}>
           <View style={styles.qrBorderWrap}>
-            <QRCode value={batch.qrCodeValue || batch.id} size={180} />
+            <QRCode value={qrValue} size={180} />
           </View>
           <Text style={styles.batchIdText}>{batch.id}</Text>
 
