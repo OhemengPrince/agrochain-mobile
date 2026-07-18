@@ -32,6 +32,12 @@ import TopRatedCarousel from '../../components/TopRatedCarousel';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
+type ListRow =
+  | { kind: 'promo' }
+  | { kind: 'chips' }
+  | { kind: 'empty' }
+  | { kind: 'listing'; item: MarketplaceListing };
+
 const CATEGORIES: { label: string; value: MarketplaceCategory | undefined }[] = [
   { label: 'All', value: undefined },
   { label: 'Produce', value: 'PRODUCE' },
@@ -268,6 +274,12 @@ export default function MarketplaceScreen({ navigation }: Props) {
     });
   }, [listings, category, query]);
 
+  const rows = useMemo((): ListRow[] => {
+    const base: ListRow[] = [{ kind: 'promo' }, { kind: 'chips' }];
+    if (filtered.length === 0) return [...base, { kind: 'empty' }];
+    return [...base, ...filtered.map((item) => ({ kind: 'listing' as const, item }))];
+  }, [filtered]);
+
   if (loading) {
     return <LoadingOverlay message="Loading marketplace..." />;
   }
@@ -300,60 +312,73 @@ export default function MarketplaceScreen({ navigation }: Props) {
         </View>
       </LinearGradient>
 
-      <View style={styles.bannerWrap}>
-        <ListItemBanner onPress={() => navigation.navigate('CreateListing')} styles={styles} />
-      </View>
-
-      <TopRatedCarousel navigation={navigation} />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsList}
-        style={styles.chipsRow}
-      >
-        {CATEGORIES.map((item) => {
-          const active = item.value === category;
-          return (
-            <TouchableOpacity
-              key={item.label}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setCategory(item.value)}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <ErrorMessage message={error} />
-
       <FlatList
         style={styles.listFlex}
         removeClippedSubviews={false}
         maxToRenderPerBatch={10}
         windowSize={5}
         initialNumToRender={5}
-        data={filtered}
-        keyExtractor={(item) => item.id.toString()}
+        data={rows}
+        keyExtractor={(row) => row.kind === 'listing' ? row.item.id.toString() : row.kind}
+        stickyHeaderIndices={[1]}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <ListingCard
-            item={item}
-            onPress={() => navigation.navigate('MarketplaceListingDetail', { listingId: item.id })}
-            onContact={() => handleContact(item)}
-            colors={colors}
-            styles={styles}
-          />
-        )}
+        renderItem={({ item: row }) => {
+          if (row.kind === 'promo') {
+            return (
+              <View>
+                <View style={styles.bannerWrap}>
+                  <ListItemBanner onPress={() => navigation.navigate('CreateListing')} styles={styles} />
+                </View>
+                <TopRatedCarousel navigation={navigation} />
+                <ErrorMessage message={error} />
+              </View>
+            );
+          }
+          if (row.kind === 'chips') {
+            return (
+              <View style={styles.chipsStickyWrap}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipsList}
+                  style={styles.chipsRow}
+                >
+                  {CATEGORIES.map((item) => {
+                    const active = item.value === category;
+                    return (
+                      <TouchableOpacity
+                        key={item.label}
+                        style={[styles.chip, active && styles.chipActive]}
+                        onPress={() => setCategory(item.value)}
+                      >
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            );
+          }
+          if (row.kind === 'empty') {
+            return (
+              <View style={styles.emptyState}>
+                <Ionicons name="storefront-outline" size={48} color={colors.secondaryText} />
+                <Text style={styles.emptyTitle}>No listings found</Text>
+                <Text style={styles.emptyText}>Try a different search or category.</Text>
+              </View>
+            );
+          }
+          return (
+            <ListingCard
+              item={row.item}
+              onPress={() => navigation.navigate('MarketplaceListingDetail', { listingId: row.item.id })}
+              onContact={() => handleContact(row.item)}
+              colors={colors}
+              styles={styles}
+            />
+          );
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="storefront-outline" size={48} color={colors.secondaryText} />
-            <Text style={styles.emptyTitle}>No listings found</Text>
-            <Text style={styles.emptyText}>Try a different search or category.</Text>
-          </View>
-        }
       />
     </SafeAreaView>
   );
@@ -430,13 +455,18 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    chipsStickyWrap: {
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
     chipsRow: {
       flexGrow: 0,
     },
     chipsList: {
       paddingHorizontal: 16,
       paddingTop: 12,
-      paddingBottom: 26,
+      paddingBottom: 16,
       alignItems: 'flex-start',
     },
     chip: {
@@ -473,7 +503,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
     },
     list: {
-      paddingTop: 16,
       paddingBottom: 120,
     },
     card: {
