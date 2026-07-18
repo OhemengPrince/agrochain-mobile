@@ -36,6 +36,7 @@ import { uploadImage } from '../../api/fileApi';
 import { updatePhotoUrl } from '../../api/userApi';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
+import ActivitySubTabs from '../../components/ActivitySubTabs';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
@@ -334,168 +335,13 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         )}
 
         {activeTab === 'Activity' && (
-          <>
-            {/* Earnings Card */}
-            <View style={styles.premiumCardWrap}>
-              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-                <View style={styles.premiumHeaderRow}>
-                  <View style={styles.premiumIconCircle}>
-                    <Ionicons name="cash-outline" size={18} color={colors.primaryGreen} />
-                  </View>
-                  <Text style={styles.premiumHeaderText}>My Earnings</Text>
-                  <TouchableOpacity onPress={() => navigation.navigate('TransactionHistory')} style={styles.seeAllWrap}>
-                    <Text style={styles.seeAllText}>View All →</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.earningsBalanceRow}>
-                  <View style={styles.earningsPendingBox}>
-                    <Text style={styles.earningsPendingLabel}>⏳ Pending</Text>
-                    <Text style={styles.earningsPendingValue}>GHS {(earnings?.pendingBalance ?? 0).toFixed(2)}</Text>
-                    <Text style={styles.earningsSubLabel}>awaiting delivery</Text>
-                  </View>
-                  <View style={styles.earningsAvailBox}>
-                    <Text style={styles.earningsAvailLabel}>✅ Available</Text>
-                    <Text style={styles.earningsAvailValue}>GHS {(earnings?.availableBalance ?? 0).toFixed(2)}</Text>
-                    <Text style={styles.earningsSubLabel}>ready to withdraw</Text>
-                  </View>
-                </View>
-                <View style={styles.earningsSummary}>
-                  <View style={styles.earningsSummaryRow}>
-                    <Text style={styles.earningsSummaryKey}>Total Earned</Text>
-                    <Text style={styles.earningsSummaryVal}>GHS {(earnings?.totalEarned ?? 0).toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.earningsSummaryRow}>
-                    <Text style={styles.earningsSummaryKey}>AgroChain Fee</Text>
-                    <Text style={[styles.earningsSummaryVal, { color: '#DC2626' }]}>-GHS {(earnings?.totalAgrochainFee ?? 0).toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.earningsSummaryRow}>
-                    <Text style={styles.earningsSummaryKey}>Total Withdrawn</Text>
-                    <Text style={styles.earningsSummaryVal}>GHS {(earnings?.totalWithdrawn ?? 0).toFixed(2)}</Text>
-                  </View>
-                </View>
-                <Pressable
-                  onPress={() => navigation.navigate('Withdrawal')}
-                  disabled={(earnings?.availableBalance ?? 0) < 10}
-                  style={[styles.withdrawBtn, (earnings?.availableBalance ?? 0) < 10 && styles.withdrawBtnDisabled]}
-                >
-                  <Text style={[styles.withdrawBtnText, (earnings?.availableBalance ?? 0) < 10 && styles.withdrawBtnTextDisabled]}>
-                    Withdraw Funds
-                  </Text>
-                </Pressable>
-                {(earnings?.availableBalance ?? 0) < 10 && (
-                  <Text style={styles.withdrawMinText}>Minimum withdrawal: GHS 10.00</Text>
-                )}
-              </LinearGradient>
-            </View>
-
-            <View style={styles.premiumCardWrap}>
-              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-                <View style={styles.premiumHeaderRow}>
-                  <View style={styles.premiumIconCircle}>
-                    <Ionicons name="cart-outline" size={18} color={colors.primaryGreen} />
-                  </View>
-                  <Text style={styles.premiumHeaderText}>Recent Purchases</Text>
-                  <TouchableOpacity onPress={() => showComingSoon('All purchases')} style={styles.seeAllWrap}>
-                    <View style={styles.seeAllRow}>
-                      <Text style={styles.seeAllText}>See All</Text>
-                      <Ionicons name="chevron-forward" size={12} color={colors.accentAmber} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-
-                {RECENT_PURCHASES.map((purchase, index) => (
-                  <View key={purchase.id}>
-                    <View style={styles.purchaseRow}>
-                      <Text style={styles.purchaseEmoji}>{purchase.emoji}</Text>
-                      <View style={styles.purchaseBody}>
-                        <Text style={styles.purchaseCrop}>
-                          {purchase.crop} <Text style={styles.purchaseQuantity}>· {purchase.quantity}</Text>
-                        </Text>
-                        <Text style={styles.purchaseMeta}>
-                          {purchase.farmer} · {formatDate(purchase.date)}
-                        </Text>
-                      </View>
-                      <Text style={styles.purchaseAmount}>{purchase.amount}</Text>
-                    </View>
-                    {index < RECENT_PURCHASES.length - 1 && <View style={styles.purchaseDivider} />}
-                  </View>
-                ))}
-              </LinearGradient>
-            </View>
-
-            <View style={styles.premiumCardWrap}>
-              <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-                <View style={styles.premiumHeaderRow}>
-                  <View style={styles.premiumIconCircle}>
-                    <Ionicons name="checkmark-circle-outline" size={18} color={colors.primaryGreen} />
-                  </View>
-                  <Text style={styles.premiumHeaderText}>My Suppliers</Text>
-                </View>
-
-                {suppliers.length === 0 ? (
-                  <Text style={styles.emptyText}>No suppliers yet.</Text>
-                ) : (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suppliersScroll}>
-                    {suppliers.slice(0, 8).map((supplier) => (
-                      <View key={supplier.farmerName} style={styles.supplierCard}>
-                        <View style={styles.supplierAvatar}>
-                          <Text style={styles.supplierAvatarText}>{supplier.farmerName.charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <View style={styles.supplierNameRow}>
-                          <Text style={styles.supplierName} numberOfLines={1}>{supplier.farmerName}</Text>
-                          <Ionicons name="checkmark-circle" size={12} color={colors.primaryGreen} />
-                        </View>
-                        <Text style={styles.supplierCrop} numberOfLines={1}>{supplier.cropName}</Text>
-                        <View style={styles.supplierRatingRow}>
-                          <Ionicons name="star" size={11} color={colors.accentAmber} />
-                          <Text style={styles.supplierRating}>4.8</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-              </LinearGradient>
-            </View>
-
-            <View style={[styles.premiumCardWrap, styles.subscriptionCardWrap]}>
-              <LinearGradient colors={['rgba(255,143,0,0.04)', 'rgba(255,143,0,0.09)']} style={styles.premiumCardGradient}>
-                <View style={styles.premiumHeaderRow}>
-                  <View style={[styles.premiumIconCircle, styles.premiumIconCircleAmber]}>
-                    <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
-                  </View>
-                  <Text style={styles.subscriptionHeaderText}>Subscription Status</Text>
-                </View>
-
-                <View style={styles.planRow}>
-                  <Text style={styles.planName}>Pro Buyer</Text>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.primaryGreen} />
-                </View>
-
-                <View style={styles.benefitsList}>
-                  {[
-                    'Unlimited catalogue access',
-                    'PDF compliance reports',
-                    'Priority farmer contact',
-                    'Market price alerts',
-                  ].map((benefit) => (
-                    <View key={benefit} style={styles.benefitRow}>
-                      <Ionicons name="checkmark-circle" size={14} color={colors.primaryGreen} />
-                      <Text style={styles.benefitText}>{benefit}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                <Text style={styles.expiryText}>Valid until Dec 2026</Text>
-
-                <TouchableOpacity onPress={() => showComingSoon('Upgrade plan')}>
-                  <LinearGradient colors={[colors.accentAmber, '#E65100']} style={styles.upgradeButton}>
-                    <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </LinearGradient>
-            </View>
-          </>
+          <ActivitySubTabs
+            earnings={earnings}
+            onWithdraw={() => navigation.navigate('Withdrawal')}
+            onViewAllTransactions={() => navigation.navigate('TransactionHistory')}
+          />
         )}
+
 
         {activeTab === 'Reviews' && (
           <View style={styles.premiumCardWrap}>
