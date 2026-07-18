@@ -15,6 +15,16 @@ import { MOCK_BATCHES, MOCK_MARKETPLACE_LISTINGS } from '../mock/mockData';
 import { mockDelay, generateMockId } from '../mock/mockHelpers';
 import { getUser } from '../utils/storage';
 
+// Backend may omit inputs/processingStages entirely (or send null) when empty —
+// normalize so screens can safely call .length on them.
+function normalizeBatch(batch: ProduceBatch): ProduceBatch {
+  return {
+    ...batch,
+    inputs: batch.inputs ?? [],
+    processingStages: batch.processingStages ?? [],
+  };
+}
+
 export async function createBatch(payload: CreateBatchPayload): Promise<ProduceBatch> {
   if (USE_MOCK_DATA) {
     const user = await getUser();
@@ -34,7 +44,7 @@ export async function createBatch(payload: CreateBatchPayload): Promise<ProduceB
     return mockDelay(batch);
   }
   const { data } = await apiClient.post<ProduceBatch>('/produce/batches', payload);
-  return data;
+  return normalizeBatch(data);
 }
 
 export async function getMyBatches(): Promise<ProduceBatch[]> {
@@ -45,7 +55,7 @@ export async function getMyBatches(): Promise<ProduceBatch[]> {
   }
   console.log('[API] GET /produce/batches/mine');
   const { data } = await apiClient.get<any>('/produce/batches/mine');
-  const result = extractArray<ProduceBatch>(data);
+  const result = extractArray<ProduceBatch>(data).map(normalizeBatch);
   console.log('[API] /produce/batches/mine ->', result.length, 'batches');
   return result;
 }
@@ -57,7 +67,7 @@ export async function getBatchById(batchId: string): Promise<ProduceBatch> {
     return mockDelay(found);
   }
   const { data } = await apiClient.get<ProduceBatch>(`/produce/batches/${batchId}`);
-  return data;
+  return normalizeBatch(data);
 }
 
 export async function addProcessingStage(
@@ -80,7 +90,7 @@ export async function addProcessingStage(
     `/produce/batches/${batchId}/stages`,
     payload
   );
-  return data;
+  return normalizeBatch(data);
 }
 
 export async function updateBatchStatus(
@@ -97,7 +107,7 @@ export async function updateBatchStatus(
     `/produce/batches/${batchId}/status`,
     { status }
   );
-  return data;
+  return normalizeBatch(data);
 }
 
 export async function getProduceCatalogue(params: CatalogueParams): Promise<ProduceBatch[]> {
@@ -114,7 +124,7 @@ export async function getProduceCatalogue(params: CatalogueParams): Promise<Prod
   }
   console.log('[API] GET /produce/catalogue', params);
   const { data } = await apiClient.get<any>('/produce/catalogue', { params });
-  const result = extractArray<ProduceBatch>(data);
+  const result = extractArray<ProduceBatch>(data).map(normalizeBatch);
   console.log('[API] /produce/catalogue ->', result.length, 'batches');
   return result;
 }
@@ -128,7 +138,7 @@ export async function scanQrCode(qrCodeValue: string): Promise<ProduceBatch> {
   const { data } = await apiClient.get<ProduceBatch>('/produce/scan', {
     params: { qrCodeValue },
   });
-  return data;
+  return normalizeBatch(data);
 }
 
 // ===== Marketplace =====

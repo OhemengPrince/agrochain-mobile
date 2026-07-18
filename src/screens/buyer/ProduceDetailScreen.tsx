@@ -84,6 +84,8 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
   const batchRef = String(batch.id).slice(-6).toUpperCase();
   const farmerInitial = batch.farmerName.charAt(0).toUpperCase();
+  const processingStages = batch.processingStages ?? [];
+  const inputs = batch.inputs ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -192,22 +194,22 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
         {/* TRACEABILITY TIMELINE */}
         <Text style={styles.sectionTitle}>Traceability Timeline</Text>
-        {batch.processingStages.length === 0 ? (
+        {processingStages.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.emptyText}>No processing stages recorded yet.</Text>
           </View>
         ) : (
           <View style={styles.card}>
-            {batch.processingStages.map((stage, index) => (
+            {processingStages.map((stage, index) => (
               <View
                 key={stage.id}
-                style={[styles.timelineItem, index === batch.processingStages.length - 1 && styles.rowLast]}
+                style={[styles.timelineItem, index === processingStages.length - 1 && styles.rowLast]}
               >
                 <View style={styles.timelineDotColumn}>
                   <View style={styles.timelineDot}>
                     <Ionicons name="checkmark" size={12} color={colors.white} />
                   </View>
-                  {index !== batch.processingStages.length - 1 && <View style={styles.timelineLine} />}
+                  {index !== processingStages.length - 1 && <View style={styles.timelineLine} />}
                 </View>
                 <View style={styles.timelineBody}>
                   <Text style={styles.stageName}>{stage.stageName}</Text>
@@ -221,13 +223,13 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
 
         {/* INPUTS USED */}
         <Text style={styles.sectionTitle}>Inputs Used</Text>
-        {batch.inputs.length === 0 ? (
+        {inputs.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.emptyText}>No inputs recorded for this batch.</Text>
           </View>
         ) : (
           <View style={styles.chipsWrap}>
-            {batch.inputs.map((input, index) => (
+            {inputs.map((input, index) => (
               <View key={`${input.name}-${index}`} style={styles.inputChip}>
                 <Ionicons name="flask-outline" size={13} color={colors.primaryGreen} />
                 <Text style={styles.inputChipText}>{input.name} • {input.quantity}</Text>
