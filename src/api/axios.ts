@@ -39,6 +39,9 @@ apiClient.interceptors.response.use(
       console.log(`[axios] NETWORK ERROR on ${method} ${url} —`, error.message, '(is the backend reachable at', BASE_URL, '?)');
     } else {
       console.log(`[axios] HTTP ${status} on ${method} ${url} —`, JSON.stringify(error.response.data));
+      if (error.config?.data && typeof error.config.data === 'string') {
+        console.log(`[axios] request body was —`, error.config.data);
+      }
     }
     // Treat both 401 (expired/missing token) and 403 (backend secret rotation /
     // invalid signature) as auth failures — clear storage then reset React state.
