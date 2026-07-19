@@ -339,7 +339,8 @@ export default function CreateListingScreen({ navigation, route }: Props) {
       } else {
         await createMarketplaceListing(payload);
         Alert.alert('Listing posted', 'Your item is now live on the marketplace.', [
-          { text: 'OK', onPress: () => navigation.navigate('MyMarketplaceListings') },
+          { text: 'View My Listing', onPress: () => navigation.navigate('MyMarketplaceListings') },
+          { text: 'Browse Marketplace', onPress: () => navigation.navigate('MarketplaceList') },
         ]);
       }
     } catch (err: any) {

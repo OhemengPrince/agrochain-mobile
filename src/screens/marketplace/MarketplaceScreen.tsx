@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,6 +91,11 @@ function ListingPlaceholder({
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
+  if (listing.photoUrls?.[0]) {
+    return (
+      <Image source={{ uri: listing.photoUrls[0] }} style={styles.listingPhoto} resizeMode="cover" />
+    );
+  }
   if (listing.category === 'PRODUCE') {
     return (
       <View style={[styles.placeholderCircle, { backgroundColor: colors.lightGreen }]}>
@@ -526,6 +532,10 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
+    },
+    listingPhoto: {
+      width: '100%',
+      height: '100%',
     },
     placeholderCircle: {
       width: 72,

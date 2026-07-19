@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -93,6 +94,11 @@ function ListingIcon({
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
+  if (listing.photoUrls?.[0]) {
+    return (
+      <Image source={{ uri: listing.photoUrls[0] }} style={styles.iconCircle} resizeMode="cover" />
+    );
+  }
   if (listing.category === 'PRODUCE') {
     return (
       <View style={[styles.iconCircle, { backgroundColor: colors.lightGreen }]}>
@@ -296,7 +302,13 @@ export default function MarketplaceMyListingsScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-        <Text style={styles.headerTitle}>My Listings</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>My Listings</Text>
+          <Pressable style={styles.browseMarketBtn} onPress={() => navigation.navigate('MarketplaceList')}>
+            <Ionicons name="storefront-outline" size={16} color={colors.white} />
+            <Text style={styles.browseMarketBtnText}>Browse Market</Text>
+          </Pressable>
+        </View>
       </LinearGradient>
 
       <ScrollView
@@ -415,9 +427,28 @@ function createStyles(colors: ThemeColors) {
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     headerTitle: {
       fontSize: 22,
       fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    browseMarketBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    browseMarketBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
       color: '#FFFFFF',
     },
     content: {
@@ -524,6 +555,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 28,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
     },
     iconEmoji: {
       fontSize: 26,

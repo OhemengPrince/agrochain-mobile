@@ -9,6 +9,7 @@ const ONBOARDING_KEY = '@agrochain/hasSeenOnboarding';
 const DISMISSED_NOTIFS_KEY = '@agrochain/dismissed_notifications';
 const HIDDEN_BOOKINGS_KEY = '@agrochain/hidden_bookings';
 const HIDDEN_OWNER_BOOKINGS_KEY = '@agrochain/hidden_owner_bookings';
+const LIKED_LISTINGS_KEY = '@agrochain/liked_listings';
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -152,6 +153,26 @@ export async function addHiddenOwnerBookingId(id: string): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(HIDDEN_OWNER_BOOKINGS_KEY, updated);
+}
+
+export async function getLikedListingIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[LIKED_LISTINGS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(LIKED_LISTINGS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function setListingLiked(id: string, liked: boolean): Promise<void> {
+  const ids = await getLikedListingIds();
+  const updated = liked ? [...new Set([...ids, id])] : ids.filter((existing) => existing !== id);
+  const json = JSON.stringify(updated);
+  if (USE_MOCK_DATA) {
+    memoryStore[LIKED_LISTINGS_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(LIKED_LISTINGS_KEY, json);
 }
 
 export async function clearAll(): Promise<void> {

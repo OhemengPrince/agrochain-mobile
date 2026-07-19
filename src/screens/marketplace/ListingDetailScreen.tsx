@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   Pressable,
   Animated,
   Share,
+  Image,
+  FlatList,
+  Dimensions,
+  ViewToken,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +24,11 @@ import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
+import { getLikedListingIds, setListingLiked } from '../../utils/storage';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const HERO_HEIGHT = 280;
+const AUTO_SLIDE_MS = 3500;
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceListingDetail'>;
 
@@ -86,6 +95,99 @@ function AnimatedIconButton({
   );
 }
 
+function PhotoCarousel({
+  photoUrls,
+  listing,
+  colors,
+  styles,
+}: {
+  photoUrls: string[];
+  listing: MarketplaceListing;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList<string>>(null);
+  const activeIndexRef = useRef(0);
+  const isScrollingRef = useRef(false);
+
+  useEffect(() => {
+    if (photoUrls.length < 2) return;
+    const id = setInterval(() => {
+      if (isScrollingRef.current) return;
+      const next = (activeIndexRef.current + 1) % photoUrls.length;
+      activeIndexRef.current = next;
+      setActiveIndex(next);
+      flatListRef.current?.scrollToIndex({ index: next, animated: true });
+    }, AUTO_SLIDE_MS);
+    return () => clearInterval(id);
+  }, [photoUrls.length]);
+
+  const handleViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const idx = viewableItems[0]?.index;
+      if (idx != null) {
+        activeIndexRef.current = idx;
+        setActiveIndex(idx);
+      }
+    },
+    []
+  );
+
+  const viewabilityConfigCallbackPairs = useRef([
+    { viewabilityConfig: { itemVisiblePercentThreshold: 60 }, onViewableItemsChanged: handleViewableItemsChanged },
+  ]);
+
+  if (photoUrls.length === 0) {
+    return (
+      <View style={[styles.heroPlaceholder, { backgroundColor: colors.lightGreen }]}>
+        {listing.category === 'PRODUCE' ? (
+          <Text style={styles.heroEmoji}>{getCropEmoji(listing.name)}</Text>
+        ) : (
+          <Ionicons
+            name={CATEGORY_ICONS[listing.category]}
+            size={64}
+            color={colors.primaryGreen}
+          />
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <FlatList
+        ref={flatListRef}
+        data={photoUrls}
+        keyExtractor={(uri, idx) => `${uri}-${idx}`}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScrollBeginDrag={() => { isScrollingRef.current = true; }}
+        onMomentumScrollEnd={() => { isScrollingRef.current = false; }}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+        onScrollToIndexFailed={() => {}}
+        renderItem={({ item }) => (
+          <Image source={{ uri: item }} style={styles.heroPhoto} resizeMode="cover" />
+        )}
+      />
+      {photoUrls.length > 1 && (
+        <View style={styles.carouselDots}>
+          {photoUrls.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.carouselDot,
+                { backgroundColor: i === activeIndex ? '#fff' : 'rgba(255,255,255,0.5)', width: i === activeIndex ? 16 : 6 },
+              ]}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function priceTypeLabel(listing: MarketplaceListing): string {
   if (listing.priceType === 'PER_DAY') return '/day';
   if (listing.priceType === 'NEGOTIABLE') return 'Negotiable';
@@ -112,14 +214,19 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getMarketplaceListingById(listingId);
+        const [data, likedIds] = await Promise.all([
+          getMarketplaceListingById(listingId),
+          getLikedListingIds(),
+        ]);
         setListing(data);
+        setLiked(likedIds.includes(listingId));
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load listing.');
       } finally {
@@ -127,6 +234,12 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
       }
     })();
   }, [listingId]);
+
+  const handleToggleLike = () => {
+    const next = !liked;
+    setLiked(next);
+    setListingLiked(listingId, next).catch(() => {});
+  };
 
   const handleShare = () => {
     if (!listing) return;
@@ -175,23 +288,22 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
-          <View style={[styles.heroPlaceholder, { backgroundColor: colors.lightGreen }]}>
-            {listing.category === 'PRODUCE' ? (
-              <Text style={styles.heroEmoji}>{getCropEmoji(listing.name)}</Text>
-            ) : (
-              <Ionicons
-                name={CATEGORY_ICONS[listing.category]}
-                size={64}
-                color={colors.primaryGreen}
-              />
-            )}
-          </View>
+          <PhotoCarousel photoUrls={listing.photoUrls ?? []} listing={listing} colors={colors} styles={styles} />
 
           <View style={styles.floatingButton}>
             <AnimatedIconButton icon="arrow-back" color={colors.primaryGreen} onPress={() => navigation.goBack()} />
           </View>
-          <View style={[styles.floatingButton, styles.shareButton]}>
-            <AnimatedIconButton icon="share-outline" color={colors.primaryGreen} onPress={handleShare} />
+          <View style={styles.heroRightActions}>
+            <View style={styles.iconCircleBase}>
+              <AnimatedIconButton
+                icon={liked ? 'heart' : 'heart-outline'}
+                color={liked ? '#DC2626' : colors.primaryGreen}
+                onPress={handleToggleLike}
+              />
+            </View>
+            <View style={styles.iconCircleBase}>
+              <AnimatedIconButton icon="share-outline" color={colors.primaryGreen} onPress={handleShare} />
+            </View>
           </View>
         </View>
 
@@ -201,6 +313,11 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryBadgeText}>{CATEGORY_LABELS[listing.category]}</Text>
             </View>
+          </View>
+
+          <View style={styles.viewsRow}>
+            <Ionicons name="eye-outline" size={13} color={colors.secondaryText} />
+            <Text style={styles.viewsText}>{listing.viewsCount} view{listing.viewsCount === 1 ? '' : 's'}</Text>
           </View>
 
           <View style={styles.sellerCard}>
@@ -328,17 +445,47 @@ function createStyles(colors: ThemeColors) {
     },
     heroWrap: {
       width: '100%',
-      height: 280,
+      height: HERO_HEIGHT,
       position: 'relative',
     },
     heroPlaceholder: {
       width: '100%',
-      height: 280,
+      height: HERO_HEIGHT,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    heroPhoto: {
+      width: SCREEN_WIDTH,
+      height: HERO_HEIGHT,
+    },
+    carouselDots: {
+      position: 'absolute',
+      bottom: 14,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 5,
+    },
+    carouselDot: {
+      height: 6,
+      borderRadius: 3,
+    },
     heroEmoji: {
       fontSize: 96,
+    },
+    iconCircleBase: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.white,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 4,
+      overflow: 'hidden',
     },
     floatingButton: {
       position: 'absolute',
@@ -355,9 +502,22 @@ function createStyles(colors: ThemeColors) {
       elevation: 4,
       overflow: 'hidden',
     },
-    shareButton: {
-      left: undefined,
+    heroRightActions: {
+      position: 'absolute',
+      top: 50,
       right: 16,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    viewsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 6,
+    },
+    viewsText: {
+      fontSize: 12,
+      color: colors.secondaryText,
     },
     contentCard: {
       backgroundColor: colors.card,
