@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Pressable, Animated, Image, Alert, Modal, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -206,8 +206,11 @@ export default function CreateBatchScreen({ navigation }: Props) {
   };
 
   const handleAddInput = () => {
-    if (!inputName || !inputQuantity) return;
-    setInputs((prev) => [...prev, { name: inputName, quantity: inputQuantity, appliedDate: new Date().toISOString().slice(0, 10) }]);
+    if (!inputName.trim() || !inputQuantity.trim()) {
+      Alert.alert('Missing details', 'Please enter both the input name and quantity before adding.');
+      return;
+    }
+    setInputs((prev) => [...prev, { name: inputName.trim(), quantity: inputQuantity.trim(), appliedDate: new Date().toISOString().slice(0, 10) }]);
     setInputName('');
     setInputQuantity('');
   };
@@ -252,7 +255,12 @@ export default function CreateBatchScreen({ navigation }: Props) {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.scroll}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <StepIndicator step={currentStep} styles={styles} />
 
         <ErrorMessage message={error} />
@@ -401,6 +409,7 @@ export default function CreateBatchScreen({ navigation }: Props) {
 
         <SubmitButton title="Submit Harvest Log" onPress={handleShowTnC} loading={loading} styles={styles} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Terms & Conditions Modal */}
       <Modal visible={showTnC} transparent animationType="slide" onRequestClose={() => setShowTnC(false)} statusBarTranslucent>
