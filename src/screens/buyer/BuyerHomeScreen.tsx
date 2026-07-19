@@ -203,7 +203,52 @@ export default function BuyerHomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <Pressable onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
+            <View>
+              <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
+              {user?.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={10} color="#fff" />
+                </View>
+              )}
+            </View>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <View style={styles.headerActions}>
+            <Pressable style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
+              <View style={{ position: 'relative' }}>
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                {unreadCount > 0 && (
+                  <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
+            <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms')}>
+              <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.searchRow}>
+          <Pressable style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch')}>
+            <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
+            <Text style={styles.searchPlaceholderText}>Search...</Text>
+          </Pressable>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
+          >
+            <Ionicons name="options-outline" size={18} color="#fff" />
+          </Pressable>
+        </View>
+      </LinearGradient>
+
       <FlatList
+        style={{ flex: 1 }}
         removeClippedSubviews
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -214,50 +259,6 @@ export default function BuyerHomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View>
-            <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-              <View style={styles.headerTopRow}>
-                <Pressable onPress={() => (navigation.getParent() as any)?.navigate('BuyerProfile')}>
-                  <View>
-                    <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
-                    {user?.isVerified && (
-                      <View style={styles.verifiedBadge}>
-                        <Ionicons name="checkmark" size={10} color="#fff" />
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-                <View style={{ flex: 1 }} />
-                <View style={styles.headerActions}>
-                  <Pressable style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('BuyerNotifications')}>
-                    <View style={{ position: 'relative' }}>
-                      <Ionicons name="notifications-outline" size={22} color={colors.white} />
-                      {unreadCount > 0 && (
-                        <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
-                          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </Pressable>
-                  <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms')}>
-                    <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View style={styles.searchRow}>
-                <Pressable style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch')}>
-                  <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
-                  <Text style={styles.searchPlaceholderText}>Search...</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.filterButton}
-                  onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
-                >
-                  <Ionicons name="options-outline" size={18} color="#fff" />
-                </Pressable>
-              </View>
-            </LinearGradient>
-
             <WeatherWidget />
 
             <Pressable onPress={goToScanner} style={styles.scanBannerWrap}>
@@ -409,7 +410,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: 8,
       height: 46,
-      borderRadius: 23,
+      borderRadius: 14,
       paddingHorizontal: 16,
       backgroundColor: colors.card,
     },

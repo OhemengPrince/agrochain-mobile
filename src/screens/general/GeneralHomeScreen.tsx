@@ -155,55 +155,56 @@ export default function GeneralHomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
-        <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-              <View>
-                <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
-                {user?.isVerified && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark" size={10} color="#fff" />
+      <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
+            <View>
+              <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
+              {user?.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={10} color="#fff" />
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
+              <View style={{ position: 'relative' }}>
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                {unreadCount > 0 && (
+                  <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                   </View>
                 )}
               </View>
             </TouchableOpacity>
-            <View style={{ flex: 1 }} />
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
-                <View style={{ position: 'relative' }}>
-                  <Ionicons name="notifications-outline" size={22} color={colors.white} />
-                  {unreadCount > 0 && (
-                    <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
-                <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.searchRow}>
-            <TouchableOpacity style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch' as any)}>
-              <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
-              <Text style={styles.searchPlaceholderText}>Search...</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
-            >
-              <Ionicons name="options-outline" size={18} color="#fff" />
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
+              <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
 
+        <View style={styles.searchRow}>
+          <TouchableOpacity style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch' as any)}>
+            <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
+            <Text style={styles.searchPlaceholderText}>Search...</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
+          >
+            <Ionicons name="options-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         <View style={styles.listItemBannerWrap}>
           <Pressable onPress={goToList}>
             <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.listItemBanner}>
@@ -257,7 +258,9 @@ function createStyles(colors: ThemeColors) {
     header: {
       paddingHorizontal: 16,
       paddingTop: 56,
-      paddingBottom: 36,
+      paddingBottom: 20,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
     },
     headerTopRow: {
       flexDirection: 'row',
@@ -293,7 +296,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: 8,
       height: 46,
-      borderRadius: 23,
+      borderRadius: 14,
       paddingHorizontal: 16,
       backgroundColor: colors.card,
     },

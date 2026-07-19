@@ -346,10 +346,6 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-    <ScrollView
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Pressable onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
@@ -394,6 +390,11 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
         </View>
       </LinearGradient>
 
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+    >
       <ErrorMessage message={error} />
 
       <View style={styles.earningsCard}>
@@ -563,7 +564,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: 8,
       height: 46,
-      borderRadius: 23,
+      borderRadius: 14,
       paddingHorizontal: 16,
       backgroundColor: colors.card,
     },
@@ -592,7 +593,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 20,
       padding: 20,
       marginHorizontal: 16,
-      marginTop: -16,
+      marginTop: 18,
       ...cardShadow,
       shadowOpacity: 0.1,
       elevation: 5,

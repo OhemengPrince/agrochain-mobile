@@ -322,55 +322,56 @@ export default function FarmerHomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
-        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <Pressable onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
-              <View>
-                <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
-                {user?.isVerified && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark" size={10} color="#fff" />
+      <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <Pressable onPress={() => (navigation.getParent() as any)?.navigate('FarmerProfile')}>
+            <View>
+              <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
+              {user?.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={10} color="#fff" />
+                </View>
+              )}
+            </View>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <View style={styles.headerActions}>
+            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
+              <View style={{ position: 'relative' }}>
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                {unreadCount > 0 && (
+                  <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                   </View>
                 )}
               </View>
             </Pressable>
-            <View style={{ flex: 1 }} />
-            <View style={styles.headerActions}>
-              <Pressable style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
-                <View style={{ position: 'relative' }}>
-                  <Ionicons name="notifications-outline" size={22} color={colors.white} />
-                  {unreadCount > 0 && (
-                    <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#1A6B2E' }}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                    </View>
-                  )}
-                </View>
-              </Pressable>
-              <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
-                <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.searchRow}>
-            <Pressable style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch')}>
-              <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
-              <Text style={styles.searchPlaceholderText}>Search...</Text>
-            </Pressable>
-            <Pressable
-              style={styles.filterButton}
-              onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
-            >
-              <Ionicons name="options-outline" size={18} color="#fff" />
+            <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
+              <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
             </Pressable>
           </View>
-        </LinearGradient>
+        </View>
 
+        <View style={styles.searchRow}>
+          <Pressable style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch')}>
+            <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
+            <Text style={styles.searchPlaceholderText}>Search...</Text>
+          </Pressable>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
+          >
+            <Ionicons name="options-outline" size={18} color="#fff" />
+          </Pressable>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <ScrollView
@@ -494,6 +495,8 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 16,
       paddingTop: 56,
       paddingBottom: 20,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
     },
     headerTopRow: {
       flexDirection: 'row',
@@ -537,7 +540,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: 8,
       height: 46,
-      borderRadius: 23,
+      borderRadius: 14,
       paddingHorizontal: 16,
       backgroundColor: colors.card,
     },
@@ -557,9 +560,10 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.card,
       paddingVertical: 16,
       paddingHorizontal: 20,
-      marginTop: -20,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      marginTop: 18,
+      marginHorizontal: 16,
+      borderRadius: 20,
+      ...cardShadow,
     },
     quickActionsRow: {
       flexDirection: 'row',

@@ -1,10 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Pressable, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../hooks/useTheme';
-import GlassBlur from '../components/GlassBlur';
 
 const ACTIVE_COLOR = '#1A6B2E';
 
@@ -36,13 +35,25 @@ function TabBarButton({
   inactiveColor: string;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const shakeX = useRef(new Animated.Value(0)).current;
 
   const animateTo = (toValue: number) => {
     Animated.spring(scale, { toValue, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
   };
 
+  useEffect(() => {
+    if (!focused) return;
+    Animated.sequence([
+      Animated.timing(shakeX, { toValue: -4, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 4, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -3, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 3, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  }, [focused]);
+
   return (
-    <Animated.View style={[styles.item, { transform: [{ scale }] }]}>
+    <Animated.View style={[styles.item, { transform: [{ scale }, { translateX: shakeX }] }]}>
       <Pressable
         onPress={onPress}
         onPressIn={() => animateTo(0.95)}
@@ -72,17 +83,12 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
   }
 
   const inactiveColor = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const barBorder = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.5)';
+  const barBg = isDarkMode ? 'rgba(30,30,30,0.97)' : 'rgba(255,255,255,0.95)';
+  const barBorder = isDarkMode ? colors.border : 'rgba(255,255,255,0.8)';
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      <View style={[styles.bar, { borderColor: barBorder }]}>
-        <GlassBlur
-          intensity={65}
-          tint={isDarkMode ? 'dark' : 'light'}
-          style={styles.barBlur}
-          androidFallbackColor={isDarkMode ? 'rgba(28,28,30,0.92)' : 'rgba(255,255,255,0.88)'}
-        />
+      <View style={[styles.bar, { backgroundColor: barBg, borderColor: barBorder }]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           if (options.tabBarButton) return null;
@@ -132,11 +138,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 15,
     borderWidth: 1,
-    overflow: 'hidden',
-  },
-  barBlur: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 34,
   },
   item: { flex: 1 },
   itemInner: {
