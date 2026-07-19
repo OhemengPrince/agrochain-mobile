@@ -334,7 +334,9 @@ export default function FarmerHomeScreen({ navigation }: Props) {
               )}
             </View>
           </Pressable>
-          <View style={{ flex: 1 }} />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={styles.appName}>Agrochain</Text>
+          </View>
           <View style={styles.headerActions}>
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('FarmerNotifications')}>
               <View style={{ position: 'relative' }}>
@@ -502,6 +504,12 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    appName: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.white,
+      letterSpacing: 0.3,
     },
     verifiedBadge: {
       position: 'absolute',

@@ -25,7 +25,8 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
 import GlassBlur from '../../components/GlassBlur';
-import { getLikedListingIds, setListingLiked } from '../../utils/storage';
+import CommentsSheet from '../../components/CommentsSheet';
+import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 280;
@@ -296,18 +297,22 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [commentsVisible, setCommentsVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const [data, likedIds] = await Promise.all([
+        const [data, likedIds, comments] = await Promise.all([
           getMarketplaceListingById(listingId),
           getLikedListingIds(),
+          getItemComments(listingId),
         ]);
         setListing(data);
         setLiked(likedIds.includes(listingId));
+        setCommentsCount(comments.length);
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load listing.');
       } finally {
@@ -410,6 +415,11 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             <Pressable style={[styles.statChip, liked && styles.statChipLiked]} onPress={handleToggleLike}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={16} color={liked ? '#DC2626' : colors.primaryGreen} />
               <Text style={[styles.statChipLabel, liked && styles.statChipLabelLiked]}>{liked ? 'Liked' : 'Like this item'}</Text>
+            </Pressable>
+            <Pressable style={styles.statChip} onPress={() => setCommentsVisible(true)}>
+              <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
+              <Text style={styles.statChipValue}>{commentsCount}</Text>
+              <Text style={styles.statChipLabel}>comment{commentsCount === 1 ? '' : 's'}</Text>
             </Pressable>
           </View>
 
@@ -523,6 +533,17 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
           </Pressable>
         </Animated.View>
       </View>
+
+      <CommentsSheet
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+        itemId={listing.id}
+        itemTitle={listing.name}
+        itemSubtitle={formatCurrency(listing.price)}
+        itemImageUrl={listing.photoUrls?.[0]}
+        itemEmoji={listing.category === 'PRODUCE' ? getCropEmoji(listing.name) : undefined}
+        onCommentsCountChange={setCommentsCount}
+      />
     </SafeAreaView>
   );
 }
