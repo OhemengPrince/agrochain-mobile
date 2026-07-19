@@ -11,13 +11,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+  PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FarmerStackParamList, Booking, Equipment } from '../../types';
-import { getMyBookings, cancelBooking } from '../../api/bookingApi';
+import { getMyBookings, cancelBooking, submitReview } from '../../api/bookingApi';
 import { getEquipmentById } from '../../api/equipmentApi';
 import { formatCurrency, formatDate, daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
@@ -25,6 +30,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import EquipmentImage from '../../components/EquipmentImage';
+import { getHiddenBookingIds, addHiddenBookingId } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerBookingsList'>;
 
@@ -109,6 +115,72 @@ function AnimatedButton({
   );
 }
 
+const DELETE_ACTION_WIDTH = 84;
+
+function SwipeToDeleteRow({
+  enabled,
+  onDelete,
+  styles,
+  children,
+}: {
+  enabled: boolean;
+  onDelete: () => void;
+  styles: ReturnType<typeof createStyles>;
+  children: React.ReactNode;
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const openRef = useRef(false);
+
+  const resetSwipe = () => {
+    openRef.current = false;
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        enabled && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onPanResponderMove: (_, gesture) => {
+        const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
+        const next = base + gesture.dx;
+        translateX.setValue(Math.max(-DELETE_ACTION_WIDTH, Math.min(0, next)));
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
+        const projected = base + gesture.dx;
+        if (projected < -DELETE_ACTION_WIDTH / 2) {
+          openRef.current = true;
+          Animated.spring(translateX, { toValue: -DELETE_ACTION_WIDTH, useNativeDriver: true, tension: 300, friction: 26 }).start();
+        } else {
+          resetSwipe();
+        }
+      },
+    })
+  ).current;
+
+  if (!enabled) return <View style={styles.itemWrap}>{children}</View>;
+
+  return (
+    <View style={[styles.itemWrap, styles.swipeWrap]}>
+      <View style={styles.swipeDeleteAction}>
+        <Pressable
+          style={styles.swipeDeleteBtn}
+          onPress={() => {
+            resetSwipe();
+            onDelete();
+          }}
+        >
+          <Ionicons name="trash" size={22} color="#fff" />
+          <Text style={styles.swipeDeleteText}>Delete</Text>
+        </Pressable>
+      </View>
+      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
 function PremiumBookingCard({
   booking,
   equipment,
@@ -117,6 +189,7 @@ function PremiumBookingCard({
   onViewDetails,
   onCancel,
   onBrowseAgain,
+  onLeaveReview,
 }: {
   booking: Booking;
   equipment?: Equipment;
@@ -125,6 +198,7 @@ function PremiumBookingCard({
   onViewDetails: () => void;
   onCancel: () => void;
   onBrowseAgain: () => void;
+  onLeaveReview: () => void;
 }) {
   const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
   const displayStatus = getDisplayStatus(booking);
@@ -137,10 +211,6 @@ function PremiumBookingCard({
 
   const handleReportIssue = () => {
     Alert.alert('Coming soon', 'Reporting issues will be available in a future update.');
-  };
-
-  const handleLeaveReview = () => {
-    Alert.alert('Coming soon', 'Leaving reviews will be available in a future update.');
   };
 
   const renderActions = () => {
@@ -193,14 +263,16 @@ function PremiumBookingCard({
       case 'COMPLETED':
         return (
           <View style={styles.actionsRow}>
+            {!booking.reviewed && (
+              <AnimatedButton
+                style={styles.filledAmberButton}
+                textStyle={styles.filledAmberButtonText}
+                label="Leave Review"
+                onPress={onLeaveReview}
+              />
+            )}
             <AnimatedButton
-              style={styles.filledAmberButton}
-              textStyle={styles.filledAmberButtonText}
-              label="Leave Review"
-              onPress={handleLeaveReview}
-            />
-            <AnimatedButton
-              style={styles.outlineGreenButton}
+              style={booking.reviewed ? styles.outlineGreenButtonFull : styles.outlineGreenButton}
               textStyle={styles.outlineGreenButtonText}
               label="Book Again"
               onPress={onBrowseAgain}
@@ -269,13 +341,59 @@ export default function MyBookingsScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('ALL');
 
+  const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+
+  const closeReviewModal = () => {
+    setReviewBookingId(null);
+    setRating(0);
+    setComment('');
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewBookingId) return;
+    if (rating === 0) {
+      Alert.alert('Add a rating', 'Please select a star rating before submitting.');
+      return;
+    }
+    setReviewLoading(true);
+    try {
+      await submitReview({ bookingId: reviewBookingId, rating, comment: comment.trim() || undefined });
+      setBookings((prev) => prev.map((b) => (b.id === reviewBookingId ? { ...b, reviewed: true } : b)));
+      closeReviewModal();
+      Alert.alert('Thank you!', 'Your review has been submitted.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Failed to submit review.');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleDeleteBooking = useCallback((bookingId: string) => {
+    Alert.alert('Delete Booking', 'Remove this cancelled booking from your list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await addHiddenBookingId(bookingId);
+          setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+        },
+      },
+    ]);
+  }, []);
+
   const loadBookings = useCallback(async () => {
     setError(null);
     try {
-      const data = await getMyBookings();
-      setBookings(data);
+      const [data, hiddenIds] = await Promise.all([getMyBookings(), getHiddenBookingIds()]);
+      const hiddenSet = new Set(hiddenIds);
+      const visible = data.filter((b) => !hiddenSet.has(b.id));
+      setBookings(visible);
 
-      const uniqueIds = [...new Set(data.map((b) => b.equipmentId).filter(Boolean))];
+      const uniqueIds = [...new Set(visible.map((b) => b.equipmentId).filter(Boolean))];
       const missingIds = uniqueIds.filter((id) => !(id in equipmentMapRef.current));
       if (missingIds.length > 0) {
         const results = await Promise.allSettled(missingIds.map((id) => getEquipmentById(id)));
@@ -394,15 +512,22 @@ export default function MyBookingsScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <PremiumBookingCard
-            booking={item}
-            equipment={equipmentMap[item.equipmentId]}
+          <SwipeToDeleteRow
+            enabled={getDisplayStatus(item) === 'CANCELLED'}
+            onDelete={() => handleDeleteBooking(item.id)}
             styles={styles}
-            colors={colors}
-            onViewDetails={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
-            onCancel={() => handleCancelBooking(item.id)}
-            onBrowseAgain={goToEquipmentTab}
-          />
+          >
+            <PremiumBookingCard
+              booking={item}
+              equipment={equipmentMap[item.equipmentId]}
+              styles={styles}
+              colors={colors}
+              onViewDetails={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
+              onCancel={() => handleCancelBooking(item.id)}
+              onBrowseAgain={goToEquipmentTab}
+              onLeaveReview={() => setReviewBookingId(item.id)}
+            />
+          </SwipeToDeleteRow>
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
@@ -422,6 +547,64 @@ export default function MyBookingsScreen({ navigation }: Props) {
           </View>
         }
       />
+
+      <Modal
+        visible={reviewBookingId !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={closeReviewModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={{ flex: 1 }} onPress={closeReviewModal} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalTitleRow}>
+              <Text style={styles.modalTitle}>Rate your experience</Text>
+              <Pressable style={styles.modalCloseBtn} onPress={closeReviewModal} hitSlop={10}>
+                <Ionicons name="close" size={20} color={colors.secondaryText} />
+              </Pressable>
+            </View>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <Pressable key={value} onPress={() => setRating(value)} hitSlop={8}>
+                  <Ionicons
+                    name={value <= rating ? 'star' : 'star-outline'}
+                    size={36}
+                    color={colors.accentAmber}
+                    style={{ marginHorizontal: 4 }}
+                  />
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Share a few words about your experience..."
+              placeholderTextColor={colors.secondaryText}
+              multiline
+              numberOfLines={4}
+              value={comment}
+              onChangeText={setComment}
+            />
+            <Pressable
+              style={[styles.submitReviewBtn, reviewLoading && { opacity: 0.7 }]}
+              onPress={handleSubmitReview}
+              disabled={reviewLoading}
+            >
+              {reviewLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="send-outline" size={16} color="#fff" />
+                  <Text style={styles.submitReviewBtnText}>Submit Review</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -496,8 +679,6 @@ function createStyles(colors: ThemeColors) {
     card: {
       backgroundColor: colors.card,
       borderRadius: 20,
-      marginHorizontal: 16,
-      marginBottom: 14,
       padding: 16,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -619,6 +800,15 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       backgroundColor: 'transparent',
     },
+    outlineGreenButtonFull: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.primaryGreen,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
     outlineGreenButtonText: {
       fontSize: 13,
       fontWeight: '700',
@@ -670,6 +860,110 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '700',
       color: colors.white,
+    },
+    itemWrap: {
+      marginHorizontal: 16,
+      marginBottom: 14,
+    },
+    swipeWrap: {
+      marginHorizontal: 0,
+      marginBottom: 0,
+      borderRadius: 20,
+      overflow: 'hidden',
+    },
+    swipeDeleteAction: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      right: 0,
+      width: DELETE_ACTION_WIDTH,
+      backgroundColor: colors.errorRed,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swipeDeleteBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      width: '100%',
+      height: '100%',
+    },
+    swipeDeleteText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#fff',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 20,
+      paddingBottom: 32,
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    modalTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    modalTitle: {
+      flex: 1,
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+      textAlign: 'center',
+      marginLeft: 28,
+    },
+    modalCloseBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.inputBackground,
+    },
+    starsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    commentInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 14,
+      color: colors.text,
+      backgroundColor: colors.inputBackground,
+      height: 90,
+      textAlignVertical: 'top',
+      marginBottom: 16,
+    },
+    submitReviewBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      height: 52,
+      borderRadius: 14,
+      backgroundColor: colors.accentAmber,
+    },
+    submitReviewBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#fff',
     },
   });
 }

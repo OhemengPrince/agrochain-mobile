@@ -539,9 +539,19 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
+          <Pressable style={{ flex: 1 }} onPress={() => setReviewModalVisible(false)} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Rate your experience</Text>
+            <View style={styles.modalTitleRow}>
+              <Text style={styles.modalTitle}>Rate your experience</Text>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => setReviewModalVisible(false)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={20} color={colors.secondaryText} />
+              </Pressable>
+            </View>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((value) => (
                 <Pressable key={value} onPress={() => setRating(value)} hitSlop={8}>
@@ -1097,12 +1107,26 @@ function createStyles(colors: ThemeColors) {
       alignSelf: 'center',
       marginBottom: 16,
     },
+    modalTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
     modalTitle: {
+      flex: 1,
       fontSize: 17,
       fontWeight: '800',
       color: colors.text,
       textAlign: 'center',
-      marginBottom: 16,
+      marginLeft: 28,
+    },
+    modalCloseBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.inputBackground,
     },
     starsRow: {
       flexDirection: 'row',
