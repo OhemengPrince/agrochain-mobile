@@ -74,10 +74,12 @@ function usePressAnimation() {
 function AnimatedIconButton({
   icon,
   color,
+  size = 20,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
+  size?: number;
   onPress: () => void;
 }) {
   const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
@@ -89,9 +91,39 @@ function AnimatedIconButton({
         onPressIn={onPressIn}
         onPressOut={onPressOut}
       >
-        <Ionicons name={icon} size={20} color={color} />
+        <Ionicons name={icon} size={size} color={color} />
       </Pressable>
     </Animated.View>
+  );
+}
+
+function LikeButton({
+  liked,
+  onPress,
+  styles,
+  colors,
+}: {
+  liked: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
+  const bounce = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.spring(bounce, { toValue: 1.35, useNativeDriver: true, speed: 30, bounciness: 14 }),
+      Animated.spring(bounce, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }),
+    ]).start();
+    onPress();
+  };
+
+  return (
+    <Pressable style={styles.iconCircleBase} onPress={handlePress}>
+      <Animated.View style={{ transform: [{ scale: bounce }] }}>
+        <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#DC2626' : colors.primaryGreen} />
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -294,17 +326,18 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             <AnimatedIconButton icon="arrow-back" color={colors.primaryGreen} onPress={() => navigation.goBack()} />
           </View>
           <View style={styles.heroRightActions}>
-            <View style={styles.iconCircleBase}>
-              <AnimatedIconButton
-                icon={liked ? 'heart' : 'heart-outline'}
-                color={liked ? '#DC2626' : colors.primaryGreen}
-                onPress={handleToggleLike}
-              />
-            </View>
+            <LikeButton liked={liked} onPress={handleToggleLike} styles={styles} colors={colors} />
             <View style={styles.iconCircleBase}>
               <AnimatedIconButton icon="share-outline" color={colors.primaryGreen} onPress={handleShare} />
             </View>
           </View>
+
+          {listing.viewsCount > 0 && (
+            <View style={styles.viewsPillOnPhoto}>
+              <Ionicons name="eye" size={13} color="#fff" />
+              <Text style={styles.viewsPillOnPhotoText}>{listing.viewsCount}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.contentCard}>
@@ -315,9 +348,16 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             </View>
           </View>
 
-          <View style={styles.viewsRow}>
-            <Ionicons name="eye-outline" size={13} color={colors.secondaryText} />
-            <Text style={styles.viewsText}>{listing.viewsCount} view{listing.viewsCount === 1 ? '' : 's'}</Text>
+          <View style={styles.statsBar}>
+            <View style={styles.statChip}>
+              <Ionicons name="eye" size={16} color={colors.primaryGreen} />
+              <Text style={styles.statChipValue}>{listing.viewsCount}</Text>
+              <Text style={styles.statChipLabel}>view{listing.viewsCount === 1 ? '' : 's'}</Text>
+            </View>
+            <Pressable style={[styles.statChip, liked && styles.statChipLiked]} onPress={handleToggleLike}>
+              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={16} color={liked ? '#DC2626' : colors.primaryGreen} />
+              <Text style={[styles.statChipLabel, liked && styles.statChipLabelLiked]}>{liked ? 'Liked' : 'Like this item'}</Text>
+            </Pressable>
           </View>
 
           <View style={styles.sellerCard}>
@@ -509,15 +549,52 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       gap: 10,
     },
-    viewsRow: {
+    viewsPillOnPhoto: {
+      position: 'absolute',
+      left: 16,
+      bottom: 16,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      marginTop: 6,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
     },
-    viewsText: {
+    viewsPillOnPhotoText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#fff',
+    },
+    statsBar: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 12,
+    },
+    statChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.lightGreen,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+    },
+    statChipValue: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.primaryGreen,
+    },
+    statChipLabel: {
       fontSize: 12,
-      color: colors.secondaryText,
+      fontWeight: '700',
+      color: colors.primaryGreen,
+    },
+    statChipLiked: {
+      backgroundColor: '#FEE2E2',
+    },
+    statChipLabelLiked: {
+      color: '#DC2626',
     },
     contentCard: {
       backgroundColor: colors.card,
