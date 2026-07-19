@@ -118,19 +118,19 @@ function AnimatedButton({
 const DELETE_ACTION_WIDTH = 84;
 
 function SwipeToDeleteRow({
+  rowId,
   enabled,
-  isOpen,
-  onOpen,
-  onClose,
+  registerReset,
+  onRowOpened,
   onDelete,
   styles,
   colors,
   children,
 }: {
+  rowId: string;
   enabled: boolean;
-  isOpen: boolean;
-  onOpen: () => void;
-  onClose: () => void;
+  registerReset: (id: string, reset: () => void) => void;
+  onRowOpened: (id: string) => void;
   onDelete: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -139,23 +139,21 @@ function SwipeToDeleteRow({
   const translateX = useRef(new Animated.Value(0)).current;
   const openRef = useRef(false);
 
-  const resetSwipe = () => {
+  const resetSwipe = useCallback(() => {
     openRef.current = false;
     Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start();
-  };
+  }, [translateX]);
 
   useEffect(() => {
-    if (!isOpen && openRef.current) {
-      resetSwipe();
-    }
-  }, [isOpen]);
+    registerReset(rowId, resetSwipe);
+  }, [rowId, registerReset, resetSwipe]);
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
         enabled && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
       onPanResponderGrant: () => {
-        if (!openRef.current) onOpen();
+        if (!openRef.current) onRowOpened(rowId);
       },
       onPanResponderMove: (_, gesture) => {
         const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
@@ -167,11 +165,10 @@ function SwipeToDeleteRow({
         const projected = base + gesture.dx;
         if (projected < -DELETE_ACTION_WIDTH / 2) {
           openRef.current = true;
-          onOpen();
+          onRowOpened(rowId);
           Animated.spring(translateX, { toValue: -DELETE_ACTION_WIDTH, useNativeDriver: true, tension: 300, friction: 26 }).start();
         } else {
           resetSwipe();
-          onClose();
         }
       },
     })
@@ -187,7 +184,6 @@ function SwipeToDeleteRow({
             style={styles.swipeDeleteBtn}
             onPress={() => {
               resetSwipe();
-              onClose();
               onDelete();
             }}
           >
@@ -362,7 +358,15 @@ export default function MyBookingsScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('ALL');
-  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const rowResettersRef = useRef<Record<string, () => void>>({});
+  const registerRowReset = useCallback((id: string, reset: () => void) => {
+    rowResettersRef.current[id] = reset;
+  }, []);
+  const handleRowOpened = useCallback((openedId: string) => {
+    Object.entries(rowResettersRef.current).forEach(([id, reset]) => {
+      if (id !== openedId) reset();
+    });
+  }, []);
 
   const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
@@ -536,10 +540,10 @@ export default function MyBookingsScreen({ navigation }: Props) {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <SwipeToDeleteRow
+            rowId={item.id}
             enabled={getDisplayStatus(item) === 'CANCELLED'}
-            isOpen={openRowId === item.id}
-            onOpen={() => setOpenRowId(item.id)}
-            onClose={() => setOpenRowId((prev) => (prev === item.id ? null : prev))}
+            registerReset={registerRowReset}
+            onRowOpened={handleRowOpened}
             onDelete={() => handleDeleteBooking(item.id)}
             styles={styles}
             colors={colors}

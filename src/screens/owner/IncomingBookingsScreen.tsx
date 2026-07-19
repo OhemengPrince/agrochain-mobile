@@ -9,6 +9,7 @@ import {
   Animated,
   Alert,
   TouchableOpacity,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +23,95 @@ import { cardShadow } from '../../constants/shadows';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getHiddenOwnerBookingIds, addHiddenOwnerBookingId } from '../../utils/storage';
+
+const DELETE_ACTION_WIDTH = 84;
+
+function isCancelledStatus(status: Booking['status']): boolean {
+  return status === 'CANCELLED' || status === 'REJECTED';
+}
+
+function SwipeToDeleteRow({
+  rowId,
+  enabled,
+  registerReset,
+  onRowOpened,
+  onDelete,
+  styles,
+  colors,
+  children,
+}: {
+  rowId: string;
+  enabled: boolean;
+  registerReset: (id: string, reset: () => void) => void;
+  onRowOpened: (id: string) => void;
+  onDelete: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+  children: React.ReactNode;
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const openRef = useRef(false);
+
+  const resetSwipe = useCallback(() => {
+    openRef.current = false;
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start();
+  }, [translateX]);
+
+  useEffect(() => {
+    registerReset(rowId, resetSwipe);
+  }, [rowId, registerReset, resetSwipe]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        enabled && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onPanResponderGrant: () => {
+        if (!openRef.current) onRowOpened(rowId);
+      },
+      onPanResponderMove: (_, gesture) => {
+        const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
+        const next = base + gesture.dx;
+        translateX.setValue(Math.max(-DELETE_ACTION_WIDTH, Math.min(0, next)));
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
+        const projected = base + gesture.dx;
+        if (projected < -DELETE_ACTION_WIDTH / 2) {
+          openRef.current = true;
+          onRowOpened(rowId);
+          Animated.spring(translateX, { toValue: -DELETE_ACTION_WIDTH, useNativeDriver: true, tension: 300, friction: 26 }).start();
+        } else {
+          resetSwipe();
+        }
+      },
+    })
+  ).current;
+
+  if (!enabled) return <View style={styles.itemWrap}>{children}</View>;
+
+  return (
+    <View style={styles.itemWrap}>
+      <View style={styles.swipeWrap}>
+        <View style={styles.swipeDeleteAction}>
+          <Pressable
+            style={styles.swipeDeleteBtn}
+            onPress={() => {
+              resetSwipe();
+              onDelete();
+            }}
+          >
+            <Ionicons name="trash-outline" size={24} color={colors.errorRed} />
+            <Text style={[styles.swipeDeleteText, { color: colors.errorRed }]}>Delete</Text>
+          </Pressable>
+        </View>
+        <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+          {children}
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerBookingsList'>;
 
@@ -141,11 +231,36 @@ export default function IncomingBookingsScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('PENDING');
 
+  const rowResettersRef = useRef<Record<string, () => void>>({});
+  const registerRowReset = useCallback((id: string, reset: () => void) => {
+    rowResettersRef.current[id] = reset;
+  }, []);
+  const handleRowOpened = useCallback((openedId: string) => {
+    Object.entries(rowResettersRef.current).forEach(([id, reset]) => {
+      if (id !== openedId) reset();
+    });
+  }, []);
+
+  const handleDeleteBooking = useCallback((bookingId: string) => {
+    Alert.alert('Delete Booking', 'Remove this cancelled booking from your list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await addHiddenOwnerBookingId(bookingId);
+          setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+        },
+      },
+    ]);
+  }, []);
+
   const loadBookings = useCallback(async () => {
     setError(null);
     try {
-      const data = await getIncomingBookings();
-      setBookings(data);
+      const [data, hiddenIds] = await Promise.all([getIncomingBookings(), getHiddenOwnerBookingIds()]);
+      const hiddenSet = new Set(hiddenIds);
+      setBookings(data.filter((b) => !hiddenSet.has(b.id)));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load bookings.');
     }
@@ -251,14 +366,24 @@ export default function IncomingBookingsScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <RequestCard
-            booking={item}
+          <SwipeToDeleteRow
+            rowId={item.id}
+            enabled={isCancelledStatus(item.status)}
+            registerReset={registerRowReset}
+            onRowOpened={handleRowOpened}
+            onDelete={() => handleDeleteBooking(item.id)}
             styles={styles}
             colors={colors}
-            onAccept={() => handleAccept(item.id)}
-            onReject={() => handleReject(item.id)}
-            onViewDetails={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
-          />
+          >
+            <RequestCard
+              booking={item}
+              styles={styles}
+              colors={colors}
+              onAccept={() => handleAccept(item.id)}
+              onReject={() => handleReject(item.id)}
+              onViewDetails={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
+            />
+          </SwipeToDeleteRow>
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
@@ -354,11 +479,38 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 120,
       flexGrow: 1,
     },
+    itemWrap: {
+      marginBottom: 14,
+    },
+    swipeWrap: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    swipeDeleteAction: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      right: 0,
+      width: DELETE_ACTION_WIDTH,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swipeDeleteBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      width: '100%',
+      height: '100%',
+    },
+    swipeDeleteText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,
       padding: 14,
-      marginBottom: 14,
       ...cardShadow,
     },
     cardTopRow: {

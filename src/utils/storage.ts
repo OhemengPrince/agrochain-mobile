@@ -8,6 +8,7 @@ const THEME_KEY = '@agrochain/theme';
 const ONBOARDING_KEY = '@agrochain/hasSeenOnboarding';
 const DISMISSED_NOTIFS_KEY = '@agrochain/dismissed_notifications';
 const HIDDEN_BOOKINGS_KEY = '@agrochain/hidden_bookings';
+const HIDDEN_OWNER_BOOKINGS_KEY = '@agrochain/hidden_owner_bookings';
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -131,6 +132,26 @@ export async function addHiddenBookingId(id: string): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(HIDDEN_BOOKINGS_KEY, updated);
+}
+
+export async function getHiddenOwnerBookingIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[HIDDEN_OWNER_BOOKINGS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(HIDDEN_OWNER_BOOKINGS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function addHiddenOwnerBookingId(id: string): Promise<void> {
+  const ids = await getHiddenOwnerBookingIds();
+  if (ids.includes(id)) return;
+  const updated = JSON.stringify([...ids, id]);
+  if (USE_MOCK_DATA) {
+    memoryStore[HIDDEN_OWNER_BOOKINGS_KEY] = updated;
+    return;
+  }
+  await AsyncStorage.setItem(HIDDEN_OWNER_BOOKINGS_KEY, updated);
 }
 
 export async function clearAll(): Promise<void> {
