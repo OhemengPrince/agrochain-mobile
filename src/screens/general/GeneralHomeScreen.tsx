@@ -10,6 +10,7 @@ import {
   Animated,
   Pressable,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -96,7 +97,6 @@ function QuickAccessButton({
 
 export default function GeneralHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const firstName = user?.firstName ?? 'Ama';
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,12 +162,17 @@ export default function GeneralHomeScreen({ navigation }: Props) {
       >
         <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.header}>
           <View style={styles.headerTopRow}>
-            <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('GlobalSearch' as any)}>
-              <Ionicons name="search-outline" size={22} color={colors.white} />
+            <TouchableOpacity onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
+              <View>
+                <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
+                {user?.isVerified && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark" size={10} color="#fff" />
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.greeting}>{firstName} 👋</Text>
-            </View>
+            <View style={{ flex: 1 }} />
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
                 <View style={{ position: 'relative' }}>
@@ -182,10 +187,20 @@ export default function GeneralHomeScreen({ navigation }: Props) {
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ChatRooms' as any)}>
                 <Ionicons name="chatbubble-outline" size={21} color={colors.white} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => (navigation.getParent() as any)?.navigate('GeneralProfile')}>
-                <UserAvatar user={user} size={34} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
-              </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.searchRow}>
+            <TouchableOpacity style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch' as any)}>
+              <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
+              <Text style={styles.searchPlaceholderText}>Search...</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
+            >
+              <Ionicons name="options-outline" size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -249,18 +264,50 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerTextWrap: {
-      flex: 1,
-      marginHorizontal: 8,
-    },
-    greeting: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: colors.white,
+    verifiedBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.accentAmber,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 4,
+      gap: 10,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 16,
+    },
+    searchBarPill: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      height: 46,
+      borderRadius: 23,
+      paddingHorizontal: 16,
+      backgroundColor: colors.card,
+    },
+    searchPlaceholderText: {
+      fontSize: 14,
+      color: colors.secondaryText,
+    },
+    filterButton: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerIconBtn: {
       width: 38,

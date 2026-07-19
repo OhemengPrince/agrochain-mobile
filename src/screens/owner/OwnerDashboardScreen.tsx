@@ -167,8 +167,6 @@ function MiniEquipmentCard({
 
 export default function OwnerDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const firstName = user?.firstName ?? 'Nana';
-  const locationLabel = (user as any)?.location ?? 'Ejisu, Ashanti';
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [listings, setListings] = useState<Equipment[]>([]);
@@ -354,13 +352,17 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     >
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Pressable style={styles.bellButton} onPress={() => navigation.navigate('GlobalSearch')}>
-            <Ionicons name="search-outline" size={22} color="#FFFFFF" />
+          <Pressable onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
+            <View>
+              <UserAvatar user={user} size={44} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
+              {user?.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={10} color="#fff" />
+                </View>
+              )}
+            </View>
           </Pressable>
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerGreeting}>{firstName} 👋</Text>
-            <Text style={styles.headerSubtitle}>Equipment Owner • {locationLabel}</Text>
-          </View>
+          <View style={{ flex: 1 }} />
           <View style={styles.headerActions}>
             <Pressable style={styles.bellButton} onPress={handleNotificationsPress}>
               <View style={{ position: 'relative' }}>
@@ -375,10 +377,20 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Pressable style={styles.bellButton} onPress={() => navigation.navigate('ChatRooms')}>
               <Ionicons name="chatbubble-outline" size={21} color="#FFFFFF" />
             </Pressable>
-            <Pressable onPress={() => (navigation.getParent() as any)?.navigate('OwnerProfile')}>
-              <UserAvatar user={user} size={34} borderWidth={2} borderColor="rgba(255,255,255,0.9)" />
-            </Pressable>
           </View>
+        </View>
+
+        <View style={styles.searchRow}>
+          <Pressable style={styles.searchBarPill} onPress={() => navigation.navigate('GlobalSearch')}>
+            <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
+            <Text style={styles.searchPlaceholderText}>Search...</Text>
+          </Pressable>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
+          >
+            <Ionicons name="options-outline" size={18} color="#fff" />
+          </Pressable>
         </View>
       </LinearGradient>
 
@@ -522,23 +534,50 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerTextWrap: {
-      flex: 1,
-      marginHorizontal: 8,
-    },
-    headerGreeting: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.8)',
-      marginTop: 4,
+    verifiedBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.accentAmber,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 4,
+      gap: 10,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 16,
+    },
+    searchBarPill: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      height: 46,
+      borderRadius: 23,
+      paddingHorizontal: 16,
+      backgroundColor: colors.card,
+    },
+    searchPlaceholderText: {
+      fontSize: 14,
+      color: colors.secondaryText,
+    },
+    filterButton: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     bellButton: {
       width: 40,
