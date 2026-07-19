@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   RefreshControl,
-  Image,
   Pressable,
   Animated,
   Alert,
@@ -17,17 +16,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FarmerStackParamList, Booking } from '../../types';
+import { FarmerStackParamList, Booking, Equipment } from '../../types';
 import { getMyBookings, cancelBooking } from '../../api/bookingApi';
+import { getEquipmentById } from '../../api/equipmentApi';
 import { formatCurrency, formatDate, daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import EquipmentImage from '../../components/EquipmentImage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerBookingsList'>;
-
-const GENERIC_EQUIPMENT_IMAGE = require('../../assets/equipment/tractor.jpg');
 
 // Derived display status — the data model only has PENDING/CONFIRMED/CANCELLED/COMPLETED/REJECTED.
 // We synthesize 'ACTIVE' client-side for CONFIRMED bookings whose date range covers today,
@@ -112,6 +111,7 @@ function AnimatedButton({
 
 function PremiumBookingCard({
   booking,
+  equipment,
   styles,
   colors,
   onViewDetails,
@@ -119,6 +119,7 @@ function PremiumBookingCard({
   onBrowseAgain,
 }: {
   booking: Booking;
+  equipment?: Equipment;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
   onViewDetails: () => void;
@@ -216,7 +217,12 @@ function PremiumBookingCard({
     <Animated.View style={[styles.card, { transform: [{ scale }], opacity }]}>
       <Pressable onPress={onViewDetails} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.topRow}>
-          <Image source={GENERIC_EQUIPMENT_IMAGE} style={styles.thumbnail} resizeMode="cover" />
+          <EquipmentImage
+            category={equipment?.category ?? 'OTHER'}
+            imageUrl={equipment?.imageUrl}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
           <View style={styles.topRowMiddle}>
             <Text style={styles.equipmentName} numberOfLines={1}>{booking.equipmentName}</Text>
             <Text style={styles.ownerName} numberOfLines={1}>{booking.ownerName}</Text>
@@ -256,6 +262,8 @@ export default function MyBookingsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [equipmentMap, setEquipmentMap] = useState<Record<string, Equipment>>({});
+  const equipmentMapRef = useRef<Record<string, Equipment>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +274,18 @@ export default function MyBookingsScreen({ navigation }: Props) {
     try {
       const data = await getMyBookings();
       setBookings(data);
+
+      const uniqueIds = [...new Set(data.map((b) => b.equipmentId).filter(Boolean))];
+      const missingIds = uniqueIds.filter((id) => !(id in equipmentMapRef.current));
+      if (missingIds.length > 0) {
+        const results = await Promise.allSettled(missingIds.map((id) => getEquipmentById(id)));
+        const next = { ...equipmentMapRef.current };
+        results.forEach((r, i) => {
+          if (r.status === 'fulfilled') next[missingIds[i]] = r.value;
+        });
+        equipmentMapRef.current = next;
+        setEquipmentMap(next);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load bookings.');
     }
@@ -376,6 +396,7 @@ export default function MyBookingsScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <PremiumBookingCard
             booking={item}
+            equipment={equipmentMap[item.equipmentId]}
             styles={styles}
             colors={colors}
             onViewDetails={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
