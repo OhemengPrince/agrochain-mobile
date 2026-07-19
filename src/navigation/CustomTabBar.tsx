@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../hooks/useTheme';
+import GlassBlur from '../components/GlassBlur';
 
 const ACTIVE_COLOR = '#1A6B2E';
 
@@ -71,12 +72,17 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
   }
 
   const inactiveColor = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const barBg = isDarkMode ? 'rgba(30,30,30,0.97)' : 'rgba(255,255,255,0.95)';
-  const barBorder = isDarkMode ? colors.border : 'rgba(255,255,255,0.8)';
+  const barBorder = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.5)';
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: barBg, borderColor: barBorder }]}>
+      <View style={[styles.bar, { borderColor: barBorder }]}>
+        <GlassBlur
+          intensity={65}
+          tint={isDarkMode ? 'dark' : 'light'}
+          style={styles.barBlur}
+          androidFallbackColor={isDarkMode ? 'rgba(28,28,30,0.92)' : 'rgba(255,255,255,0.88)'}
+        />
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           if (options.tabBarButton) return null;
@@ -126,6 +132,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 15,
     borderWidth: 1,
+    overflow: 'hidden',
+  },
+  barBlur: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 34,
   },
   item: { flex: 1 },
   itemInner: {

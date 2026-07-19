@@ -24,6 +24,7 @@ import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
+import GlassBlur from '../../components/GlassBlur';
 import { getLikedListingIds, setListingLiked } from '../../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -97,13 +98,37 @@ function AnimatedIconButton({
   );
 }
 
+function GlassIconCircle({
+  isDarkMode,
+  style,
+  children,
+}: {
+  isDarkMode: boolean;
+  style?: any;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={style}>
+      <GlassBlur
+        intensity={55}
+        tint={isDarkMode ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFillObject}
+        androidFallbackColor={isDarkMode ? 'rgba(28,28,30,0.55)' : 'rgba(255,255,255,0.55)'}
+      />
+      {children}
+    </View>
+  );
+}
+
 function LikeButton({
   liked,
+  isDarkMode,
   onPress,
   styles,
   colors,
 }: {
   liked: boolean;
+  isDarkMode: boolean;
   onPress: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -119,11 +144,13 @@ function LikeButton({
   };
 
   return (
-    <Pressable style={styles.iconCircleBase} onPress={handlePress}>
-      <Animated.View style={{ transform: [{ scale: bounce }] }}>
-        <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#DC2626' : colors.primaryGreen} />
-      </Animated.View>
-    </Pressable>
+    <GlassIconCircle isDarkMode={isDarkMode} style={styles.iconCircleBase}>
+      <Pressable style={styles.iconCircleTouchable} onPress={handlePress}>
+        <Animated.View style={{ transform: [{ scale: bounce }] }}>
+          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#DC2626' : '#fff'} />
+        </Animated.View>
+      </Pressable>
+    </GlassIconCircle>
   );
 }
 
@@ -220,6 +247,28 @@ function PhotoCarousel({
   );
 }
 
+function GlassDetailBox({
+  isDarkMode,
+  styles,
+  children,
+}: {
+  isDarkMode: boolean;
+  styles: ReturnType<typeof createStyles>;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.detailBox}>
+      <GlassBlur
+        intensity={40}
+        tint={isDarkMode ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFillObject}
+        androidFallbackColor={isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.5)'}
+      />
+      {children}
+    </View>
+  );
+}
+
 function priceTypeLabel(listing: MarketplaceListing): string {
   if (listing.priceType === 'PER_DAY') return '/day';
   if (listing.priceType === 'NEGOTIABLE') return 'Negotiable';
@@ -240,7 +289,7 @@ function contactPreferenceLabel(listing: MarketplaceListing): string {
 }
 
 export default function ListingDetailScreen({ route, navigation }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const styles = createStyles(colors);
   const { listingId } = route.params;
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
@@ -318,18 +367,22 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollFlex} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
           <PhotoCarousel photoUrls={listing.photoUrls ?? []} listing={listing} colors={colors} styles={styles} />
 
-          <View style={styles.floatingButton}>
-            <AnimatedIconButton icon="arrow-back" color={colors.primaryGreen} onPress={() => navigation.goBack()} />
-          </View>
-          <View style={styles.heroRightActions}>
-            <LikeButton liked={liked} onPress={handleToggleLike} styles={styles} colors={colors} />
-            <View style={styles.iconCircleBase}>
-              <AnimatedIconButton icon="share-outline" color={colors.primaryGreen} onPress={handleShare} />
+          <GlassIconCircle isDarkMode={isDarkMode} style={styles.floatingButton}>
+            <View style={styles.iconCircleTouchable}>
+              <AnimatedIconButton icon="arrow-back" color="#fff" onPress={() => navigation.goBack()} />
             </View>
+          </GlassIconCircle>
+          <View style={styles.heroRightActions}>
+            <LikeButton liked={liked} isDarkMode={isDarkMode} onPress={handleToggleLike} styles={styles} colors={colors} />
+            <GlassIconCircle isDarkMode={isDarkMode} style={styles.iconCircleBase}>
+              <View style={styles.iconCircleTouchable}>
+                <AnimatedIconButton icon="share-outline" color="#fff" onPress={handleShare} />
+              </View>
+            </GlassIconCircle>
           </View>
 
           {listing.viewsCount > 0 && (
@@ -415,20 +468,20 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionHeading}>Details</Text>
             <View style={styles.detailsGrid}>
-              <View style={styles.detailBox}>
+              <GlassDetailBox isDarkMode={isDarkMode} styles={styles}>
                 <Text style={styles.detailLabel}>Category</Text>
                 <Text style={styles.detailValue}>{CATEGORY_LABELS[listing.category]}</Text>
-              </View>
+              </GlassDetailBox>
               {listing.quantity ? (
-                <View style={styles.detailBox}>
+                <GlassDetailBox isDarkMode={isDarkMode} styles={styles}>
                   <Text style={styles.detailLabel}>Quantity</Text>
                   <Text style={styles.detailValue}>{listing.quantity}</Text>
-                </View>
+                </GlassDetailBox>
               ) : null}
-              <View style={styles.detailBox}>
+              <GlassDetailBox isDarkMode={isDarkMode} styles={styles}>
                 <Text style={styles.detailLabel}>Posted</Text>
                 <Text style={styles.detailValue}>{formatDate(listing.createdAt)}</Text>
-              </View>
+              </GlassDetailBox>
             </View>
           </View>
 
@@ -480,8 +533,11 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
+    scrollFlex: {
+      flex: 1,
+    },
     scrollContent: {
-      paddingBottom: 120,
+      paddingBottom: 140,
     },
     heroWrap: {
       width: '100%',
@@ -519,13 +575,20 @@ function createStyles(colors: ThemeColors) {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.white,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.15,
       shadowRadius: 4,
       elevation: 4,
       overflow: 'hidden',
+    },
+    iconCircleTouchable: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     floatingButton: {
       position: 'absolute',
@@ -534,7 +597,8 @@ function createStyles(colors: ThemeColors) {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.white,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.15,
@@ -745,9 +809,11 @@ function createStyles(colors: ThemeColors) {
       flexGrow: 1,
       minWidth: '30%',
       borderRadius: 14,
-      backgroundColor: colors.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.divider,
       paddingVertical: 12,
       paddingHorizontal: 12,
+      overflow: 'hidden',
     },
     detailLabel: {
       fontSize: 11,
