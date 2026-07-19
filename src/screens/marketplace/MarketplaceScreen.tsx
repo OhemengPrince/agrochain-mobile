@@ -30,6 +30,8 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import TopRatedCarousel from '../../components/TopRatedCarousel';
+import CommentsSheet from '../../components/CommentsSheet';
+import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
@@ -121,16 +123,33 @@ function ListingCard({
   item,
   onPress,
   onContact,
+  liked,
+  onToggleLike,
+  commentsCount,
+  onPressComment,
   colors,
   styles,
 }: {
   item: MarketplaceListing;
   onPress: () => void;
   onContact: () => void;
+  liked: boolean;
+  onToggleLike: () => void;
+  commentsCount: number;
+  onPressComment: () => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
   const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
+  const likeBounce = useRef(new Animated.Value(1)).current;
+
+  const handleLikePress = () => {
+    Animated.sequence([
+      Animated.spring(likeBounce, { toValue: 1.3, useNativeDriver: true, speed: 30, bounciness: 14 }),
+      Animated.spring(likeBounce, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }),
+    ]).start();
+    onToggleLike();
+  };
 
   return (
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
@@ -161,12 +180,33 @@ function ListingCard({
 
           <Text style={styles.dateText}>Posted {formatDate(item.createdAt)}</Text>
 
+          <View style={styles.engagementRow}>
+            <View style={styles.engagementStat}>
+              <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
+              <Text style={styles.engagementStatText}>{item.viewsCount}</Text>
+            </View>
+            <Pressable
+              style={styles.engagementStat}
+              onPress={(e) => { e.stopPropagation(); handleLikePress(); }}
+              hitSlop={6}
+            >
+              <Animated.View style={{ transform: [{ scale: likeBounce }] }}>
+                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={15} color={liked ? '#DC2626' : colors.secondaryText} />
+              </Animated.View>
+              <Text style={[styles.engagementStatText, liked && { color: '#DC2626' }]}>{liked ? 'Liked' : 'Like'}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.engagementStat}
+              onPress={(e) => { e.stopPropagation(); onPressComment(); }}
+              hitSlop={6}
+            >
+              <Ionicons name="chatbubble-outline" size={14} color={colors.secondaryText} />
+              <Text style={styles.engagementStatText}>{commentsCount}</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.bottomRow}>
-            <TouchableOpacity onPress={onPress} style={styles.viewDetailsRow}>
-              <Text style={styles.viewDetailsText}>View Details</Text>
-              <Ionicons name="chevron-forward" size={13} color={colors.primaryGreen} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.contactButton} onPress={onContact}>
+            <TouchableOpacity style={styles.contactButtonFull} onPress={onContact}>
               <Text style={styles.contactButtonText}>Contact</Text>
             </TouchableOpacity>
           </View>
@@ -233,15 +273,37 @@ export default function MarketplaceScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [commentsCounts, setCommentsCounts] = useState<Record<string, number>>({});
+  const [activeCommentsListing, setActiveCommentsListing] = useState<MarketplaceListing | null>(null);
 
   const loadListings = useCallback(async () => {
     setError(null);
     try {
       const data = await getMarketplaceListings();
       setListings(data);
+
+      const [liked, commentCounts] = await Promise.all([
+        getLikedListingIds(),
+        Promise.all(data.map((l) => getItemComments(l.id))),
+      ]);
+      setLikedIds(new Set(liked));
+      const counts: Record<string, number> = {};
+      data.forEach((l, i) => { counts[l.id] = commentCounts[i].length; });
+      setCommentsCounts(counts);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load marketplace listings.');
     }
+  }, []);
+
+  const handleToggleLike = useCallback((listingId: string) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      const nowLiked = !next.has(listingId);
+      if (nowLiked) next.add(listingId); else next.delete(listingId);
+      setListingLiked(listingId, nowLiked).catch(() => {});
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -379,12 +441,31 @@ export default function MarketplaceScreen({ navigation }: Props) {
               item={row.item}
               onPress={() => navigation.navigate('MarketplaceListingDetail', { listingId: row.item.id })}
               onContact={() => handleContact(row.item)}
+              liked={likedIds.has(row.item.id)}
+              onToggleLike={() => handleToggleLike(row.item.id)}
+              commentsCount={commentsCounts[row.item.id] ?? 0}
+              onPressComment={() => setActiveCommentsListing(row.item)}
               colors={colors}
               styles={styles}
             />
           );
         }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      />
+
+      <CommentsSheet
+        visible={activeCommentsListing !== null}
+        onClose={() => setActiveCommentsListing(null)}
+        itemId={activeCommentsListing?.id ?? ''}
+        itemTitle={activeCommentsListing?.name ?? ''}
+        itemSubtitle={activeCommentsListing ? formatCurrency(activeCommentsListing.price) : undefined}
+        itemImageUrl={activeCommentsListing?.photoUrls?.[0]}
+        itemEmoji={activeCommentsListing?.category === 'PRODUCE' ? getCropEmoji(activeCommentsListing.name) : undefined}
+        onCommentsCountChange={(count) => {
+          if (activeCommentsListing) {
+            setCommentsCounts((prev) => ({ ...prev, [activeCommentsListing.id]: count }));
+          }
+        }}
       />
     </SafeAreaView>
   );
@@ -609,27 +690,37 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 4,
     },
+    engagementRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+    },
+    engagementStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    engagementStatText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.secondaryText,
+    },
     bottomRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 14,
+      marginTop: 12,
     },
-    viewDetailsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-    },
-    viewDetailsText: {
-      fontSize: 13,
-      color: colors.primaryGreen,
-      textDecorationLine: 'underline',
-    },
-    contactButton: {
+    contactButtonFull: {
+      flex: 1,
       backgroundColor: colors.primaryGreen,
       borderRadius: 12,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+      paddingVertical: 12,
+      alignItems: 'center',
     },
     contactButtonText: {
       fontSize: 14,

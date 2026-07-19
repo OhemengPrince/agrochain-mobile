@@ -122,11 +122,7 @@ function EquipmentListCard({
           </View>
 
           <View style={styles.bottomRow}>
-            <TouchableOpacity onPress={onPress} style={styles.viewDetailsRow}>
-              <Text style={styles.viewDetailsText}>View Details</Text>
-              <Ionicons name="chevron-forward" size={13} color={colors.primaryGreen} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bookNowButton} onPress={onPress}>
+            <TouchableOpacity style={[styles.bookNowButton, { flex: 1 }]} onPress={onPress}>
               <Text style={styles.bookNowText}>Book Now</Text>
             </TouchableOpacity>
           </View>

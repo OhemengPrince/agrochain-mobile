@@ -114,10 +114,6 @@ function CatalogueBatchCard({
             <Text style={styles.cardDate}>Listed {formatDate(batch.createdAt)}</Text>
           </View>
         </View>
-        <Pressable style={styles.viewDetailsButton} onPress={onPress}>
-          <Text style={styles.viewDetailsText}>View Details</Text>
-          <Ionicons name="arrow-forward" size={14} color={colors.white} />
-        </Pressable>
       </Pressable>
     </Animated.View>
   );
