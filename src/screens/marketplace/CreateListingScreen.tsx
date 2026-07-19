@@ -29,6 +29,7 @@ import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -209,7 +210,7 @@ export default function CreateListingScreen({ navigation, route }: Props) {
         setDistrict(listing.district);
         setContactPreference(listing.contactPreference);
       } catch (err: any) {
-        setError(err?.response?.data?.message ?? 'Failed to load listing for editing.');
+        setError(getApiErrorMessage(err, 'Failed to load listing for editing.'));
       } finally {
         setPrefilling(false);
       }
@@ -342,7 +343,7 @@ export default function CreateListingScreen({ navigation, route }: Props) {
         ]);
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? `Failed to ${isEditing ? 'update' : 'post'} listing.`);
+      setError(getApiErrorMessage(err, `Failed to ${isEditing ? 'update' : 'post'} listing.`));
     } finally {
       setLoading(false);
     }

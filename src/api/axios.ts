@@ -5,7 +5,7 @@ const BASE_URL = 'http://172.20.10.2:8080/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,10 +31,19 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const status = error.response?.status;
+    const method = error.config?.method?.toUpperCase();
+    const url = error.config?.url;
+    if (error.code === 'ECONNABORTED') {
+      console.log(`[axios] TIMEOUT on ${method} ${url} — request took too long (server unreachable or slow network)`);
+    } else if (!error.response) {
+      console.log(`[axios] NETWORK ERROR on ${method} ${url} —`, error.message, '(is the backend reachable at', BASE_URL, '?)');
+    } else {
+      console.log(`[axios] HTTP ${status} on ${method} ${url} —`, JSON.stringify(error.response.data));
+    }
     // Treat both 401 (expired/missing token) and 403 (backend secret rotation /
     // invalid signature) as auth failures — clear storage then reset React state.
     if (status === 401 || status === 403) {
-      console.log('[axios] HTTP', status, 'on', error.config?.url, '— clearing session');
+      console.log('[axios] clearing session due to auth failure');
       await clearAll();
       _onAuthFailure?.();
     }

@@ -15,13 +15,14 @@ import { MOCK_BATCHES, MOCK_MARKETPLACE_LISTINGS } from '../mock/mockData';
 import { mockDelay, generateMockId } from '../mock/mockHelpers';
 import { getUser } from '../utils/storage';
 
-// Backend may omit inputs/processingStages entirely (or send null) when empty —
-// normalize so screens can safely call .length on them.
-function normalizeBatch(batch: ProduceBatch): ProduceBatch {
+// Backend may omit inputs/processingStages entirely (or send null) when empty,
+// and some endpoints reply 201/204 with no body at all — normalize defensively
+// so screens can safely call .length on them without crashing on a real success.
+function normalizeBatch(batch: ProduceBatch | null | undefined): ProduceBatch {
   return {
-    ...batch,
-    inputs: batch.inputs ?? [],
-    processingStages: batch.processingStages ?? [],
+    ...(batch ?? ({} as ProduceBatch)),
+    inputs: batch?.inputs ?? [],
+    processingStages: batch?.processingStages ?? [],
   };
 }
 

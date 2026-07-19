@@ -10,6 +10,7 @@ import { createBatch } from '../../api/produceApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'CreateBatch'>;
 
@@ -237,7 +238,7 @@ export default function CreateBatchScreen({ navigation }: Props) {
       await createBatch({ cropName, variety, quantityKg: quantity, region, district, plantedDate, inputs });
       navigation.navigate('FarmerBatchesList');
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to create batch.');
+      setError(getApiErrorMessage(err, 'Failed to create batch.'));
     } finally {
       setLoading(false);
     }
