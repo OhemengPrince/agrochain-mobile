@@ -119,13 +119,21 @@ const DELETE_ACTION_WIDTH = 84;
 
 function SwipeToDeleteRow({
   enabled,
+  isOpen,
+  onOpen,
+  onClose,
   onDelete,
   styles,
+  colors,
   children,
 }: {
   enabled: boolean;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
   onDelete: () => void;
   styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
   children: React.ReactNode;
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
@@ -136,10 +144,19 @@ function SwipeToDeleteRow({
     Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start();
   };
 
+  useEffect(() => {
+    if (!isOpen && openRef.current) {
+      resetSwipe();
+    }
+  }, [isOpen]);
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
         enabled && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onPanResponderGrant: () => {
+        if (!openRef.current) onOpen();
+      },
       onPanResponderMove: (_, gesture) => {
         const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
         const next = base + gesture.dx;
@@ -150,9 +167,11 @@ function SwipeToDeleteRow({
         const projected = base + gesture.dx;
         if (projected < -DELETE_ACTION_WIDTH / 2) {
           openRef.current = true;
+          onOpen();
           Animated.spring(translateX, { toValue: -DELETE_ACTION_WIDTH, useNativeDriver: true, tension: 300, friction: 26 }).start();
         } else {
           resetSwipe();
+          onClose();
         }
       },
     })
@@ -161,22 +180,25 @@ function SwipeToDeleteRow({
   if (!enabled) return <View style={styles.itemWrap}>{children}</View>;
 
   return (
-    <View style={[styles.itemWrap, styles.swipeWrap]}>
-      <View style={styles.swipeDeleteAction}>
-        <Pressable
-          style={styles.swipeDeleteBtn}
-          onPress={() => {
-            resetSwipe();
-            onDelete();
-          }}
-        >
-          <Ionicons name="trash" size={22} color="#fff" />
-          <Text style={styles.swipeDeleteText}>Delete</Text>
-        </Pressable>
+    <View style={styles.itemWrap}>
+      <View style={styles.swipeWrap}>
+        <View style={styles.swipeDeleteAction}>
+          <Pressable
+            style={styles.swipeDeleteBtn}
+            onPress={() => {
+              resetSwipe();
+              onClose();
+              onDelete();
+            }}
+          >
+            <Ionicons name="trash-outline" size={24} color={colors.errorRed} />
+            <Text style={[styles.swipeDeleteText, { color: colors.errorRed }]}>Delete</Text>
+          </Pressable>
+        </View>
+        <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+          {children}
+        </Animated.View>
       </View>
-      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
-        {children}
-      </Animated.View>
     </View>
   );
 }
@@ -340,6 +362,7 @@ export default function MyBookingsScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('ALL');
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
 
   const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
@@ -514,8 +537,12 @@ export default function MyBookingsScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <SwipeToDeleteRow
             enabled={getDisplayStatus(item) === 'CANCELLED'}
+            isOpen={openRowId === item.id}
+            onOpen={() => setOpenRowId(item.id)}
+            onClose={() => setOpenRowId((prev) => (prev === item.id ? null : prev))}
             onDelete={() => handleDeleteBooking(item.id)}
             styles={styles}
+            colors={colors}
           >
             <PremiumBookingCard
               booking={item}
@@ -866,8 +893,6 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 14,
     },
     swipeWrap: {
-      marginHorizontal: 0,
-      marginBottom: 0,
       borderRadius: 20,
       overflow: 'hidden',
     },
@@ -877,7 +902,7 @@ function createStyles(colors: ThemeColors) {
       bottom: 0,
       right: 0,
       width: DELETE_ACTION_WIDTH,
-      backgroundColor: colors.errorRed,
+      backgroundColor: colors.card,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -891,7 +916,6 @@ function createStyles(colors: ThemeColors) {
     swipeDeleteText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#fff',
     },
     modalOverlay: {
       flex: 1,
