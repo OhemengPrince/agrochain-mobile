@@ -9,6 +9,7 @@ import {
   Dimensions,
   Animated,
   Pressable,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ import { register } from '../../api/authApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+
+const Logo = require('../../../assets/images/agrochain_logo.png');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 
@@ -187,10 +190,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.heroContent}>
-          <View style={styles.brandRow}>
-            <Text style={styles.brandEmoji}>🌾</Text>
-            <Text style={styles.brandText}>AgroChain</Text>
-          </View>
+          <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
           <Text style={styles.heroTitle}>Create Account</Text>
           <Text style={styles.heroSubtitle}>Join the AgroChain community</Text>
         </View>
@@ -415,18 +415,9 @@ function createStyles(colors: ThemeColors) {
     heroContent: {
       alignItems: 'center',
     },
-    brandRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    brandEmoji: {
-      fontSize: 16,
-    },
-    brandText: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: '#FFD700',
+    logoImage: {
+      width: 200,
+      height: 80,
     },
     heroTitle: {
       fontSize: 24,

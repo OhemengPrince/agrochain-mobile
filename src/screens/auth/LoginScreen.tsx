@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+
+const Logo = require('../../../assets/images/agrochain_logo.png');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -160,10 +163,7 @@ export default function LoginScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.topSection}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoEmoji}>🌾</Text>
-          </View>
-          <Text style={styles.logoText}>AgroChain</Text>
+          <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
         </View>
 
         <View style={styles.welcomeSection}>
@@ -241,23 +241,9 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       paddingTop: 60,
     },
-    logoCircle: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      backgroundColor: colors.primaryGreen,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 8,
-    },
-    logoEmoji: {
-      fontSize: 20,
-    },
-    logoText: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: colors.primaryGreen,
-      letterSpacing: 2,
+    logoImage: {
+      width: 200,
+      height: 80,
     },
     welcomeSection: {
       alignItems: 'center',
