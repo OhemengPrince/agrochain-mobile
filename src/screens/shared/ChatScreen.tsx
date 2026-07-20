@@ -36,6 +36,24 @@ import { USE_MOCK_DATA } from '../../config';
 // Module-level singleton — only one voice message plays at a time across all bubbles.
 let _globalStopFn: (() => void) | null = null;
 
+// The client always sends the field as `audioDuration` (seconds), but we don't
+// control what key the backend echoes it back under in history/socket
+// payloads — check the plausible alternate spellings defensively instead of
+// silently showing 0:00 if the backend used a different name.
+function readAudioDuration(raw: any): number | undefined {
+  const candidates = [
+    raw?.audioDuration,
+    raw?.duration,
+    raw?.audioDurationSeconds,
+    raw?.voiceDuration,
+    raw?.durationSeconds,
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'number' && c > 0) return c;
+  }
+  return undefined;
+}
+
 // Bundled default wallpaper — always shown unless user picks a custom one
 const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
 
@@ -246,12 +264,15 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           }
           const isAudioMsg = (m as any).messageType === 'audio' || !!(m as any).audioUrl
             || m.content === '[Voice message]';
+          if (isAudioMsg) {
+            console.log('[ChatScreen] history voice message raw fields:', JSON.stringify(m));
+          }
           ui.push({
             id: String(m.id),
             type: isAudioMsg ? 'voice' : 'text',
             text: isAudioMsg ? undefined : m.content,
             audioUrl: (m as any).audioUrl,
-            audioDuration: (m as any).audioDuration,
+            audioDuration: readAudioDuration(m),
             sent: user != null && String(m.senderId) === String(user.id),
             time: formatMessageTime(m.createdAt),
             delivered: true, // messages from history are always server-confirmed
@@ -315,11 +336,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                 type: isAudio ? 'voice' : 'text',
                 text: isAudio ? undefined : payload.content,
                 audioUrl: payload.audioUrl,
-                // The backend's socket echo doesn't always include audioDuration —
-                // fall back to the locally-known duration (captured from the
+                // The backend's socket echo doesn't always include audioDuration
+                // under that exact key — check alternate field names, and fall
+                // back to the locally-known duration (captured from the
                 // recording timer when we sent it) instead of letting a correct
                 // value get wiped to 0 by an incomplete echo.
-                audioDuration: payload.audioDuration || prev[optIdx].audioDuration,
+                audioDuration: readAudioDuration(payload) || prev[optIdx].audioDuration,
                 sent: true,
                 delivered: true, // server echo = delivered
                 time: formatMessageTime(payload.createdAt),
@@ -342,7 +364,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             type: isAudio ? 'voice' : 'text',
             text: isAudio ? undefined : payload.content,
             audioUrl: payload.audioUrl,
-            audioDuration: payload.audioDuration,
+            audioDuration: readAudioDuration(payload),
             sent: isMine,
             delivered: true,
             time: formatMessageTime(payload.createdAt),
