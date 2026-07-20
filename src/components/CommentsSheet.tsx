@@ -15,12 +15,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import GlassBlur from './GlassBlur';
 import { getItemComments, addItemComment, StoredComment } from '../utils/storage';
 
-// Dark Instagram-style palette — this sheet intentionally does not follow the
-// app's light/dark theme; it always renders dark to match the reference UI.
-const DARK = {
+// Instagram-style palette for the sheet, swapped based on the app's own
+// light/dark mode toggle rather than being hardcoded to one look.
+const DARK_PALETTE = {
   sheetBg: '#151515',
   handle: '#3A3A3C',
   divider: '#262626',
@@ -28,6 +29,17 @@ const DARK = {
   secondaryText: '#8E8E93',
   inputBg: '#1F1F1F',
   primaryGreen: '#2E8B4A',
+  heartRed: '#ED4956',
+};
+
+const LIGHT_PALETTE = {
+  sheetBg: '#FFFFFF',
+  handle: '#D1D5DB',
+  divider: '#E5E7EB',
+  text: '#111111',
+  secondaryText: '#6B7280',
+  inputBg: '#F1F2F4',
+  primaryGreen: '#1A6B2E',
   heartRed: '#ED4956',
 };
 
@@ -81,6 +93,8 @@ export default function CommentsSheet({
   onCommentsCountChange,
 }: Props) {
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
+  const p = isDarkMode ? DARK_PALETTE : LIGHT_PALETTE;
   const [comments, setComments] = useState<StoredComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -137,48 +151,48 @@ export default function CommentsSheet({
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <KeyboardAvoidingView
-          style={{ backgroundColor: DARK.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
+          style={{ backgroundColor: p.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={{ height: SHEET_HEIGHT }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: DARK.handle, alignSelf: 'center', marginTop: 10 }} />
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: p.handle, alignSelf: 'center', marginTop: 10 }} />
 
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12 }}>
               <View style={{ width: 32 }} />
-              <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: DARK.text }}>
+              <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: p.text }}>
                 Comments
               </Text>
               <Pressable onPress={onClose} hitSlop={10} style={{ width: 32, alignItems: 'flex-end' }}>
-                <Ionicons name="close" size={22} color={DARK.secondaryText} />
+                <Ionicons name="close" size={22} color={p.secondaryText} />
               </Pressable>
             </View>
 
             <View style={{
               flexDirection: 'row', alignItems: 'center', gap: 10,
-              paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: DARK.divider,
+              paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: p.divider,
             }}>
               {itemImageUrl ? (
                 <Image source={{ uri: itemImageUrl }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode="cover" />
               ) : (
-                <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: DARK.inputBg, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: p.inputBg, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 18 }}>{itemEmoji ?? '📦'}</Text>
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: DARK.text }} numberOfLines={1}>{itemTitle}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: p.text }} numberOfLines={1}>{itemTitle}</Text>
                 {itemSubtitle ? (
-                  <Text style={{ fontSize: 11, color: DARK.secondaryText, marginTop: 2 }} numberOfLines={1}>{itemSubtitle}</Text>
+                  <Text style={{ fontSize: 11, color: p.secondaryText, marginTop: 2 }} numberOfLines={1}>{itemSubtitle}</Text>
                 ) : null}
               </View>
             </View>
 
             <View style={{ flex: 1 }}>
               {loading ? (
-                <ActivityIndicator color={DARK.primaryGreen} style={{ marginVertical: 32 }} />
+                <ActivityIndicator color={p.primaryGreen} style={{ marginVertical: 32 }} />
               ) : comments.length === 0 ? (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
-                  <Ionicons name="chatbubble-outline" size={36} color={DARK.secondaryText} />
-                  <Text style={{ color: DARK.secondaryText, fontSize: 13, marginTop: 10, textAlign: 'center' }}>
+                  <Ionicons name="chatbubble-outline" size={36} color={p.secondaryText} />
+                  <Text style={{ color: p.secondaryText, fontSize: 13, marginTop: 10, textAlign: 'center' }}>
                     No comments yet. Be the first to say something.
                   </Text>
                 </View>
@@ -197,30 +211,30 @@ export default function CommentsSheet({
                         delayLongPress={350}
                         style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}
                       >
-                        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: p.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{item.authorName.charAt(0).toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13, color: DARK.text }}>
+                          <Text style={{ fontSize: 13, color: p.text }}>
                             <Text style={{ fontWeight: '700' }}>{item.authorName}</Text>
-                            <Text style={{ color: DARK.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
+                            <Text style={{ color: p.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
                           </Text>
-                          <Text style={{ fontSize: 14, color: DARK.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
+                          <Text style={{ fontSize: 14, color: p.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
                             <Pressable hitSlop={8}>
-                              <Text style={{ fontSize: 12, color: DARK.secondaryText, fontWeight: '600' }}>Reply</Text>
+                              <Text style={{ fontSize: 12, color: p.secondaryText, fontWeight: '600' }}>Reply</Text>
                             </Pressable>
                             {reaction ? (
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                                 <Text style={{ fontSize: 13 }}>{reaction.emoji}</Text>
-                                <Text style={{ fontSize: 11, color: DARK.secondaryText, fontWeight: '600' }}>{reaction.label}</Text>
+                                <Text style={{ fontSize: 11, color: p.secondaryText, fontWeight: '600' }}>{reaction.label}</Text>
                               </View>
                             ) : null}
                           </View>
                           {isReacting && (
                             <View style={{
                               flexDirection: 'row', gap: 10, marginTop: 10,
-                              backgroundColor: DARK.inputBg, borderRadius: 16,
+                              backgroundColor: p.inputBg, borderRadius: 16,
                               paddingHorizontal: 10, paddingVertical: 8, alignSelf: 'flex-start',
                             }}>
                               {QUICK_REACTIONS.map((reactionOption) => (
@@ -231,7 +245,7 @@ export default function CommentsSheet({
                                   style={{ alignItems: 'center', width: 34 }}
                                 >
                                   <Text style={{ fontSize: 18 }}>{reactionOption.emoji}</Text>
-                                  <Text style={{ fontSize: 9, color: DARK.secondaryText, marginTop: 2 }} numberOfLines={1}>{reactionOption.label}</Text>
+                                  <Text style={{ fontSize: 9, color: p.secondaryText, marginTop: 2 }} numberOfLines={1}>{reactionOption.label}</Text>
                                 </Pressable>
                               ))}
                             </View>
@@ -241,17 +255,17 @@ export default function CommentsSheet({
                           <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             <GlassBlur
                               intensity={35}
-                              tint="dark"
+                              tint={isDarkMode ? 'dark' : 'light'}
                               style={StyleSheet.absoluteFillObject}
-                              androidFallbackColor="rgba(255,255,255,0.08)"
+                              androidFallbackColor={isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}
                             />
                             <Ionicons
                               name={liked ? 'heart' : 'heart-outline'}
                               size={15}
-                              color={liked ? DARK.heartRed : DARK.secondaryText}
+                              color={liked ? p.heartRed : p.secondaryText}
                             />
                           </View>
-                          <Text style={{ fontSize: 11, color: DARK.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
+                          <Text style={{ fontSize: 11, color: p.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
                         </Pressable>
                       </Pressable>
                     );
@@ -263,50 +277,43 @@ export default function CommentsSheet({
             <View style={{
               flexDirection: 'row', alignItems: 'center', gap: 10,
               paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 26 : 12,
-              borderTopWidth: 1, borderTopColor: DARK.divider,
+              borderTopWidth: 1, borderTopColor: p.divider,
             }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: p.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{userInitial}</Text>
               </View>
-              <View style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }}>
-                <GlassBlur
-                  intensity={35}
-                  tint="dark"
-                  style={StyleSheet.absoluteFillObject}
-                  androidFallbackColor="rgba(255,255,255,0.08)"
-                />
-                <TextInput
-                  value={text}
-                  onChangeText={setText}
-                  onFocus={() => setReactingCommentId(null)}
-                  placeholder="Join the conversation..."
-                  placeholderTextColor={DARK.secondaryText}
-                  style={{
-                    paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: DARK.text,
-                  }}
-                  returnKeyType="send"
-                  onSubmitEditing={handleSend}
-                  multiline
-                />
-              </View>
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                onFocus={() => setReactingCommentId(null)}
+                placeholder="Join the conversation..."
+                placeholderTextColor={p.secondaryText}
+                style={{
+                  flex: 1, backgroundColor: p.inputBg, borderRadius: 20,
+                  paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: p.text,
+                }}
+                returnKeyType="send"
+                onSubmitEditing={handleSend}
+                multiline
+              />
               {text.trim().length > 0 ? (
                 <Pressable onPress={handleSend} disabled={sending} hitSlop={8}>
                   {sending ? (
-                    <ActivityIndicator size="small" color={DARK.primaryGreen} />
+                    <ActivityIndicator size="small" color={p.primaryGreen} />
                   ) : (
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: DARK.primaryGreen }}>Post</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: p.primaryGreen }}>Post</Text>
                   )}
                 </Pressable>
               ) : (
                 <>
                   <Pressable hitSlop={8}>
-                    <Ionicons name="image-outline" size={22} color={DARK.secondaryText} />
+                    <Ionicons name="image-outline" size={22} color={p.secondaryText} />
                   </Pressable>
                   <View style={{
-                    width: 34, height: 26, borderRadius: 6, borderWidth: 1.5, borderColor: DARK.secondaryText,
+                    width: 34, height: 26, borderRadius: 6, borderWidth: 1.5, borderColor: p.secondaryText,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: DARK.secondaryText }}>GIF</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: p.secondaryText }}>GIF</Text>
                   </View>
                 </>
               )}

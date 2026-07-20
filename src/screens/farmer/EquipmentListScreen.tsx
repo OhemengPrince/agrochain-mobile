@@ -134,6 +134,10 @@ function EquipmentListCard({
 
           <View style={styles.bottomRow}>
             <View style={styles.engagementGroup}>
+              <View style={styles.viewsStat}>
+                <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
+                <Text style={styles.viewsStatText}>{item.viewsCount ?? 0}</Text>
+              </View>
               <GlassStatPill
                 icon={liked ? 'heart' : 'heart-outline'}
                 label={liked ? 1 : 0}
@@ -804,8 +808,19 @@ function createStyles(colors: ThemeColors) {
     },
     engagementGroup: {
       flexDirection: 'row',
+      alignItems: 'center',
       gap: 14,
       flexShrink: 1,
+    },
+    viewsStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    viewsStatText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.secondaryText,
     },
     viewDetailsRow: {
       flexDirection: 'row',

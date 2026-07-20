@@ -81,6 +81,7 @@ export interface Equipment {
   isAvailable: boolean;
   averageRating?: number;
   totalReviews?: number;
+  viewsCount?: number;
   createdAt: string;
 }
 

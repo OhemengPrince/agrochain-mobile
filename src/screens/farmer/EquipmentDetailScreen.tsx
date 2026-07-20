@@ -19,7 +19,7 @@ import { getEquipmentImage } from '../../constants/equipmentImages';
 import FollowButton from '../../components/FollowButton';
 import PostEngagementBar from '../../components/PostEngagementBar';
 import CommentsSheet from '../../components/CommentsSheet';
-import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
+import { getLikedListingIds, setListingLiked, getItemComments, getPinnedListingViewCount } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
 
@@ -266,7 +266,8 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
           getLikedListingIds(),
           getItemComments(equipmentId),
         ]);
-        setEquipment(data);
+        const pinnedViews = await getPinnedListingViewCount(equipmentId, data.viewsCount ?? 0);
+        setEquipment({ ...data, viewsCount: pinnedViews });
         setSaved(likedIds.includes(equipmentId));
         setCommentsCount(comments.length);
       } catch (err: any) {
@@ -406,6 +407,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
           {/* Engagement bar */}
           <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: 4 }}>
             <PostEngagementBar
+              viewsCount={equipment.viewsCount}
               liked={saved}
               onToggleLike={handleToggleSaved}
               commentsCount={commentsCount}

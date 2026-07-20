@@ -36,9 +36,9 @@ export async function getEquipmentById(equipmentId: string): Promise<Equipment> 
     return mockDelay(found);
   }
   console.log('[API] GET /equipment/' + equipmentId);
-  const { data } = await apiClient.get<Equipment>(`/equipment/${equipmentId}`);
-  console.log('[API] /equipment/' + equipmentId + ' → ownerId:', data?.ownerId);
-  return data;
+  const { data } = await apiClient.get<any>(`/equipment/${equipmentId}`);
+  console.log('[API] /equipment/' + equipmentId + ' → ownerId:', data?.ownerId, '| viewsCount:', data?.viewsCount);
+  return { ...data, viewsCount: data?.viewsCount ?? 0 } as Equipment;
 }
 
 export async function getMyListings(): Promise<Equipment[]> {
