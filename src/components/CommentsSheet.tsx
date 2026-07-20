@@ -28,7 +28,7 @@ const DARK = {
   heartRed: '#ED4956',
 };
 
-const QUICK_REACTIONS = ['❤️', '🙌', '🔥', '👏', '😢', '😍', '😮', '😂'];
+const QUICK_REACTIONS = ['🤣', '👀', '🔥', '👏', '😢', '😍', '😮', '😂'];
 
 function timeAgo(dateString: string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -229,12 +229,17 @@ export default function CommentsSheet({
                   )}
                 </Pressable>
               ) : (
-                <View style={{
-                  width: 34, height: 26, borderRadius: 6, borderWidth: 1.5, borderColor: DARK.secondaryText,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: DARK.secondaryText }}>GIF</Text>
-                </View>
+                <>
+                  <Pressable hitSlop={8}>
+                    <Ionicons name="image-outline" size={22} color={DARK.secondaryText} />
+                  </Pressable>
+                  <View style={{
+                    width: 34, height: 26, borderRadius: 6, borderWidth: 1.5, borderColor: DARK.secondaryText,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: DARK.secondaryText }}>GIF</Text>
+                  </View>
+                </>
               )}
             </View>
           </View>
