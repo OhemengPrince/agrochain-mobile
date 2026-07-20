@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   ImageBackground,
+  Image,
   FlatList,
   TouchableOpacity,
   NativeSyntheticEvent,
@@ -21,6 +22,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const AUTO_SWIPE_INTERVAL_MS = 4000;
+
+const Logo = require('../../../assets/images/agrochain_logo.png');
 
 interface Slide {
   image: any;
@@ -116,10 +119,7 @@ export default function OnboardingScreen({ navigation }: Props) {
       />
 
       <View style={styles.topSection} pointerEvents="none">
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoEmoji}>🌾</Text>
-        </View>
-        <Text style={[styles.logoText, { color: activeSlide.titleColor }]}>AgroChain</Text>
+        <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
         <Text style={[styles.tagline, { color: activeSlide.titleColor }]}>From Field to Market</Text>
       </View>
 
@@ -205,27 +205,10 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     alignItems: 'center',
   },
-  logoBadge: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  logoEmoji: {
-    fontSize: 26,
-  },
-  logoText: {
-    fontSize: 42,
-    fontWeight: '900',
-    letterSpacing: 3,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 8,
+  logoImage: {
+    width: 220,
+    height: 90,
+    marginBottom: 4,
   },
   tagline: {
     fontSize: 14,
