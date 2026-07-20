@@ -20,7 +20,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +35,8 @@
         {
           "locationWhenInUsePermission": "AgroChain uses your location to show local weather and nearby equipment."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

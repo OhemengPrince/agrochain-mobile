@@ -11,7 +11,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  createAudioPlayer,
+  AudioPlayer as ExpoAudioPlayer,
+} from 'expo-audio';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -26,7 +33,7 @@ import {
 import ActiveIndicator from '../../components/ActiveIndicator';
 import { USE_MOCK_DATA } from '../../config';
 
-// Module-level singleton — only one Audio.Sound plays at a time across all bubbles.
+// Module-level singleton — only one voice message plays at a time across all bubbles.
 let _globalStopFn: (() => void) | null = null;
 
 // Bundled default wallpaper — always shown unless user picks a custom one
@@ -151,7 +158,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const [cancelMode, setCancelMode] = useState(false);
   const [displayTime, setDisplayTime] = useState('0:00');
   const recordingSeconds = useRef(0);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveAnim = useRef(new Animated.Value(0)).current;
   const startRecordingFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
@@ -473,31 +480,30 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     const session = ++recordingSessionRef.current;
 
     try {
-      const { status } = await Audio.requestPermissionsAsync();
+      const { granted } = await requestRecordingPermissionsAsync();
       if (session !== recordingSessionRef.current) return; // cancelled during permission request
-      if (status !== 'granted') {
+      if (!granted) {
         Alert.alert('Microphone Permission', 'Please allow microphone access to send voice messages.');
         return;
       }
       // Unload any stale recording left from a previous session
-      if (recordingRef.current) {
-        try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
-        recordingRef.current = null;
+      if (audioRecorder.isRecording) {
+        try { await audioRecorder.stop(); } catch {}
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       if (session !== recordingSessionRef.current) {
         // stop was called while we were setting up — reset audio mode and bail
-        try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+        try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
         return;
       }
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await audioRecorder.prepareToRecordAsync();
       if (session !== recordingSessionRef.current) {
-        // stop called while createAsync was in flight — clean up the new recording
-        try { await recording.stopAndUnloadAsync(); } catch {}
-        try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+        // stop called while prepareToRecordAsync was in flight — clean up
+        try { await audioRecorder.stop(); } catch {}
+        try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
         return;
       }
-      recordingRef.current = recording;
+      audioRecorder.record();
       setIsRecording(true);
       setCancelMode(false);
       recordingSeconds.current = 0;
@@ -524,10 +530,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     } catch (err) {
       console.log('[Voice] startRecording error:', err);
       // Always reset audio mode on any failure so next attempt works
-      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
-      recordingRef.current = null;
+      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
     }
-  }, [waveAnim]);
+  }, [waveAnim, audioRecorder]);
 
   const stopAndSendRecording = useCallback(async (cancelled: boolean) => {
     // Invalidate any in-flight startRecording so it aborts after its next await
@@ -544,32 +549,30 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setCancelMode(false);
     setDisplayTime('0:00');
 
-    if (!recordingRef.current) {
+    if (!audioRecorder.isRecording) {
       // startRecording was still in flight and will clean up itself via session check
       recordingSeconds.current = 0;
       return;
     }
 
     if (cancelled) {
-      try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
-      recordingRef.current = null;
+      try { await audioRecorder.stop(); } catch {}
       recordingSeconds.current = 0;
-      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
       return;
     }
 
     const durationSec = recordingSeconds.current;
     let uri: string | null = null;
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      uri = recordingRef.current.getURI() ?? null;
+      await audioRecorder.stop();
+      uri = audioRecorder.uri;
     } catch (err) {
       console.log('[Voice] stop error:', err);
     }
-    recordingRef.current = null;
     recordingSeconds.current = 0;
     // Always reset audio mode so playback and future recordings work
-    try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+    try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
 
     if (!uri) return;
     if (!otherUserId || !roomId) {
@@ -607,7 +610,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         String(m.id) === optimisticId ? { ...m, uploading: false, voiceState: 'failed' } : m
       ));
     }
-  }, [roomId, otherUserId, waveAnim]);
+  }, [roomId, otherUserId, waveAnim, audioRecorder]);
 
   // Keep stable refs so PanResponder callbacks (created once) can call the latest fn
   useEffect(() => { startRecordingFnRef.current = startRecording; }, [startRecording]);
@@ -1312,8 +1315,6 @@ function ChatOptionsPanel({
 
 // ─────────────────────────────────────────────────────────────
 // AudioPlayer — plays a voice message; enforces global single-play
-// Note: uses expo-av (deprecated in SDK 54+). Migration to expo-audio
-// is planned; expo-av still works correctly for this SDK version.
 // ─────────────────────────────────────────────────────────────
 
 const AudioPlayer = React.memo(function AudioPlayer({
@@ -1324,12 +1325,17 @@ const AudioPlayer = React.memo(function AudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0); // millis
   const [duration, setDuration] = useState((durationSec || 0) * 1000);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<ExpoAudioPlayer | null>(null);
+  const listenerRef = useRef<{ remove: () => void } | null>(null);
 
   const unloadSound = useCallback(async () => {
-    if (soundRef.current) {
-      try { await soundRef.current.unloadAsync(); } catch {}
-      soundRef.current = null;
+    if (listenerRef.current) {
+      try { listenerRef.current.remove(); } catch {}
+      listenerRef.current = null;
+    }
+    if (playerRef.current) {
+      try { playerRef.current.remove(); } catch {}
+      playerRef.current = null;
     }
   }, []);
 
@@ -1341,8 +1347,8 @@ const AudioPlayer = React.memo(function AudioPlayer({
 
   const togglePlay = useCallback(async () => {
     if (isPlaying) {
-      // Pause only — keep Sound loaded so resume is cheap
-      await soundRef.current?.pauseAsync();
+      // Pause only — keep player loaded so resume is cheap
+      playerRef.current?.pause();
       setIsPlaying(false);
       return;
     }
@@ -1353,28 +1359,25 @@ const AudioPlayer = React.memo(function AudioPlayer({
     }
     _globalStopFn = stopSelf;
 
-    // BUG 2 fix: always unload then recreate the Sound object so playback
-    // works on the second and subsequent taps (reusing a finished Sound fails).
+    // Always unload then recreate the player so playback works on the
+    // second and subsequent taps (reusing a finished player can fail).
     await unloadSound();
     setPosition(0);
 
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: 'duckOthers',
       });
       console.log('[AudioPlayer] loading:', audioUrl);
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: false, progressUpdateIntervalMillis: 100 }
-      );
-      soundRef.current = sound;
-      sound.setOnPlaybackStatusUpdate((status) => {
+      const player = createAudioPlayer({ uri: audioUrl }, { updateInterval: 100 });
+      playerRef.current = player;
+      listenerRef.current = player.addListener('playbackStatusUpdate', (status) => {
         if (!status.isLoaded) return;
-        setPosition(status.positionMillis);
-        if (status.durationMillis) setDuration(status.durationMillis);
+        setPosition(status.currentTime * 1000);
+        if (status.duration) setDuration(status.duration * 1000);
         if (status.didJustFinish) {
           setIsPlaying(false);
           setPosition(0);
@@ -1382,7 +1385,7 @@ const AudioPlayer = React.memo(function AudioPlayer({
         }
       });
       setIsPlaying(true);
-      await sound.playAsync();
+      player.play();
     } catch (err) {
       console.log('[AudioPlayer] error:', err);
     }
