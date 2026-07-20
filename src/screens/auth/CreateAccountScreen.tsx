@@ -432,8 +432,8 @@ function createStyles(colors: ThemeColors) {
       elevation: 5,
     },
     logoImage: {
-      width: 70,
-      height: 48,
+      width: 78,
+      height: 78,
     },
     heroTitle: {
       fontSize: 24,
