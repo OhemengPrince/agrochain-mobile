@@ -190,7 +190,9 @@ export default function CreateAccountScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.heroContent}>
-          <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+          <View style={styles.logoBadge}>
+            <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+          </View>
           <Text style={styles.heroTitle}>Create Account</Text>
           <Text style={styles.heroSubtitle}>Join the AgroChain community</Text>
         </View>
@@ -415,9 +417,23 @@ function createStyles(colors: ThemeColors) {
     heroContent: {
       alignItems: 'center',
     },
+    logoBadge: {
+      width: 90,
+      height: 90,
+      borderRadius: 45,
+      backgroundColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 5,
+    },
     logoImage: {
-      width: 200,
-      height: 80,
+      width: 70,
+      height: 48,
     },
     heroTitle: {
       fontSize: 24,

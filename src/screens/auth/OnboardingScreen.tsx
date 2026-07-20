@@ -119,7 +119,9 @@ export default function OnboardingScreen({ navigation }: Props) {
       />
 
       <View style={styles.topSection} pointerEvents="none">
-        <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+        <View style={styles.logoBadge}>
+          <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+        </View>
         <Text style={[styles.tagline, { color: activeSlide.titleColor }]}>From Field to Market</Text>
       </View>
 
@@ -205,10 +207,23 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     alignItems: 'center',
   },
+  logoBadge: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   logoImage: {
-    width: 220,
-    height: 90,
-    marginBottom: 4,
+    width: 90,
+    height: 60,
   },
   tagline: {
     fontSize: 14,
