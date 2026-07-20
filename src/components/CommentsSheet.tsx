@@ -68,6 +68,8 @@ export default function CommentsSheet({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [reactingCommentId, setReactingCommentId] = useState<string | null>(null);
+  const [commentReactions, setCommentReactions] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!visible) return;
@@ -105,14 +107,22 @@ export default function CommentsSheet({
     });
   };
 
+  const chooseReaction = (commentId: string, emoji: string) => {
+    setCommentReactions((prev) => ({ ...prev, [commentId]: emoji }));
+    setReactingCommentId(null);
+  };
+
   const userInitial = (user?.fullName ?? 'Y').charAt(0).toUpperCase();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={{ backgroundColor: DARK.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' }}>
+        <KeyboardAvoidingView
+          style={{ backgroundColor: DARK.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={{ height: '80%', maxHeight: '80%' }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: DARK.handle, alignSelf: 'center', marginTop: 10 }} />
 
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -144,65 +154,79 @@ export default function CommentsSheet({
               </View>
             </View>
 
-            {loading ? (
-              <ActivityIndicator color={DARK.primaryGreen} style={{ marginVertical: 32 }} />
-            ) : comments.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 32, paddingHorizontal: 20 }}>
-                <Ionicons name="chatbubble-outline" size={36} color={DARK.secondaryText} />
-                <Text style={{ color: DARK.secondaryText, fontSize: 13, marginTop: 10, textAlign: 'center' }}>
-                  No comments yet. Be the first to say something.
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={comments}
-                keyExtractor={(c) => c.id}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}
-                renderItem={({ item }) => {
-                  const liked = likedIds.has(item.id);
-                  return (
-                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{item.authorName.charAt(0).toUpperCase()}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, color: DARK.text }}>
-                          <Text style={{ fontWeight: '700' }}>{item.authorName}</Text>
-                          <Text style={{ color: DARK.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
-                        </Text>
-                        <Text style={{ fontSize: 14, color: DARK.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
-                        <Pressable hitSlop={8}>
-                          <Text style={{ fontSize: 12, color: DARK.secondaryText, marginTop: 6, fontWeight: '600' }}>Reply</Text>
+            <View style={{ flex: 1 }}>
+              {loading ? (
+                <ActivityIndicator color={DARK.primaryGreen} style={{ marginVertical: 32 }} />
+              ) : comments.length === 0 ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
+                  <Ionicons name="chatbubble-outline" size={36} color={DARK.secondaryText} />
+                  <Text style={{ color: DARK.secondaryText, fontSize: 13, marginTop: 10, textAlign: 'center' }}>
+                    No comments yet. Be the first to say something.
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={comments}
+                  keyExtractor={(c) => c.id}
+                  contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}
+                  renderItem={({ item }) => {
+                    const liked = likedIds.has(item.id);
+                    const reaction = commentReactions[item.id];
+                    const isReacting = reactingCommentId === item.id;
+                    return (
+                      <Pressable
+                        onLongPress={() => setReactingCommentId(item.id)}
+                        delayLongPress={350}
+                        style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}
+                      >
+                        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{item.authorName.charAt(0).toUpperCase()}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, color: DARK.text }}>
+                            <Text style={{ fontWeight: '700' }}>{item.authorName}</Text>
+                            <Text style={{ color: DARK.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
+                          </Text>
+                          <Text style={{ fontSize: 14, color: DARK.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <Pressable hitSlop={8}>
+                              <Text style={{ fontSize: 12, color: DARK.secondaryText, fontWeight: '600' }}>Reply</Text>
+                            </Pressable>
+                            {reaction ? <Text style={{ fontSize: 14 }}>{reaction}</Text> : null}
+                          </View>
+                          {isReacting && (
+                            <View style={{
+                              flexDirection: 'row', gap: 8, marginTop: 10,
+                              backgroundColor: DARK.inputBg, borderRadius: 22,
+                              paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start',
+                            }}>
+                              {QUICK_REACTIONS.map((emoji) => (
+                                <Pressable key={emoji} onPress={() => chooseReaction(item.id, emoji)} hitSlop={4}>
+                                  <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                        <Pressable onPress={() => toggleLike(item.id)} hitSlop={8} style={{ alignItems: 'center', paddingTop: 2 }}>
+                          <Ionicons
+                            name={liked ? 'heart' : 'heart-outline'}
+                            size={15}
+                            color={liked ? DARK.heartRed : DARK.secondaryText}
+                          />
+                          <Text style={{ fontSize: 11, color: DARK.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
                         </Pressable>
-                      </View>
-                      <Pressable onPress={() => toggleLike(item.id)} hitSlop={8} style={{ alignItems: 'center', paddingTop: 2 }}>
-                        <Ionicons
-                          name={liked ? 'heart' : 'heart-outline'}
-                          size={15}
-                          color={liked ? DARK.heartRed : DARK.secondaryText}
-                        />
-                        <Text style={{ fontSize: 11, color: DARK.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
                       </Pressable>
-                    </View>
-                  );
-                }}
-              />
-            )}
-
-            <View style={{
-              flexDirection: 'row', alignItems: 'center', gap: 10,
-              paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: DARK.divider,
-            }}>
-              {QUICK_REACTIONS.map((emoji) => (
-                <Pressable key={emoji} onPress={() => setText((prev) => prev + emoji)} hitSlop={4}>
-                  <Text style={{ fontSize: 20 }}>{emoji}</Text>
-                </Pressable>
-              ))}
+                    );
+                  }}
+                />
+              )}
             </View>
 
             <View style={{
               flexDirection: 'row', alignItems: 'center', gap: 10,
               paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 26 : 12,
+              borderTopWidth: 1, borderTopColor: DARK.divider,
             }}>
               <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{userInitial}</Text>
@@ -210,6 +234,7 @@ export default function CommentsSheet({
               <TextInput
                 value={text}
                 onChangeText={setText}
+                onFocus={() => setReactingCommentId(null)}
                 placeholder="Join the conversation..."
                 placeholderTextColor={DARK.secondaryText}
                 style={{
