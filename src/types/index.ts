@@ -563,6 +563,7 @@ export type GeneralStackParamList = {
   CreateListing: { listingId?: string } | undefined;
   MyMarketplaceListings: undefined;
   GeneralNews: undefined;
+  GeneralNotifications: undefined;
   NewsMain: undefined;
   NewsArticle: { url: string; title: string };
   Chat: { name: string; role?: string; otherUserId?: string };

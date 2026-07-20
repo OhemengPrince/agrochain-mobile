@@ -171,7 +171,7 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             <Text style={styles.appName}>Agrochain</Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNews')}>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => (navigation.getParent() as any)?.navigate('GeneralNotifications')}>
               <View style={{ position: 'relative' }}>
                 <Ionicons name="notifications-outline" size={22} color={colors.white} />
                 {unreadCount > 0 && (

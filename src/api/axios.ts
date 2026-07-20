@@ -43,9 +43,13 @@ apiClient.interceptors.response.use(
         console.log(`[axios] request body was —`, error.config.data);
       }
     }
-    // Treat both 401 (expired/missing token) and 403 (backend secret rotation /
-    // invalid signature) as auth failures — clear storage then reset React state.
-    if (status === 401 || status === 403) {
+    // Only a 401 (expired/missing token) means the session itself is invalid —
+    // clear storage and reset React state, which sends the user back to the
+    // Auth stack. A 403 means "forbidden" (e.g. this role can't perform this
+    // action) and must NOT force a logout — otherwise a permission error on
+    // something like booking/purchasing silently kicks the user back to
+    // Onboarding instead of showing them the actual error message.
+    if (status === 401) {
       console.log('[axios] clearing session due to auth failure');
       await clearAll();
       _onAuthFailure?.();

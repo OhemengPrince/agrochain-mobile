@@ -8,6 +8,7 @@ import CustomTabBar, { tabBarIcon, getTabBarStyleForRoute } from './CustomTabBar
 import GeneralHomeScreen from '../screens/general/GeneralHomeScreen';
 import GeneralProfileScreen from '../screens/general/GeneralProfileScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
+import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
 import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
 import ListingDetailScreen from '../screens/marketplace/ListingDetailScreen';
@@ -157,6 +158,11 @@ export default function GeneralUserNavigator() {
           tabBarIcon: tabBarIcon('newspaper'),
           tabBarStyle: getTabBarStyleForRoute(route),
         })}
+      />
+      <Tab.Screen
+        name="GeneralNotifications"
+        component={NotificationsScreen}
+        options={{ title: 'Alerts', headerShown: false, tabBarButton: () => null }}
       />
       {/* Profile hidden from tab bar — accessed via header button */}
       <Tab.Screen
