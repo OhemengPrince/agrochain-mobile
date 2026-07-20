@@ -315,7 +315,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                 type: isAudio ? 'voice' : 'text',
                 text: isAudio ? undefined : payload.content,
                 audioUrl: payload.audioUrl,
-                audioDuration: payload.audioDuration,
+                // The backend's socket echo doesn't always include audioDuration —
+                // fall back to the locally-known duration (captured from the
+                // recording timer when we sent it) instead of letting a correct
+                // value get wiped to 0 by an incomplete echo.
+                audioDuration: payload.audioDuration || prev[optIdx].audioDuration,
                 sent: true,
                 delivered: true, // server echo = delivered
                 time: formatMessageTime(payload.createdAt),
