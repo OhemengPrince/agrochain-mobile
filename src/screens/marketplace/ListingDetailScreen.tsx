@@ -558,7 +558,7 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: 140,
+      paddingBottom: 24,
     },
     heroWrap: {
       width: '100%',

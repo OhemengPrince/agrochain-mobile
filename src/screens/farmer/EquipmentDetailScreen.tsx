@@ -319,7 +319,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollFlex} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* ── Hero image — tap to view full screen ── */}
         <View style={styles.heroWrap}>
           <TouchableOpacity
@@ -620,6 +620,7 @@ function OwnerActionButton({ icon, colors, onPress }: { icon: keyof typeof Ionic
 function createStyles(colors: ThemeColors, isDarkMode: boolean) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
+    scrollFlex: { flex: 1 },
     scrollContent: { paddingBottom: 24 },
 
     // ── Hero ──────────────────────────────────────────────────
