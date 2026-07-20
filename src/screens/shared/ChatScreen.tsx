@@ -321,6 +321,10 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         const isMine = currentUserIdRef.current != null &&
           String(payload.senderId) === String(currentUserIdRef.current);
 
+        if ((payload as any).audioUrl || payload.messageType === 'audio' || payload.content === '[Voice message]') {
+          console.log('[ChatScreen] socket voice raw:', JSON.stringify(payload));
+        }
+
         setMessages((prev) => {
           // Replace optimistic message (sent-by-me, same content) if present;
           // otherwise dedup by id so the server echo doesn't double-render.
