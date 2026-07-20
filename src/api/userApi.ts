@@ -75,7 +75,14 @@ export async function getRecentUsers(limit = 10): Promise<TopRatedUser[]> {
 export async function getMe(): Promise<User | null> {
   if (USE_MOCK_DATA) return null;
   try {
-    const { data } = await apiClient.get<any>('/users/me');
+    const { data: raw } = await apiClient.get<any>('/users/me');
+    console.log('[API] /users/me typeof response.data:', typeof raw);
+    console.log('[API] /users/me response.data:', raw);
+    // Defensive: if the backend ever double-serializes the body (a JSON
+    // string containing JSON text rather than a parsed object), axios's own
+    // JSON parsing leaves it as a string here — parse it ourselves so callers
+    // always get a real User object instead of iterating string characters.
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
     console.log('[API] GET /users/me raw response keys:', data ? Object.keys(data) : 'null');
     console.log('[API] GET /users/me profilePhotoUrl:', data?.profilePhotoUrl);
     return (data as User) ?? null;
