@@ -14,6 +14,7 @@ import { daysBetween } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { BANK_LOGOS, NETWORK_LOGOS } from '../../config/logoRegistry';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'BookingPayment'>;
 
@@ -368,7 +369,7 @@ export default function BookingPaymentScreen({ route, navigation }: Props) {
       setResultSuccess(true);
       setStep(4);
     } catch (err: any) {
-      setResultError(err?.response?.data?.message ?? 'Payment failed. Please try again.');
+      setResultError(getApiErrorMessage(err, 'Payment failed. Please try again.'));
       setResultSuccess(false);
       setStep(4);
     } finally {

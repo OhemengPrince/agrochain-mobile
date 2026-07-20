@@ -13,6 +13,7 @@ import { verifyBankAccount } from '../../api/earningsApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { BANK_LOGOS, NETWORK_LOGOS } from '../../config/logoRegistry';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplacePayment'>;
 
@@ -242,7 +243,7 @@ export default function MarketplacePaymentScreen({ route, navigation }: Props) {
       setResultSuccess(true);
       setStep(4);
     } catch (err: any) {
-      setResultError(err?.response?.data?.message ?? 'Payment failed. Please try again.');
+      setResultError(getApiErrorMessage(err, 'Payment failed. Please try again.'));
       setResultSuccess(false);
       setStep(4);
     } finally {
