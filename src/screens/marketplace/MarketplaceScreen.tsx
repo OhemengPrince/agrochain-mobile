@@ -180,7 +180,7 @@ function ListingCard({
               </View>
               <GlassStatPill
                 icon={liked ? 'heart' : 'heart-outline'}
-                label={liked ? 'Liked' : 'Like'}
+                label={liked ? 1 : 0}
                 active={liked}
                 bounce
                 onPress={onToggleLike}
@@ -678,7 +678,7 @@ function createStyles(colors: ThemeColors) {
     engagementGroup: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 14,
       flexShrink: 1,
     },
     engagementStat: {

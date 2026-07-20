@@ -9,10 +9,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
+  StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import GlassBlur from './GlassBlur';
 import { getItemComments, addItemComment, StoredComment } from '../utils/storage';
 
 // Dark Instagram-style palette — this sheet intentionally does not follow the
@@ -28,7 +31,22 @@ const DARK = {
   heartRed: '#ED4956',
 };
 
-const QUICK_REACTIONS = ['🤣', '👀', '🔥', '👏', '😢', '😍', '😮', '😂'];
+// Percentage heights inside a KeyboardAvoidingView with no explicit height of
+// its own resolve unreliably (Yoga has no defined parent to compute against),
+// which was leaving a large blank gap below the input row. Using a concrete
+// pixel value computed from the window avoids that entirely.
+const SHEET_HEIGHT = Math.round(Dimensions.get('window').height * 0.8);
+
+const QUICK_REACTIONS: { emoji: string; label: string }[] = [
+  { emoji: '🤣', label: 'Haha' },
+  { emoji: '👀', label: 'Watching' },
+  { emoji: '🔥', label: 'Fire' },
+  { emoji: '👏', label: 'Clap' },
+  { emoji: '😢', label: 'Sad' },
+  { emoji: '😍', label: 'Love' },
+  { emoji: '😮', label: 'Wow' },
+  { emoji: '😂', label: 'Funny' },
+];
 
 function timeAgo(dateString: string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -69,7 +87,7 @@ export default function CommentsSheet({
   const [sending, setSending] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [reactingCommentId, setReactingCommentId] = useState<string | null>(null);
-  const [commentReactions, setCommentReactions] = useState<Record<string, string>>({});
+  const [commentReactions, setCommentReactions] = useState<Record<string, { emoji: string; label: string }>>({});
 
   useEffect(() => {
     if (!visible) return;
@@ -107,8 +125,8 @@ export default function CommentsSheet({
     });
   };
 
-  const chooseReaction = (commentId: string, emoji: string) => {
-    setCommentReactions((prev) => ({ ...prev, [commentId]: emoji }));
+  const chooseReaction = (commentId: string, reaction: { emoji: string; label: string }) => {
+    setCommentReactions((prev) => ({ ...prev, [commentId]: reaction }));
     setReactingCommentId(null);
   };
 
@@ -122,7 +140,7 @@ export default function CommentsSheet({
           style={{ backgroundColor: DARK.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={{ height: '80%', maxHeight: '80%' }}>
+          <View style={{ height: SHEET_HEIGHT }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: DARK.handle, alignSelf: 'center', marginTop: 10 }} />
 
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -192,28 +210,47 @@ export default function CommentsSheet({
                             <Pressable hitSlop={8}>
                               <Text style={{ fontSize: 12, color: DARK.secondaryText, fontWeight: '600' }}>Reply</Text>
                             </Pressable>
-                            {reaction ? <Text style={{ fontSize: 14 }}>{reaction}</Text> : null}
+                            {reaction ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                                <Text style={{ fontSize: 13 }}>{reaction.emoji}</Text>
+                                <Text style={{ fontSize: 11, color: DARK.secondaryText, fontWeight: '600' }}>{reaction.label}</Text>
+                              </View>
+                            ) : null}
                           </View>
                           {isReacting && (
                             <View style={{
-                              flexDirection: 'row', gap: 8, marginTop: 10,
-                              backgroundColor: DARK.inputBg, borderRadius: 22,
-                              paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start',
+                              flexDirection: 'row', gap: 10, marginTop: 10,
+                              backgroundColor: DARK.inputBg, borderRadius: 16,
+                              paddingHorizontal: 10, paddingVertical: 8, alignSelf: 'flex-start',
                             }}>
-                              {QUICK_REACTIONS.map((emoji) => (
-                                <Pressable key={emoji} onPress={() => chooseReaction(item.id, emoji)} hitSlop={4}>
-                                  <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                              {QUICK_REACTIONS.map((reactionOption) => (
+                                <Pressable
+                                  key={reactionOption.emoji}
+                                  onPress={() => chooseReaction(item.id, reactionOption)}
+                                  hitSlop={4}
+                                  style={{ alignItems: 'center', width: 34 }}
+                                >
+                                  <Text style={{ fontSize: 18 }}>{reactionOption.emoji}</Text>
+                                  <Text style={{ fontSize: 9, color: DARK.secondaryText, marginTop: 2 }} numberOfLines={1}>{reactionOption.label}</Text>
                                 </Pressable>
                               ))}
                             </View>
                           )}
                         </View>
                         <Pressable onPress={() => toggleLike(item.id)} hitSlop={8} style={{ alignItems: 'center', paddingTop: 2 }}>
-                          <Ionicons
-                            name={liked ? 'heart' : 'heart-outline'}
-                            size={15}
-                            color={liked ? DARK.heartRed : DARK.secondaryText}
-                          />
+                          <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <GlassBlur
+                              intensity={35}
+                              tint="dark"
+                              style={StyleSheet.absoluteFillObject}
+                              androidFallbackColor="rgba(255,255,255,0.08)"
+                            />
+                            <Ionicons
+                              name={liked ? 'heart' : 'heart-outline'}
+                              size={15}
+                              color={liked ? DARK.heartRed : DARK.secondaryText}
+                            />
+                          </View>
                           <Text style={{ fontSize: 11, color: DARK.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
                         </Pressable>
                       </Pressable>
@@ -231,20 +268,27 @@ export default function CommentsSheet({
               <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: DARK.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{userInitial}</Text>
               </View>
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                onFocus={() => setReactingCommentId(null)}
-                placeholder="Join the conversation..."
-                placeholderTextColor={DARK.secondaryText}
-                style={{
-                  flex: 1, backgroundColor: DARK.inputBg, borderRadius: 20,
-                  paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: DARK.text,
-                }}
-                returnKeyType="send"
-                onSubmitEditing={handleSend}
-                multiline
-              />
+              <View style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }}>
+                <GlassBlur
+                  intensity={35}
+                  tint="dark"
+                  style={StyleSheet.absoluteFillObject}
+                  androidFallbackColor="rgba(255,255,255,0.08)"
+                />
+                <TextInput
+                  value={text}
+                  onChangeText={setText}
+                  onFocus={() => setReactingCommentId(null)}
+                  placeholder="Join the conversation..."
+                  placeholderTextColor={DARK.secondaryText}
+                  style={{
+                    paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: DARK.text,
+                  }}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSend}
+                  multiline
+                />
+              </View>
               {text.trim().length > 0 ? (
                 <Pressable onPress={handleSend} disabled={sending} hitSlop={8}>
                   {sending ? (

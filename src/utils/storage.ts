@@ -11,6 +11,7 @@ const HIDDEN_BOOKINGS_KEY = '@agrochain/hidden_bookings';
 const HIDDEN_OWNER_BOOKINGS_KEY = '@agrochain/hidden_owner_bookings';
 const LIKED_LISTINGS_KEY = '@agrochain/liked_listings';
 const ITEM_COMMENTS_KEY = '@agrochain/item_comments';
+const VIEWED_LISTING_SNAPSHOTS_KEY = '@agrochain/viewed_listing_snapshots';
 
 export interface StoredComment {
   id: string;
@@ -181,6 +182,38 @@ export async function setListingLiked(id: string, liked: boolean): Promise<void>
     return;
   }
   await AsyncStorage.setItem(LIKED_LISTINGS_KEY, json);
+}
+
+// The backend increments viewsCount on every GET of a listing rather than
+// tracking unique viewers, so re-opening the same listing repeatedly from
+// this device would otherwise inflate the count each time. We pin the count
+// to whatever it was the first time this device opened a given listing, so
+// this account's own repeat views don't visibly re-count. This does not
+// reflect new views from other real users after the first open — a true
+// fix requires the backend to track unique viewer IDs instead of a raw
+// per-request counter.
+async function getViewedListingSnapshots(): Promise<Record<string, number>> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[VIEWED_LISTING_SNAPSHOTS_KEY];
+    return raw ? JSON.parse(raw) : {};
+  }
+  const raw = await AsyncStorage.getItem(VIEWED_LISTING_SNAPSHOTS_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+export async function getPinnedListingViewCount(listingId: string, freshCount: number): Promise<number> {
+  const snapshots = await getViewedListingSnapshots();
+  if (typeof snapshots[listingId] === 'number') {
+    return snapshots[listingId];
+  }
+  const updated = { ...snapshots, [listingId]: freshCount };
+  const json = JSON.stringify(updated);
+  if (USE_MOCK_DATA) {
+    memoryStore[VIEWED_LISTING_SNAPSHOTS_KEY] = json;
+  } else {
+    await AsyncStorage.setItem(VIEWED_LISTING_SNAPSHOTS_KEY, json);
+  }
+  return freshCount;
 }
 
 async function getAllItemComments(): Promise<Record<string, StoredComment[]>> {

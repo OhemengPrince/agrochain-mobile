@@ -26,7 +26,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
 import GlassBlur from '../../components/GlassBlur';
 import CommentsSheet from '../../components/CommentsSheet';
-import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
+import { getLikedListingIds, setListingLiked, getItemComments, getPinnedListingViewCount } from '../../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 280;
@@ -310,7 +310,8 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
           getLikedListingIds(),
           getItemComments(listingId),
         ]);
-        setListing(data);
+        const pinnedViews = await getPinnedListingViewCount(listingId, data.viewsCount);
+        setListing({ ...data, viewsCount: pinnedViews });
         setLiked(likedIds.includes(listingId));
         setCommentsCount(comments.length);
       } catch (err: any) {
