@@ -43,13 +43,17 @@ apiClient.interceptors.response.use(
         console.log(`[axios] request body was —`, error.config.data);
       }
     }
-    // Only a 401 (expired/missing token) means the session itself is invalid —
-    // clear storage and reset React state, which sends the user back to the
-    // Auth stack. A 403 means "forbidden" (e.g. this role can't perform this
-    // action) and must NOT force a logout — otherwise a permission error on
-    // something like booking/purchasing silently kicks the user back to
-    // Onboarding instead of showing them the actual error message.
-    if (status === 401) {
+    // A 401 normally means the session itself is invalid (expired/missing
+    // token) — clear storage and reset React state, which sends the user back
+    // to the Auth stack. But this backend also reuses 401 for role/permission
+    // rejections (e.g. "Only farmers can book equipment"), which is a
+    // business-rule error, not an invalid session — force-logging out on
+    // those silently kicks the user back to Onboarding instead of showing
+    // them the actual error message. Detect that phrasing and skip the
+    // forced logout so the error surfaces normally on screen instead.
+    const message = (error.response?.data as any)?.message;
+    const isRoleRestriction = typeof message === 'string' && /^only\b.*\bcan\b/i.test(message.trim());
+    if (status === 401 && !isRoleRestriction) {
       console.log('[axios] clearing session due to auth failure');
       await clearAll();
       _onAuthFailure?.();
