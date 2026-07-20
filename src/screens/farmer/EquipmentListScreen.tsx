@@ -27,6 +27,9 @@ import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
+import GlassStatPill from '../../components/GlassStatPill';
+import CommentsSheet from '../../components/CommentsSheet';
+import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
@@ -63,11 +66,19 @@ function usePressAnimation() {
 function EquipmentListCard({
   item,
   onPress,
+  liked,
+  onToggleLike,
+  commentsCount,
+  onPressComment,
   styles,
   colors,
 }: {
   item: Equipment;
   onPress: () => void;
+  liked: boolean;
+  onToggleLike: () => void;
+  commentsCount: number;
+  onPressComment: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
 }) {
@@ -122,7 +133,21 @@ function EquipmentListCard({
           </View>
 
           <View style={styles.bottomRow}>
-            <TouchableOpacity style={[styles.bookNowButton, { flex: 1 }]} onPress={onPress}>
+            <View style={styles.engagementGroup}>
+              <GlassStatPill
+                icon={liked ? 'heart' : 'heart-outline'}
+                label={liked ? 'Liked' : 'Like'}
+                active={liked}
+                bounce
+                onPress={onToggleLike}
+              />
+              <GlassStatPill
+                icon="chatbubble-outline"
+                label={commentsCount}
+                onPress={onPressComment}
+              />
+            </View>
+            <TouchableOpacity style={styles.bookNowButton} onPress={onPress}>
               <Text style={styles.bookNowText}>Book Now</Text>
             </TouchableOpacity>
           </View>
@@ -141,6 +166,9 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [commentsCounts, setCommentsCounts] = useState<Record<string, number>>({});
+  const [activeCommentsItem, setActiveCommentsItem] = useState<Equipment | null>(null);
 
   // Filter modal state
   const [filterVisible, setFilterVisible] = useState(false);
@@ -158,9 +186,28 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
     try {
       const data = await searchEquipment({ query: searchQuery || undefined });
       setAllEquipment(data);
+
+      const [liked, commentCounts] = await Promise.all([
+        getLikedListingIds(),
+        Promise.all(data.map((e) => getItemComments(e.id))),
+      ]);
+      setLikedIds(new Set(liked));
+      const counts: Record<string, number> = {};
+      data.forEach((e, i) => { counts[e.id] = commentCounts[i].length; });
+      setCommentsCounts(counts);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load equipment.');
     }
+  }, []);
+
+  const handleToggleLike = useCallback((equipmentId: string) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      const nowLiked = !next.has(equipmentId);
+      if (nowLiked) next.add(equipmentId); else next.delete(equipmentId);
+      setListingLiked(equipmentId, nowLiked).catch(() => {});
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -328,12 +375,31 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
           <EquipmentListCard
             item={item}
             onPress={() => navigation.navigate('EquipmentDetail', { equipmentId: item.id })}
+            liked={likedIds.has(item.id)}
+            onToggleLike={() => handleToggleLike(item.id)}
+            commentsCount={commentsCounts[item.id] ?? 0}
+            onPressComment={() => setActiveCommentsItem(item)}
             styles={styles}
             colors={colors}
           />
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No equipment found.</Text>}
+      />
+
+      <CommentsSheet
+        visible={activeCommentsItem !== null}
+        onClose={() => setActiveCommentsItem(null)}
+        itemId={activeCommentsItem?.id ?? ''}
+        itemTitle={activeCommentsItem?.name ?? ''}
+        itemSubtitle={activeCommentsItem ? `GHS ${activeCommentsItem.dailyRate}/day` : undefined}
+        itemImageUrl={activeCommentsItem?.imageUrl?.startsWith('http') ? activeCommentsItem.imageUrl : undefined}
+        itemEmoji="🚜"
+        onCommentsCountChange={(count) => {
+          if (activeCommentsItem) {
+            setCommentsCounts((prev) => ({ ...prev, [activeCommentsItem.id]: count }));
+          }
+        }}
       />
 
       {/* Filter Modal */}
@@ -731,10 +797,15 @@ function createStyles(colors: ThemeColors) {
     },
     bottomRow: {
       flexDirection: 'row',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: 14,
+      gap: 10,
       marginTop: 14,
+    },
+    engagementGroup: {
+      flexDirection: 'row',
+      gap: 8,
+      flexShrink: 1,
     },
     viewDetailsRow: {
       flexDirection: 'row',

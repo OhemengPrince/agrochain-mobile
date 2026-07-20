@@ -31,6 +31,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import TopRatedCarousel from '../../components/TopRatedCarousel';
 import CommentsSheet from '../../components/CommentsSheet';
+import GlassStatPill from '../../components/GlassStatPill';
 import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
@@ -141,15 +142,6 @@ function ListingCard({
   styles: ReturnType<typeof createStyles>;
 }) {
   const { scale, opacity, onPressIn, onPressOut } = usePressAnimation();
-  const likeBounce = useRef(new Animated.Value(1)).current;
-
-  const handleLikePress = () => {
-    Animated.sequence([
-      Animated.spring(likeBounce, { toValue: 1.3, useNativeDriver: true, speed: 30, bounciness: 14 }),
-      Animated.spring(likeBounce, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }),
-    ]).start();
-    onToggleLike();
-  };
 
   return (
     <Animated.View style={[{ transform: [{ scale }], opacity }]}>
@@ -180,33 +172,26 @@ function ListingCard({
 
           <Text style={styles.dateText}>Posted {formatDate(item.createdAt)}</Text>
 
-          <View style={styles.engagementRow}>
-            <View style={styles.engagementStat}>
-              <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
-              <Text style={styles.engagementStatText}>{item.viewsCount}</Text>
-            </View>
-            <Pressable
-              style={styles.engagementStat}
-              onPress={(e) => { e.stopPropagation(); handleLikePress(); }}
-              hitSlop={6}
-            >
-              <Animated.View style={{ transform: [{ scale: likeBounce }] }}>
-                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={15} color={liked ? '#DC2626' : colors.secondaryText} />
-              </Animated.View>
-              <Text style={[styles.engagementStatText, liked && { color: '#DC2626' }]}>{liked ? 'Liked' : 'Like'}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.engagementStat}
-              onPress={(e) => { e.stopPropagation(); onPressComment(); }}
-              hitSlop={6}
-            >
-              <Ionicons name="chatbubble-outline" size={14} color={colors.secondaryText} />
-              <Text style={styles.engagementStatText}>{commentsCount}</Text>
-            </Pressable>
-          </View>
-
           <View style={styles.bottomRow}>
-            <TouchableOpacity style={styles.contactButtonFull} onPress={onContact}>
+            <View style={styles.engagementGroup}>
+              <View style={styles.engagementStat}>
+                <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
+                <Text style={styles.engagementStatText}>{item.viewsCount}</Text>
+              </View>
+              <GlassStatPill
+                icon={liked ? 'heart' : 'heart-outline'}
+                label={liked ? 'Liked' : 'Like'}
+                active={liked}
+                bounce
+                onPress={onToggleLike}
+              />
+              <GlassStatPill
+                icon="chatbubble-outline"
+                label={commentsCount}
+                onPress={onPressComment}
+              />
+            </View>
+            <TouchableOpacity style={styles.contactButton} onPress={onContact}>
               <Text style={styles.contactButtonText}>Contact</Text>
             </TouchableOpacity>
           </View>
@@ -690,14 +675,11 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 4,
     },
-    engagementRow: {
+    engagementGroup: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 16,
-      marginTop: 12,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.divider,
+      gap: 8,
+      flexShrink: 1,
     },
     engagementStat: {
       flexDirection: 'row',
@@ -713,14 +695,13 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 12,
+      marginTop: 14,
     },
-    contactButtonFull: {
-      flex: 1,
+    contactButton: {
       backgroundColor: colors.primaryGreen,
       borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
     },
     contactButtonText: {
       fontSize: 14,
