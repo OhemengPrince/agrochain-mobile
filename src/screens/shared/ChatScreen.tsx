@@ -183,6 +183,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const stopRecordingFnRef = useRef<((cancelled: boolean) => Promise<void>) | undefined>(undefined);
   // Session counter: incremented by stop to let an in-flight startRecording detect it was cancelled
   const recordingSessionRef = useRef(0);
+  // The optimistic id of the voice message currently waiting for its server
+  // echo. Matching the echo by this instead of comparing audioUrl strings
+  // avoids a race: sendSocketMessage fires before the optimistic bubble's
+  // audioUrl is updated from the local file path to the uploaded remote URL,
+  // so an echo arriving in that window would otherwise fail the URL match
+  // and get pushed as a duplicate message instead of replacing the original.
+  const pendingVoiceOptimisticIdRef = useRef<string | null>(null);
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -322,14 +329,22 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           const isOptimistic = (id: any) => String(id).startsWith('opt-');
 
           if (isMine) {
+            const pendingVoiceId = pendingVoiceOptimisticIdRef.current;
             const optIdx = prev.findIndex(
               (m) => isOptimistic(m.id) && (
                 isAudio
-                  ? m.type === 'voice' && m.audioUrl === payload.audioUrl
+                  // Prefer matching the specific pending voice message by id —
+                  // comparing audioUrl strings is unreliable because the local
+                  // bubble's URL can still be the pre-upload local file path
+                  // (or a since-changed remote URL) at the moment the echo lands.
+                  ? m.type === 'voice' && (m.id === pendingVoiceId || m.audioUrl === payload.audioUrl)
                   : m.text === payload.content
               )
             );
             if (optIdx !== -1) {
+              if (isAudio && prev[optIdx].id === pendingVoiceId) {
+                pendingVoiceOptimisticIdRef.current = null;
+              }
               const next = [...prev];
               next[optIdx] = {
                 id: msgId,
@@ -612,6 +627,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     }
 
     const optimisticId = `opt-voice-${Date.now()}`;
+    pendingVoiceOptimisticIdRef.current = optimisticId;
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, {
       id: optimisticId, type: 'voice', sent: true, time: now,
@@ -622,16 +638,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     try {
       const remoteUrl = await uploadAudio(uri);
+      // Update the local bubble to the real remote URL BEFORE emitting, so if
+      // the server echo arrives quickly it lands after this state update.
+      setMessages((prev) => prev.map((m) =>
+        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false, voiceState: 'ready' } : m
+      ));
       sendSocketMessage(roomId, '[Voice message]', {
         messageType: 'audio',
         audioUrl: remoteUrl,
         audioDuration: durationSec,
       });
-      setMessages((prev) => prev.map((m) =>
-        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false, voiceState: 'ready' } : m
-      ));
     } catch (err) {
       console.log('[Voice] upload error:', err);
+      if (pendingVoiceOptimisticIdRef.current === optimisticId) {
+        pendingVoiceOptimisticIdRef.current = null;
+      }
       setMessages((prev) => prev.map((m) =>
         String(m.id) === optimisticId ? { ...m, uploading: false, voiceState: 'failed' } : m
       ));
