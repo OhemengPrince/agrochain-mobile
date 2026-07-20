@@ -164,6 +164,7 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <View style={styles.topSection}>
           <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+          <Text style={styles.logoText}>AgroChain</Text>
         </View>
 
         <View style={styles.welcomeSection}>
@@ -244,6 +245,12 @@ function createStyles(colors: ThemeColors) {
     logoImage: {
       width: 200,
       height: 80,
+    },
+    logoText: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.primaryGreen,
+      letterSpacing: 2,
     },
     welcomeSection: {
       alignItems: 'center',

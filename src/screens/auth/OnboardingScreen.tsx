@@ -129,6 +129,7 @@ export default function OnboardingScreen({ navigation }: Props) {
           />
           <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
         </View>
+        <Text style={[styles.logoText, { color: activeSlide.titleColor }]}>AgroChain</Text>
         <Text style={[styles.tagline, { color: activeSlide.titleColor }]}>From Field to Market</Text>
       </View>
 
@@ -233,6 +234,14 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 96,
     height: 96,
+  },
+  logoText: {
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 3,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 8,
   },
   tagline: {
     fontSize: 14,

@@ -200,6 +200,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             />
             <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
           </View>
+          <Text style={styles.brandText}>AgroChain</Text>
           <Text style={styles.heroTitle}>Create Account</Text>
           <Text style={styles.heroSubtitle}>Join the AgroChain community</Text>
         </View>
@@ -443,6 +444,11 @@ function createStyles(colors: ThemeColors) {
     logoImage: {
       width: 78,
       height: 78,
+    },
+    brandText: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: '#FFD700',
     },
     heroTitle: {
       fontSize: 24,
