@@ -16,8 +16,8 @@ import {
   RecordingPresets,
   setAudioModeAsync,
   requestRecordingPermissionsAsync,
-  createAudioPlayer,
-  AudioPlayer as ExpoAudioPlayer,
+  useAudioPlayer,
+  useAudioPlayerStatus,
 } from 'expo-audio';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
@@ -1373,48 +1373,36 @@ const AudioPlayer = React.memo(function AudioPlayer({
 }: {
   audioUrl: string; durationSec: number; sent: boolean; colors: ThemeColors; s: any;
 }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0); // millis
-  const [duration, setDuration] = useState((durationSec || 0) * 1000);
-  const playerRef = useRef<ExpoAudioPlayer | null>(null);
-  const listenerRef = useRef<{ remove: () => void } | null>(null);
+  const isValidUrl = !!audioUrl && audioUrl.startsWith('http');
+  const player = useAudioPlayer(isValidUrl ? audioUrl : null, { updateInterval: 200 });
+  const status = useAudioPlayerStatus(player);
+  const isPlaying = status.playing ?? false;
 
-  const unloadSound = useCallback(async () => {
-    if (listenerRef.current) {
-      try { listenerRef.current.remove(); } catch {}
-      listenerRef.current = null;
-    }
-    if (playerRef.current) {
-      try { playerRef.current.remove(); } catch {}
-      playerRef.current = null;
-    }
-  }, []);
+  // Only one voice message plays at a time across the whole screen.
+  const stopSelf = useCallback(() => {
+    try { player.pause(); } catch {}
+  }, [player]);
 
-  const stopSelf = useCallback(async () => {
-    await unloadSound();
-    setIsPlaying(false);
-    setPosition(0);
-  }, [unloadSound]);
-
-  const togglePlay = useCallback(async () => {
+  useEffect(() => {
     if (isPlaying) {
-      // Pause only — keep player loaded so resume is cheap
-      playerRef.current?.pause();
-      setIsPlaying(false);
+      if (_globalStopFn && _globalStopFn !== stopSelf) {
+        _globalStopFn();
+      }
+      _globalStopFn = stopSelf;
+    } else if (_globalStopFn === stopSelf) {
+      _globalStopFn = null;
+    }
+  }, [isPlaying, stopSelf]);
+
+  useEffect(() => () => {
+    if (_globalStopFn === stopSelf) _globalStopFn = null;
+  }, [stopSelf]);
+
+  const toggle = useCallback(async () => {
+    if (isPlaying) {
+      player.pause();
       return;
     }
-
-    // Stop whatever is playing globally
-    if (_globalStopFn && _globalStopFn !== stopSelf) {
-      _globalStopFn();
-    }
-    _globalStopFn = stopSelf;
-
-    // Always unload then recreate the player so playback works on the
-    // second and subsequent taps (reusing a finished player can fail).
-    await unloadSound();
-    setPosition(0);
-
     try {
       await setAudioModeAsync({
         allowsRecording: false,
@@ -1422,44 +1410,28 @@ const AudioPlayer = React.memo(function AudioPlayer({
         shouldPlayInBackground: false,
         interruptionMode: 'duckOthers',
       });
-      console.log('[AudioPlayer] loading:', audioUrl);
-      const player = createAudioPlayer({ uri: audioUrl }, { updateInterval: 100 });
-      playerRef.current = player;
-      listenerRef.current = player.addListener('playbackStatusUpdate', (status) => {
-        if (!status.isLoaded) return;
-        setPosition(status.currentTime * 1000);
-        if (status.duration) setDuration(status.duration * 1000);
-        if (status.didJustFinish) {
-          setIsPlaying(false);
-          setPosition(0);
-          if (_globalStopFn === stopSelf) _globalStopFn = null;
-        }
-      });
-      setIsPlaying(true);
-      player.play();
-    } catch (err) {
-      console.log('[AudioPlayer] error:', err);
+    } catch {}
+    if (status.didJustFinish || status.currentTime >= status.duration) {
+      try { await player.seekTo(0); } catch {}
     }
-  }, [isPlaying, audioUrl, stopSelf, unloadSound]);
-
-  useEffect(() => () => {
-    unloadSound();
-    if (_globalStopFn === stopSelf) _globalStopFn = null;
-  }, [unloadSound, stopSelf]);
+    player.play();
+  }, [isPlaying, player, status.didJustFinish, status.currentTime, status.duration]);
 
   // All hooks above — safe to early-return here
-  if (!audioUrl || !audioUrl.startsWith('http')) {
+  if (!isValidUrl) {
     return <Text style={{ color: '#EF4444', fontSize: 11, flex: 1 }}>Audio unavailable</Text>;
   }
 
+  const position = status.currentTime ?? 0;
+  const duration = status.duration || durationSec || 0;
   const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
-  const elapsed = Math.floor(position / 1000);
-  const total = Math.max(Math.floor(duration / 1000), durationSec);
+  const elapsed = Math.floor(position);
+  const total = Math.floor(duration);
   const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')} / ${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-      <TouchableOpacity onPress={togglePlay} style={s.playBtn} activeOpacity={0.8}>
+      <TouchableOpacity onPress={toggle} style={s.playBtn} activeOpacity={0.8}>
         <Ionicons name={isPlaying ? 'pause' : 'play'} size={15} color="#fff" />
       </TouchableOpacity>
       <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: sent ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.18)', marginHorizontal: 6 }}>
