@@ -20,6 +20,7 @@ import { register } from '../../api/authApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
+import GlassBlur from '../../components/GlassBlur';
 
 const Logo = require('../../../assets/images/agrochain_logo.png');
 
@@ -191,6 +192,12 @@ export default function CreateAccountScreen({ navigation }: Props) {
 
         <View style={styles.heroContent}>
           <View style={styles.logoBadge}>
+            <GlassBlur
+              intensity={40}
+              tint="light"
+              style={StyleSheet.absoluteFillObject}
+              androidFallbackColor="rgba(255,255,255,0.55)"
+            />
             <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.heroTitle}>Create Account</Text>
@@ -418,13 +425,15 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     logoBadge: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
-      backgroundColor: '#FFFFFF',
+      width: 84,
+      height: 84,
+      borderRadius: 42,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 8,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.4)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.2,

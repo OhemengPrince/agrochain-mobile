@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
+import GlassBlur from '../../components/GlassBlur';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
@@ -120,6 +121,12 @@ export default function OnboardingScreen({ navigation }: Props) {
 
       <View style={styles.topSection} pointerEvents="none">
         <View style={styles.logoBadge}>
+          <GlassBlur
+            intensity={40}
+            tint="light"
+            style={StyleSheet.absoluteFillObject}
+            androidFallbackColor="rgba(255,255,255,0.55)"
+          />
           <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
         </View>
         <Text style={[styles.tagline, { color: activeSlide.titleColor }]}>From Field to Market</Text>
@@ -208,13 +215,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoBadge: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: '#FFFFFF',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
