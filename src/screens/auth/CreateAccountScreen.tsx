@@ -404,6 +404,7 @@ function createStyles(colors: ThemeColors) {
       height: SCREEN_HEIGHT * 0.28,
       alignItems: 'center',
       justifyContent: 'center',
+      paddingTop: 28,
       paddingBottom: 40,
     },
     backButton: {
