@@ -1,4 +1,13 @@
-import apiClient from './axios';
+import apiClient, { extractArray } from './axios';
+
+export interface FollowUser {
+  id: string;
+  fullName: string;
+  role: string;
+  region?: string;
+  profilePhotoUrl?: string;
+  isVerified?: boolean;
+}
 
 export const followUser = (userId: string) =>
   apiClient.post(`/users/${userId}/follow`);
@@ -12,8 +21,18 @@ export const getFollowStatus = (userId: string) =>
 export const getFollowCounts = (userId: string) =>
   apiClient.get<{ followerCount: number; followingCount: number }>(`/users/${userId}/follow-counts`);
 
-export const getFollowers = (userId: string) =>
-  apiClient.get(`/users/${userId}/followers`);
+export async function getFollowers(userId: string): Promise<FollowUser[]> {
+  console.log('[API] GET /users/' + userId + '/followers');
+  const { data } = await apiClient.get<any>(`/users/${userId}/followers`);
+  const result = extractArray<FollowUser>(data);
+  console.log('[API] /followers ->', result.length, 'items');
+  return result;
+}
 
-export const getFollowing = (userId: string) =>
-  apiClient.get(`/users/${userId}/following`);
+export async function getFollowing(userId: string): Promise<FollowUser[]> {
+  console.log('[API] GET /users/' + userId + '/following');
+  const { data } = await apiClient.get<any>(`/users/${userId}/following`);
+  const result = extractArray<FollowUser>(data);
+  console.log('[API] /following ->', result.length, 'items');
+  return result;
+}

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { getFollowers, getFollowing } from '../../api/followApi';
+import { getFollowers, getFollowing, FollowUser } from '../../api/followApi';
 import UserAvatar from '../../components/UserAvatar';
 import FollowButton from '../../components/FollowButton';
 
@@ -23,15 +23,6 @@ const ROLE_LABELS: Record<string, string> = {
   GENERAL: 'General User',
   ADMIN: 'Administrator',
 };
-
-interface FollowUser {
-  id: string;
-  fullName: string;
-  role: string;
-  region?: string;
-  profilePhotoUrl?: string;
-  isVerified?: boolean;
-}
 
 export default function FollowListScreen({ navigation, route }: { navigation: any; route: any }) {
   const { userId, type, userName } = route.params as {
@@ -49,14 +40,12 @@ export default function FollowListScreen({ navigation, route }: { navigation: an
     (async () => {
       setLoading(true);
       try {
-        const res = type === 'followers'
+        const data = type === 'followers'
           ? await getFollowers(userId)
           : await getFollowing(userId);
-        const data = Array.isArray(res.data)
-          ? res.data
-          : (res.data?.content ?? res.data?.data ?? []);
         setUsers(data);
-      } catch {
+      } catch (err: any) {
+        console.log('[FollowList] fetch FAILED:', err?.message ?? err);
         setUsers([]);
       } finally {
         setLoading(false);

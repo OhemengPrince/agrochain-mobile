@@ -70,6 +70,9 @@ export function extractArray<T>(raw: any): T[] {
   if (raw?.data && Array.isArray(raw.data)) return raw.data;
   if (raw?.items && Array.isArray(raw.items)) return raw.items;
   if (raw?.notifications && Array.isArray(raw.notifications)) return raw.notifications;
+  if (raw?.followers && Array.isArray(raw.followers)) return raw.followers;
+  if (raw?.following && Array.isArray(raw.following)) return raw.following;
+  if (raw?.users && Array.isArray(raw.users)) return raw.users;
   return [];
 }
 
