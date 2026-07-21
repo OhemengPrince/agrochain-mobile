@@ -526,14 +526,20 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // ── Voice recording ────────────────────────────────────
   const startRecording = useCallback(async () => {
+    console.log('[Recording] startRecording called');
     // Claim a session slot. If stopAndSendRecording fires before createAsync resolves,
     // it will increment this counter and we detect it was cancelled mid-start.
     const session = ++recordingSessionRef.current;
 
     try {
       const { granted } = await requestRecordingPermissionsAsync();
-      if (session !== recordingSessionRef.current) return; // cancelled during permission request
+      console.log('[Recording] permission granted:', granted);
+      if (session !== recordingSessionRef.current) {
+        console.log('[Recording] cancelled during permission request');
+        return;
+      }
       if (!granted) {
+        console.log('[Recording] permission denied!');
         Alert.alert('Microphone Permission', 'Please allow microphone access to send voice messages.');
         return;
       }
@@ -544,16 +550,19 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       if (session !== recordingSessionRef.current) {
         // stop was called while we were setting up — reset audio mode and bail
+        console.log('[Recording] cancelled while setting audio mode');
         try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
         return;
       }
       await audioRecorder.prepareToRecordAsync();
       if (session !== recordingSessionRef.current) {
         // stop called while prepareToRecordAsync was in flight — clean up
+        console.log('[Recording] cancelled while preparing to record');
         try { await audioRecorder.stop(); } catch {}
         try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
         return;
       }
+      console.log('[Recording] starting...');
       audioRecorder.record();
       recordingStartedAtRef.current = Date.now();
       setIsRecording(true);
@@ -587,6 +596,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   }, [waveAnim, audioRecorder]);
 
   const stopAndSendRecording = useCallback(async (cancelled: boolean) => {
+    console.log('[Recording] stopRecording called — cancelled:', cancelled, '| audioRecorder.isRecording:', audioRecorder.isRecording);
     // Invalidate any in-flight startRecording so it aborts after its next await
     recordingSessionRef.current++;
 
@@ -693,10 +703,19 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => { startRecordingFnRef.current?.(); },
+      onPanResponderGrant: () => {
+        console.log('[Mic] button pressed — starting recording');
+        startRecordingFnRef.current?.();
+      },
       onPanResponderMove: (_, gs) => { setCancelMode(gs.dx < -40); },
-      onPanResponderRelease: (_, gs) => { stopRecordingFnRef.current?.(gs.dx < -40); },
-      onPanResponderTerminate: () => { stopRecordingFnRef.current?.(true); },
+      onPanResponderRelease: (_, gs) => {
+        console.log('[Mic] button released — stopping recording, cancelled:', gs.dx < -40);
+        stopRecordingFnRef.current?.(gs.dx < -40);
+      },
+      onPanResponderTerminate: () => {
+        console.log('[Mic] gesture terminated — stopping recording (cancelled)');
+        stopRecordingFnRef.current?.(true);
+      },
     })
   ).current;
 
