@@ -146,6 +146,18 @@ function notificationColor(type: AppNotification['type'], colors: ThemeColors): 
   }
 }
 
+function dedupeNotifications(notifications: AppNotification[]): AppNotification[] {
+  const seen = new Set<string>();
+  const result: AppNotification[] = [];
+  for (const n of notifications) {
+    const key = `${n.type}|${n.title}|${n.message}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(n);
+  }
+  return result;
+}
+
 export default function BuyerHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -240,7 +252,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
     return <LoadingOverlay message="Loading marketplace..." />;
   }
 
-  const recentActivity = [...notifications]
+  const recentActivity = dedupeNotifications(notifications)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
