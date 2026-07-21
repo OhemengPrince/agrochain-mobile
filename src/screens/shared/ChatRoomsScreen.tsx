@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable,
-  ActivityIndicator, RefreshControl, Animated, PanResponder, StyleSheet as RNStyleSheet,
+  ActivityIndicator, RefreshControl, Animated, PanResponder, StyleSheet as RNStyleSheet, Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,10 +53,16 @@ function SwipeableRoomRow({
   const rowHeight = useRef(new Animated.Value(1)).current;
   const openStateRef = useRef<'none' | 'delete'>('none');
   const removedRef = useRef(false);
+  // The pin/delete panels only ever MOUNT while this is true — driven by
+  // React state (not the Animated value) so there is no way for them to be
+  // visible at rest, regardless of how the sliding content is laid out.
+  const [panelsVisible, setPanelsVisible] = useState(false);
 
   const resetSwipe = useCallback(() => {
     openStateRef.current = 'none';
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start();
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start(() => {
+      setPanelsVisible(false);
+    });
   }, [translateX]);
 
   useEffect(() => {
@@ -77,6 +83,7 @@ function SwipeableRoomRow({
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
       onPanResponderGrant: () => {
+        setPanelsVisible(true);
         if (openStateRef.current === 'none') onRowOpened(rowId);
       },
       onPanResponderMove: (_, gesture) => {
@@ -111,16 +118,20 @@ function SwipeableRoomRow({
   return (
     <Animated.View style={{ maxHeight: rowHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 200] }) }}>
       <View style={[styles.swipeWrap, { overflow: 'hidden' }]}>
-        {/* Pin action — revealed behind on the left ONLY while swiping right */}
-        <View style={[styles.pinAction, { backgroundColor: colors.card }]}>
-          <Text style={{ fontSize: 24 }}>📌</Text>
-        </View>
-        {/* Delete action — revealed behind on the right ONLY while swiping left */}
-        <View style={[styles.deleteAction, { backgroundColor: colors.card }]}>
-          <Pressable onPress={() => { resetSwipe(); onDelete(); }} hitSlop={8}>
-            <Ionicons name="trash" size={24} color="#EF4444" />
-          </Pressable>
-        </View>
+        {panelsVisible && (
+          <>
+            {/* Pin action — revealed behind on the left ONLY while swiping right */}
+            <View style={[styles.pinAction, { backgroundColor: colors.card }]}>
+              <Text style={{ fontSize: 24 }}>📌</Text>
+            </View>
+            {/* Delete action — revealed behind on the right ONLY while swiping left */}
+            <View style={[styles.deleteAction, { backgroundColor: colors.card }]}>
+              <Pressable onPress={() => { resetSwipe(); onDelete(); }} hitSlop={8}>
+                <Ionicons name="trash" size={24} color="#EF4444" />
+              </Pressable>
+            </View>
+          </>
+        )}
         <Animated.View style={{ transform: [{ translateX }], backgroundColor: colors.cardBackground }} {...panResponder.panHandlers}>
           {children}
         </Animated.View>
@@ -227,10 +238,17 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     });
   }, [orderedRooms, roomSearch, user]);
 
+  const MAX_PINNED = 3;
+
   const handleTogglePin = useCallback((roomId: string) => {
     setPinnedIds((prev) => {
+      const alreadyPinned = prev.has(roomId);
+      if (!alreadyPinned && prev.size >= MAX_PINNED) {
+        Alert.alert('Pin Limit Reached', `You can only pin up to ${MAX_PINNED} conversations. Unpin one first.`);
+        return prev;
+      }
       const next = new Set(prev);
-      const nowPinned = !next.has(roomId);
+      const nowPinned = !alreadyPinned;
       if (nowPinned) next.add(roomId); else next.delete(roomId);
       setRoomPinned(roomId, nowPinned).catch(() => {});
       return next;
