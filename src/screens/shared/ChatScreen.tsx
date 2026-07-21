@@ -670,6 +670,16 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         style={{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
         resizeMode="cover"
         fadeDuration={0}
+        onError={() => {
+          // A previously-picked custom wallpaper is a temp cache-file URI that
+          // isn't guaranteed to survive an app restart — if it's gone, fall
+          // back to the bundled default instead of rendering nothing.
+          if (wallpaperUri) {
+            console.log('[ChatScreen] Custom wallpaper failed to load, falling back to default:', wallpaperUri);
+            setWallpaperUri(null);
+            setChatWallpaper(null).catch(() => {});
+          }
+        }}
       />
 
       {/* ── LAYER 2: Header ── */}
