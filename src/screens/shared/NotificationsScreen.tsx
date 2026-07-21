@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppNotification, NotificationType } from '../../types';
-import { getNotifications, markAsRead, markAllRead } from '../../api/notificationApi';
+import { getNotifications, markAsRead, markAllRead, deleteNotification } from '../../api/notificationApi';
 import { getDismissedNotificationIds, addDismissedNotificationId } from '../../utils/storage';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -278,8 +278,15 @@ export default function NotificationsScreen({ navigation }: { navigation?: any }
   };
 
   const handleDeleteNotification = (id: string) => {
-    addDismissedNotificationId(String(id)).catch(() => {});
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    // Ask the backend to actually delete it. Also persist a local dismissal
+    // regardless of whether that call succeeds — if the endpoint doesn't
+    // exist yet or the request fails, this still keeps it hidden on this
+    // device instead of it silently coming back.
+    deleteNotification(String(id)).catch((err) => {
+      console.log('[Notifications] DELETE /notifications/' + id + ' failed:', err?.response?.status ?? err?.message);
+    });
+    addDismissedNotificationId(String(id)).catch(() => {});
   };
 
   // All hooks must appear before any early return

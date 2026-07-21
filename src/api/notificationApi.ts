@@ -35,3 +35,22 @@ export async function markAllRead(): Promise<void> {
   }
   await apiClient.patch('/notifications/read-all');
 }
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    const index = MOCK_NOTIFICATIONS.findIndex((n) => n.id === notificationId);
+    if (index !== -1) MOCK_NOTIFICATIONS.splice(index, 1);
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.delete(`/notifications/${notificationId}`);
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  if (USE_MOCK_DATA) {
+    MOCK_NOTIFICATIONS.length = 0;
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.delete('/notifications/all');
+}
