@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { OwnerStackParamList, Equipment, Booking } from '../../types';
+import { OwnerStackParamList, Equipment, Booking, AppNotification } from '../../types';
 import EquipmentImage from '../../components/EquipmentImage';
 import { getMyListings } from '../../api/equipmentApi';
 import { getIncomingBookings, confirmBooking, cancelBooking } from '../../api/bookingApi';
@@ -165,6 +165,37 @@ function MiniEquipmentCard({
 }
 
 
+const NOTIFICATION_ICON: Record<AppNotification['type'], keyof typeof Ionicons.glyphMap> = {
+  BOOKING: 'checkmark-circle',
+  PAYMENT: 'cash',
+  BATCH: 'leaf',
+  SYSTEM: 'information-circle',
+  NEW_EQUIPMENT: 'construct-outline',
+  NEW_LISTING: 'storefront-outline',
+  NEW_PRODUCE: 'leaf-outline',
+  PRICE_CHANGE: 'pricetag-outline',
+  BOOKING_ACCEPTED: 'checkmark-circle-outline',
+  NEW_FOLLOWER: 'person-add-outline',
+  NEW_ORDER: 'cart-outline',
+  ORDER_SHIPPED: 'cube-outline',
+  ORDER_COMPLETED: 'checkmark-done-outline',
+  ORDER_CANCELLED: 'close-circle-outline',
+  PAYMENT_RELEASED: 'wallet-outline',
+};
+
+function notificationColor(type: AppNotification['type'], colors: ThemeColors): string {
+  switch (type) {
+    case 'BOOKING':
+      return colors.primaryGreen;
+    case 'PAYMENT':
+      return colors.accentAmber;
+    case 'BATCH':
+      return '#2563EB';
+    default:
+      return colors.secondaryText;
+  }
+}
+
 export default function OwnerDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -177,6 +208,7 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [marketKey, setMarketKey] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -193,9 +225,10 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   const loadData = useCallback(async () => {
     setError(null);
     console.log('[OwnerDashboard] loading dashboard data...');
-    const [listingsRes, bookingsRes] = await Promise.allSettled([
+    const [listingsRes, bookingsRes, notificationsRes] = await Promise.allSettled([
       getMyListings(),
       getIncomingBookings(),
+      getNotifications(),
     ]);
 
     const errors: string[] = [];
@@ -214,6 +247,13 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
     } else {
       console.log('[OwnerDashboard] bookings FAILED:', bookingsRes.reason?.message ?? bookingsRes.reason);
       errors.push('Could not load incoming bookings.');
+    }
+
+    if (notificationsRes.status === 'fulfilled') {
+      console.log('[OwnerDashboard] notifications OK:', notificationsRes.value.length, 'items');
+      setNotifications(notificationsRes.value);
+    } else {
+      console.log('[OwnerDashboard] notifications FAILED:', notificationsRes.reason?.message ?? notificationsRes.reason);
     }
 
     if (errors.length > 0) {
@@ -330,6 +370,10 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
   const pendingBookings = bookings.filter((b) => b.status === 'PENDING');
   const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
   const activeBookings = bookings.filter(isBookingActive);
+
+  const recentActivity = [...notifications]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   const totalEarnings = completedBookings
     .filter((b) => b.paymentStatus === 'PAID')
@@ -511,6 +555,26 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
         refreshKey={marketKey}
         onSeeAll={() => (navigation.getParent() as any)?.navigate('OwnerNews')}
       />
+
+      {recentActivity.length > 0 && (
+        <View style={[styles.section, styles.lastSection]}>
+          <Text style={styles.sectionTitle}>My Recent Activity</Text>
+          {recentActivity.map((item) => {
+            const color = notificationColor(item.type, colors);
+            return (
+              <View key={String(item.id)} style={styles.activityRow}>
+                <View style={[styles.activityIconWrap, { backgroundColor: `${color}1A` }]}>
+                  <Ionicons name={NOTIFICATION_ICON[item.type]} size={18} color={color} />
+                </View>
+                <View style={styles.activityBody}>
+                  <Text style={styles.activityText} numberOfLines={2}>{item.title} — {item.message}</Text>
+                </View>
+                <Text style={styles.activityTime}>{formatDate(item.createdAt)}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </ScrollView>
     </SafeAreaView>
   );
@@ -695,6 +759,41 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
+    },
+    section: {
+      paddingHorizontal: 16,
+      marginTop: 20,
+    },
+    lastSection: {
+      marginBottom: 24,
+    },
+    activityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 12,
+      marginTop: 10,
+    },
+    activityIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    activityBody: {
+      flex: 1,
+    },
+    activityText: {
+      fontSize: 13,
+      color: colors.text,
+    },
+    activityTime: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginLeft: 8,
     },
     equipmentSectionTitle: {
       paddingHorizontal: 16,

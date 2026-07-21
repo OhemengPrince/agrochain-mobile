@@ -6,12 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BuyerStackParamList, ProduceBatch } from '../../types';
+import { BuyerStackParamList, ProduceBatch, AppNotification } from '../../types';
 import { getProduceCatalogue } from '../../api/produceApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { cardShadow } from '../../constants/shadows';
-import { formatCurrency, getCropEmoji } from '../../utils/formatters';
+import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import MarketNewsFeed from '../../components/MarketNewsFeed';
@@ -115,6 +115,37 @@ function FeaturedBatchCard({
   );
 }
 
+const NOTIFICATION_ICON: Record<AppNotification['type'], keyof typeof Ionicons.glyphMap> = {
+  BOOKING: 'checkmark-circle',
+  PAYMENT: 'cash',
+  BATCH: 'leaf',
+  SYSTEM: 'information-circle',
+  NEW_EQUIPMENT: 'construct-outline',
+  NEW_LISTING: 'storefront-outline',
+  NEW_PRODUCE: 'leaf-outline',
+  PRICE_CHANGE: 'pricetag-outline',
+  BOOKING_ACCEPTED: 'checkmark-circle-outline',
+  NEW_FOLLOWER: 'person-add-outline',
+  NEW_ORDER: 'cart-outline',
+  ORDER_SHIPPED: 'cube-outline',
+  ORDER_COMPLETED: 'checkmark-done-outline',
+  ORDER_CANCELLED: 'close-circle-outline',
+  PAYMENT_RELEASED: 'wallet-outline',
+};
+
+function notificationColor(type: AppNotification['type'], colors: ThemeColors): string {
+  switch (type) {
+    case 'BOOKING':
+      return colors.primaryGreen;
+    case 'PAYMENT':
+      return colors.accentAmber;
+    case 'BATCH':
+      return '#2563EB';
+    default:
+      return colors.secondaryText;
+  }
+}
+
 export default function BuyerHomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -126,6 +157,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   const [marketKey, setMarketKey] = useState(0);
   const [cropFilter, setCropFilter] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -149,6 +181,13 @@ export default function BuyerHomeScreen({ navigation }: Props) {
     } catch (err: any) {
       console.log('[BuyerHome] produce FAILED:', err?.message ?? err);
       setError(err?.response?.data?.message ?? 'Failed to load produce.');
+    }
+    try {
+      const notifs = await getNotifications();
+      console.log('[BuyerHome] notifications OK:', notifs.length, 'items');
+      setNotifications(notifs);
+    } catch (err: any) {
+      console.log('[BuyerHome] notifications FAILED:', err?.message ?? err);
     }
   }, []);
 
@@ -200,6 +239,10 @@ export default function BuyerHomeScreen({ navigation }: Props) {
   if (loading) {
     return <LoadingOverlay message="Loading marketplace..." />;
   }
+
+  const recentActivity = [...notifications]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -354,6 +397,26 @@ export default function BuyerHomeScreen({ navigation }: Props) {
               refreshKey={marketKey}
               onSeeAll={() => (navigation.getParent() as any)?.navigate('BuyerNews')}
             />
+
+            {recentActivity.length > 0 && (
+              <View style={[styles.section, styles.lastSection]}>
+                <Text style={styles.sectionTitle}>My Recent Activity</Text>
+                {recentActivity.map((item) => {
+                  const color = notificationColor(item.type, colors);
+                  return (
+                    <View key={String(item.id)} style={styles.activityRow}>
+                      <View style={[styles.activityIconWrap, { backgroundColor: `${color}1A` }]}>
+                        <Ionicons name={NOTIFICATION_ICON[item.type]} size={18} color={color} />
+                      </View>
+                      <View style={styles.activityBody}>
+                        <Text style={styles.activityText} numberOfLines={2}>{item.title} — {item.message}</Text>
+                      </View>
+                      <Text style={styles.activityTime}>{formatDate(item.createdAt)}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -566,6 +629,41 @@ function createStyles(colors: ThemeColors) {
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
+    },
+    section: {
+      paddingHorizontal: 16,
+      marginTop: 20,
+    },
+    lastSection: {
+      marginBottom: 24,
+    },
+    activityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 12,
+      marginTop: 10,
+    },
+    activityIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    activityBody: {
+      flex: 1,
+    },
+    activityText: {
+      fontSize: 13,
+      color: colors.text,
+    },
+    activityTime: {
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginLeft: 8,
     },
     seeAllText: {
       fontSize: 13,
