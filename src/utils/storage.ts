@@ -19,6 +19,8 @@ const BLOCKED_CONTACTS_KEY = '@agrochain/blocked_contacts';
 const REPORTED_CONTACTS_KEY = '@agrochain/reported_contacts';
 const CHAT_WALLPAPER_KEY = '@agrochain/chat_wallpaper';
 const CHAT_BUBBLE_THEME_KEY = '@agrochain/chat_bubble_theme';
+const CERTIFICATIONS_KEY = '@agrochain/certifications';
+const APP_RATING_KEY = '@agrochain/app_rating';
 
 export interface StoredComment {
   id: string;
@@ -373,6 +375,77 @@ export async function setChatBubbleTheme(themeKey: string): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(CHAT_BUBBLE_THEME_KEY, themeKey);
+}
+
+// ── Certifications — device-local; no backend endpoint exists for these ──
+export interface StoredCertification {
+  id: string;
+  name: string;
+  issuer?: string;
+  photoUri?: string;
+  addedAt: string;
+}
+
+export async function getCertifications(): Promise<StoredCertification[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[CERTIFICATIONS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(CERTIFICATIONS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function addCertification(cert: Omit<StoredCertification, 'id' | 'addedAt'>): Promise<StoredCertification> {
+  const all = await getCertifications();
+  const created: StoredCertification = {
+    ...cert,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    addedAt: new Date().toISOString(),
+  };
+  const updated = [...all, created];
+  const json = JSON.stringify(updated);
+  if (USE_MOCK_DATA) {
+    memoryStore[CERTIFICATIONS_KEY] = json;
+  } else {
+    await AsyncStorage.setItem(CERTIFICATIONS_KEY, json);
+  }
+  return created;
+}
+
+export async function removeCertification(id: string): Promise<void> {
+  const all = await getCertifications();
+  const json = JSON.stringify(all.filter((c) => c.id !== id));
+  if (USE_MOCK_DATA) {
+    memoryStore[CERTIFICATIONS_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(CERTIFICATIONS_KEY, json);
+}
+
+// ── In-app "Rate the App" feedback — device-local; no store listing or
+// backend endpoint exists yet to send this to ──────────────────────────
+export interface StoredAppRating {
+  stars: number;
+  feedback?: string;
+  submittedAt: string;
+}
+
+export async function getAppRating(): Promise<StoredAppRating | null> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[APP_RATING_KEY];
+    return raw ? JSON.parse(raw) : null;
+  }
+  const raw = await AsyncStorage.getItem(APP_RATING_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export async function setAppRating(rating: StoredAppRating): Promise<void> {
+  const json = JSON.stringify(rating);
+  if (USE_MOCK_DATA) {
+    memoryStore[APP_RATING_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(APP_RATING_KEY, json);
 }
 
 async function getAllItemComments(): Promise<Record<string, StoredComment[]>> {

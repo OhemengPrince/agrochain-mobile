@@ -39,6 +39,11 @@ import { updatePhotoUrl } from '../../api/userApi';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
 import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+import RateAppModal from '../../components/RateAppModal';
+import ContactSupportModal from '../../components/ContactSupportModal';
+import MyCertificationsModal from '../../components/MyCertificationsModal';
+import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -130,6 +135,11 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [rateAppVisible, setRateAppVisible] = useState(false);
+  const [contactSupportVisible, setContactSupportVisible] = useState(false);
+  const [certificationsVisible, setCertificationsVisible] = useState(false);
+  const [seasonReportVisible, setSeasonReportVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -229,6 +239,15 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const totalSold = batches
     .filter((b) => b.status === 'SOLD' && b.pricePerKg !== undefined)
     .reduce((sum, b) => sum + b.quantityKg * (b.pricePerKg ?? 0), 0);
+
+  const seasonReportStats: ReportStat[] = [
+    { icon: 'leaf-outline', label: 'Harvest Batches Logged', value: String(batches.length) },
+    { icon: 'checkmark-done-outline', label: 'Batches Sold', value: String(batches.filter((b) => b.status === 'SOLD').length) },
+    { icon: 'cash-outline', label: 'Produce Revenue', value: formatCurrency(totalSold) },
+    { icon: 'construct-outline', label: 'Equipment Rentals', value: String(bookings.length) },
+    { icon: 'wallet-outline', label: 'Spent on Rentals', value: formatCurrency(totalSpent) },
+    { icon: 'trending-up-outline', label: 'Total Earned', value: formatCurrency(earnings?.totalEarned ?? 0) },
+  ];
 
   const styles = createStyles(colors);
   const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
@@ -478,15 +497,27 @@ export default function FarmerProfileScreen({ navigation }: Props) {
         onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
-        onChangePassword={() => showComingSoon('Change Password')}
-        onRateApp={() => showComingSoon('Rate the App')}
-        onContactSupport={() => showComingSoon('Contact Support')}
+        onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
+        onRateApp={() => { setDropdownVisible(false); setRateAppVisible(true); }}
+        onContactSupport={() => { setDropdownVisible(false); setContactSupportVisible(true); }}
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
-          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => showComingSoon('My Certifications') },
-          { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => showComingSoon('Season Report') },
+          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
+          { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
+      />
+
+      <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
+      <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
+      <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
+      <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <SeasonReportModal
+        visible={seasonReportVisible}
+        onClose={() => setSeasonReportVisible(false)}
+        title="Season Report"
+        periodLabel={`As of ${formatDate(new Date().toISOString())}`}
+        stats={seasonReportStats}
       />
 
       <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />

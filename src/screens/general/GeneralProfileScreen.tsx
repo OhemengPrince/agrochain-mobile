@@ -25,7 +25,7 @@ import { getMyMarketplaceListings } from '../../api/produceApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import PersonalInfoSheet from '../../components/PersonalInfoSheet';
@@ -37,7 +37,13 @@ import { uploadImage } from '../../api/fileApi';
 import { updatePhotoUrl } from '../../api/userApi';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
+import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+import RateAppModal from '../../components/RateAppModal';
+import ContactSupportModal from '../../components/ContactSupportModal';
+import MyCertificationsModal from '../../components/MyCertificationsModal';
+import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
@@ -72,11 +78,23 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
   const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [rateAppVisible, setRateAppVisible] = useState(false);
+  const [contactSupportVisible, setContactSupportVisible] = useState(false);
+  const [certificationsVisible, setCertificationsVisible] = useState(false);
+  const [seasonReportVisible, setSeasonReportVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getEarnings().then(r => setEarnings(r.data)).catch(() => {});
-    }, [])
+      if (user?.id) {
+        getFollowCounts(user.id)
+          .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+      }
+    }, [user?.id])
   );
 
   const loadData = useCallback(async () => {
@@ -162,6 +180,13 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const activeListings = listings.filter((l) => l.status === 'ACTIVE').length;
   const totalInquiries = listings.reduce((sum, l) => sum + l.inquiriesCount, 0);
 
+  const seasonReportStats: ReportStat[] = [
+    { icon: 'pricetags-outline', label: 'Listings Posted', value: String(listings.length) },
+    { icon: 'flash-outline', label: 'Active Listings', value: String(activeListings) },
+    { icon: 'chatbubbles-outline', label: 'Inquiries Received', value: String(totalInquiries) },
+    { icon: 'trending-up-outline', label: 'Total Earned', value: formatCurrency(earnings?.totalEarned ?? 0) },
+  ];
+
   const styles = createStyles(colors);
   const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
 
@@ -226,15 +251,21 @@ export default function GeneralProfileScreen({ navigation }: Props) {
               <Text style={styles.statLabel}>Listings</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{activeListings}</Text>
-              <Text style={styles.statLabel}>Active</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'followers', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followerCount}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </Pressable>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{totalInquiries}</Text>
-              <Text style={styles.statLabel}>Inquiries</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'following', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followingCount}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -354,19 +385,33 @@ export default function GeneralProfileScreen({ navigation }: Props) {
         onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
-        onChangePassword={() => showComingSoon('Change Password')}
-        onRateApp={() => showComingSoon('Rate the App')}
-        onContactSupport={() => showComingSoon('Contact Support')}
+        onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
+        onRateApp={() => { setDropdownVisible(false); setRateAppVisible(true); }}
+        onContactSupport={() => { setDropdownVisible(false); setContactSupportVisible(true); }}
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
           {
-            icon: 'ribbon-outline',
+            icon: 'pricetags-outline',
             label: 'My Listings',
             onPress: goToMyListings,
           },
           { icon: 'bar-chart-outline', label: 'Order History', onPress: () => showComingSoon('Order History') },
+          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
+          { icon: 'stats-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
+      />
+
+      <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
+      <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
+      <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
+      <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <SeasonReportModal
+        visible={seasonReportVisible}
+        onClose={() => setSeasonReportVisible(false)}
+        title="Season Report"
+        periodLabel={`As of ${formatDate(new Date().toISOString())}`}
+        stats={seasonReportStats}
       />
 
       <PersonalInfoSheet

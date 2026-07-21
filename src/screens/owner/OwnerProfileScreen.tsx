@@ -38,7 +38,13 @@ import { updatePhotoUrl } from '../../api/userApi';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
+import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+import RateAppModal from '../../components/RateAppModal';
+import ContactSupportModal from '../../components/ContactSupportModal';
+import MyCertificationsModal from '../../components/MyCertificationsModal';
+import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
@@ -138,11 +144,23 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
   const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [rateAppVisible, setRateAppVisible] = useState(false);
+  const [contactSupportVisible, setContactSupportVisible] = useState(false);
+  const [certificationsVisible, setCertificationsVisible] = useState(false);
+  const [seasonReportVisible, setSeasonReportVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getEarnings().then(r => setEarnings(r.data)).catch(() => {});
-    }, [])
+      if (user?.id) {
+        getFollowCounts(user.id)
+          .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+      }
+    }, [user?.id])
   );
 
   const loadData = useCallback(async () => {
@@ -258,6 +276,15 @@ export default function OwnerProfileScreen({ navigation }: Props) {
     })
     .reduce((sum, b) => sum + b.totalCost, 0);
 
+  const seasonReportStats: ReportStat[] = [
+    { icon: 'construct-outline', label: 'Equipment Listed', value: String(listings.length) },
+    { icon: 'checkmark-done-outline', label: 'Completed Bookings', value: String(completedBookings.length) },
+    { icon: 'time-outline', label: 'Pending Bookings', value: String(pendingBookings.length) },
+    { icon: 'flash-outline', label: 'Active Rentals', value: String(activeBookings.length) },
+    { icon: 'cash-outline', label: 'This Month Earnings', value: formatCurrency(thisMonthEarnings) },
+    { icon: 'trending-up-outline', label: 'Total Earnings', value: formatCurrency(totalEarnings) },
+  ];
+
   const styles = createStyles(colors);
   const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
 
@@ -322,15 +349,21 @@ export default function OwnerProfileScreen({ navigation }: Props) {
               <Text style={styles.statLabel}>Equipment</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{completedBookings.length}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'followers', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followerCount}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </Pressable>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{pendingBookings.length}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'following', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followingCount}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -502,15 +535,28 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
-        onChangePassword={() => showComingSoon('Change Password')}
-        onRateApp={() => showComingSoon('Rate the App')}
-        onContactSupport={() => showComingSoon('Contact Support')}
+        onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
+        onRateApp={() => { setDropdownVisible(false); setRateAppVisible(true); }}
+        onContactSupport={() => { setDropdownVisible(false); setContactSupportVisible(true); }}
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
           { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
-          { icon: 'bar-chart-outline', label: 'Earnings Report', onPress: () => showComingSoon('Earnings Report') },
+          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
+          { icon: 'bar-chart-outline', label: 'Earnings Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
+      />
+
+      <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
+      <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
+      <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
+      <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <SeasonReportModal
+        visible={seasonReportVisible}
+        onClose={() => setSeasonReportVisible(false)}
+        title="Earnings Report"
+        periodLabel={`As of ${formatDate(new Date().toISOString())}`}
+        stats={seasonReportStats}
       />
 
       <Modal

@@ -25,7 +25,7 @@ import { getProduceCatalogue } from '../../api/produceApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
 import ProfileTabs from '../../components/ProfileTabs';
@@ -36,7 +36,13 @@ import { uploadImage } from '../../api/fileApi';
 import { updatePhotoUrl } from '../../api/userApi';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
+import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+import RateAppModal from '../../components/RateAppModal';
+import ContactSupportModal from '../../components/ContactSupportModal';
+import MyCertificationsModal from '../../components/MyCertificationsModal';
+import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
@@ -84,11 +90,23 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
   const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [rateAppVisible, setRateAppVisible] = useState(false);
+  const [contactSupportVisible, setContactSupportVisible] = useState(false);
+  const [certificationsVisible, setCertificationsVisible] = useState(false);
+  const [seasonReportVisible, setSeasonReportVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getEarnings().then(r => setEarnings(r.data)).catch(() => {});
-    }, [])
+      if (user?.id) {
+        getFollowCounts(user.id)
+          .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+      }
+    }, [user?.id])
   );
 
   const loadData = useCallback(async () => {
@@ -175,6 +193,13 @@ export default function BuyerProfileScreen({ navigation }: Props) {
     }
   }
 
+  const seasonReportStats: ReportStat[] = [
+    { icon: 'cart-outline', label: 'Purchases', value: String(RECENT_PURCHASES.length) },
+    { icon: 'people-outline', label: 'Suppliers Worked With', value: String(suppliers.length) },
+    { icon: 'leaf-outline', label: 'Produce Batches Browsed', value: String(batches.length) },
+    { icon: 'trending-up-outline', label: 'Total Spent', value: formatCurrency(earnings?.totalEarned ?? 0) },
+  ];
+
   const styles = createStyles(colors);
   const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
 
@@ -234,15 +259,21 @@ export default function BuyerProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.statsStrip}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{RECENT_PURCHASES.length}</Text>
-              <Text style={styles.statLabel}>Purchases</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'followers', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followerCount}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </Pressable>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{suppliers.length}</Text>
-              <Text style={styles.statLabel}>Suppliers</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'following', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followingCount}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </Pressable>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>4.8 ⭐</Text>
@@ -368,15 +399,29 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
-        onChangePassword={() => showComingSoon('Change Password')}
-        onRateApp={() => showComingSoon('Rate the App')}
-        onContactSupport={() => showComingSoon('Contact Support')}
+        onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
+        onRateApp={() => { setDropdownVisible(false); setRateAppVisible(true); }}
+        onContactSupport={() => { setDropdownVisible(false); setContactSupportVisible(true); }}
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
           { icon: 'document-outline', label: 'My PDF Reports', onPress: () => showComingSoon('My PDF Reports') },
           { icon: 'globe-outline', label: 'Export Preferences', onPress: () => showComingSoon('Export Preferences') },
+          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
+          { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
+      />
+
+      <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
+      <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
+      <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
+      <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <SeasonReportModal
+        visible={seasonReportVisible}
+        onClose={() => setSeasonReportVisible(false)}
+        title="Season Report"
+        periodLabel={`As of ${formatDate(new Date().toISOString())}`}
+        stats={seasonReportStats}
       />
 
       <Modal

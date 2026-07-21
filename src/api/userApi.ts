@@ -97,6 +97,12 @@ export async function updatePhotoUrl(photoUrl: string): Promise<void> {
   await apiClient.put('/users/me/photo-url', { photoUrl });
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  if (USE_MOCK_DATA) return;
+  console.log('[API] PUT /users/me/password');
+  await apiClient.put('/users/me/password', { currentPassword, newPassword });
+}
+
 export async function getPublicProfile(userId: string): Promise<User | null> {
   if (USE_MOCK_DATA) {
     const found = MOCK_USERS.find((u) => u.id === userId);
