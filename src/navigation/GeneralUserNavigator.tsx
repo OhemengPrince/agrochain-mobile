@@ -91,6 +91,8 @@ function ProfileStack() {
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Withdrawal" component={WithdrawalScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="FollowList" component={FollowListScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
