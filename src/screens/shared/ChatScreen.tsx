@@ -682,6 +682,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onDotsPress={() => setCallOptionsVisible(true)}
         colors={colors} s={s}
         statusLabel={otherUserId && !socketConnected ? 'Connecting…' : undefined}
+        isBlocked={isBlocked}
+        onUnblockPress={handleBlockToggle}
       />
 
       {/* ── LAYER 3: Search bar (below header, above messages) ── */}
@@ -869,11 +871,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 // ChatHeader
 // ─────────────────────────────────────────────────────────────
 
-function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s, statusLabel }: {
+function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s, statusLabel, isBlocked, onUnblockPress }: {
   name: string; role: string; initial: string; profileImageUri: string | null;
   isDarkMode: boolean; onBack: () => void;
   onContactPress: () => void; onDotsPress: () => void;
   colors: ThemeColors; s: any; statusLabel?: string;
+  isBlocked?: boolean; onUnblockPress?: () => void;
 }) {
   return (
     <View style={isDarkMode ? s.headerDark : s.headerLight}>
@@ -899,10 +902,17 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
             </View>
             <View style={s.headerInfo}>
               <Text style={s.headerName} numberOfLines={1}>{name}</Text>
-              <View style={s.onlineRow}>
-                <ActiveIndicator size={6} />
-                <Text style={s.onlineSub}>{statusLabel ?? `Active now · ${role}`}</Text>
-              </View>
+              {isBlocked ? (
+                <TouchableOpacity onPress={onUnblockPress} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Ionicons name="ban" size={12} color="#FFB4B4" />
+                  <Text style={{ fontSize: 12, color: '#FFB4B4', fontWeight: '700' }}>Blocked · tap to unblock</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={s.onlineRow}>
+                  <ActiveIndicator size={6} />
+                  <Text style={s.onlineSub}>{statusLabel ?? `Active now · ${role}`}</Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
 

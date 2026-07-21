@@ -110,18 +110,18 @@ function SwipeableRoomRow({
 
   return (
     <Animated.View style={{ maxHeight: rowHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 200] }) }}>
-      <View style={styles.swipeWrap}>
-        {/* Pin action — revealed behind on the left when swiping right */}
+      <View style={[styles.swipeWrap, { overflow: 'hidden' }]}>
+        {/* Pin action — revealed behind on the left ONLY while swiping right */}
         <View style={[styles.pinAction, { backgroundColor: colors.card }]}>
-          <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={22} color={colors.primaryGreen} />
+          <Text style={{ fontSize: 24 }}>📌</Text>
         </View>
-        {/* Delete action — revealed behind on the right when swiping left */}
+        {/* Delete action — revealed behind on the right ONLY while swiping left */}
         <View style={[styles.deleteAction, { backgroundColor: colors.card }]}>
           <Pressable onPress={() => { resetSwipe(); onDelete(); }} hitSlop={8}>
             <Ionicons name="trash" size={24} color="#EF4444" />
           </Pressable>
         </View>
-        <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+        <Animated.View style={{ transform: [{ translateX }], backgroundColor: colors.cardBackground }} {...panResponder.panHandlers}>
           {children}
         </Animated.View>
       </View>
@@ -192,16 +192,15 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
 
   // Visible rooms: hidden ("deleted") ones stay hidden unless a newer
   // message has arrived since the hide time — then they reappear. Blocked
-  // contacts are hidden outright.
+  // contacts stay in the list (shown with a "Blocked" tag) rather than
+  // disappearing — you can still open the conversation to unblock them.
   const visibleRooms = useMemo(() => {
     return rooms.filter((room) => {
-      const other = getOtherParticipant(room);
-      if (blockedIds.has(String(other.id))) return false;
       const hiddenSince = hiddenAt[String(room.id)];
       if (!hiddenSince) return true;
       return new Date(room.lastMessageAt).getTime() > new Date(hiddenSince).getTime();
     });
-  }, [rooms, hiddenAt, blockedIds, user]);
+  }, [rooms, hiddenAt]);
 
   // Pinned rooms float to the top, each group still ordered by recency.
   const orderedRooms = useMemo(() => {
@@ -284,14 +283,21 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
             <View style={s.rowTop}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
                 {pinnedIds.has(roomId) && (
-                  <Ionicons name="pin" size={12} color={colors.primaryGreen} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 12, marginRight: 4 }}>📌</Text>
                 )}
                 <Text style={s.name} numberOfLines={1}>{other.fullName ?? other.email ?? 'User'}</Text>
               </View>
               <Text style={s.time}>{formatTime(item.lastMessageAt)}</Text>
             </View>
             <View style={s.rowBottom}>
-              <Text style={s.preview} numberOfLines={1}>Tap to open conversation</Text>
+              {blockedIds.has(String(other.id)) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="ban" size={12} color="#EF4444" />
+                  <Text style={[s.preview, { color: '#EF4444', fontWeight: '600' }]}>Blocked</Text>
+                </View>
+              ) : (
+                <Text style={s.preview} numberOfLines={1}>Tap to open conversation</Text>
+              )}
               {item.unreadCount > 0 && (
                 <View style={s.badge}>
                   <Text style={s.badgeText}>{item.unreadCount > 99 ? '99+' : String(item.unreadCount)}</Text>
