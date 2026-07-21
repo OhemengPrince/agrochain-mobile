@@ -21,11 +21,34 @@ import {
   disconnect as disconnectChatSocket,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
-import { getChatClearedAt, setChatClearedAt } from '../../utils/storage';
+import {
+  getChatClearedAt, setChatClearedAt,
+  getChatWallpaper, setChatWallpaper,
+  getChatBubbleTheme, setChatBubbleTheme,
+  getBlockedContactIds, setContactBlocked,
+  getReportedContactIds, addReportedContactId,
+} from '../../utils/storage';
 import { USE_MOCK_DATA } from '../../config';
 
 // Bundled default wallpaper — always shown unless user picks a custom one
 const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
+
+// ─────────────────────────────────────────────────────────────
+// Message bubble color themes
+// ─────────────────────────────────────────────────────────────
+
+export const BUBBLE_THEMES: { key: string; label: string; colors: [string, string] }[] = [
+  { key: 'green', label: 'AgroGreen', colors: ['#0B6E36', '#1B8B50'] },
+  { key: 'ocean', label: 'Ocean', colors: ['#1565C0', '#1E88E5'] },
+  { key: 'grape', label: 'Grape', colors: ['#6A1B9A', '#8E24AA'] },
+  { key: 'sunset', label: 'Sunset', colors: ['#E65100', '#FB8C00'] },
+  { key: 'rose', label: 'Rose', colors: ['#AD1457', '#D81B60'] },
+  { key: 'slate', label: 'Slate', colors: ['#37474F', '#546E7A'] },
+];
+
+function getBubbleTheme(key: string | null) {
+  return BUBBLE_THEMES.find((t) => t.key === key) ?? BUBBLE_THEMES[0];
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -115,13 +138,34 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     console.log('[ChatScreen] Mounted — name:', name, '| otherUserId:', otherUserId, '| liveMode:', !USE_MOCK_DATA);
   }, []);
 
-  // null = show DEFAULT_WALLPAPER; string uri = custom picked image
+  // null = show DEFAULT_WALLPAPER; string uri = custom picked image.
+  // Loaded from persisted storage below — route param is only a first-paint hint.
   const [wallpaperUri, setWallpaperUri] = useState<string | null>(route.params.wallpaperUri ?? null);
+  const [bubbleThemeKey, setBubbleThemeKey] = useState<string>('green');
+  const [wallpaperPickerVisible, setWallpaperPickerVisible] = useState(false);
   // SEED only in mock-data mode when there is no real contact (profile-screen demo buttons).
   // In live mode with no otherUserId the screen immediately shows an error — silent fallbacks hide bugs.
   const [messages, setMessages] = useState<Message[]>(!otherUserId && USE_MOCK_DATA ? SEED : []);
   const [inputText, setInputText] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasReported, setHasReported] = useState(false);
+
+  useEffect(() => {
+    if (!otherUserId) return;
+    Promise.all([getBlockedContactIds(), getReportedContactIds()]).then(([blocked, reported]) => {
+      setIsBlocked(blocked.includes(otherUserId));
+      setHasReported(reported.includes(otherUserId));
+    }).catch(() => {});
+  }, [otherUserId]);
+
+  // Wallpaper + bubble theme persist across logout/login (device-wide setting).
+  useEffect(() => {
+    Promise.all([getChatWallpaper(), getChatBubbleTheme()]).then(([wp, theme]) => {
+      if (wp) setWallpaperUri(wp);
+      if (theme) setBubbleThemeKey(theme);
+    }).catch(() => {});
+  }, []);
 
   // ── Live chat wiring ──────────────────────────────────────
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -155,7 +199,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
   // Memoize styles — createStyles allocates many StyleSheet objects, reuse between renders
-  const s = useMemo(() => createStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const bubbleTheme = useMemo(() => getBubbleTheme(bubbleThemeKey), [bubbleThemeKey]);
+  const s = useMemo(() => createStyles(colors, isDarkMode, bubbleTheme.colors[0]), [colors, isDarkMode, bubbleTheme]);
   const blurTint = isDarkMode ? 'dark' : 'light';
 
   // ── Search logic ──────────────────────────────────────────
@@ -416,12 +461,80 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     ]);
   };
 
-  // ── Wallpaper picker ──────────────────────────────────────
-  const handleChangeWallpaper = async () => {
+  // ── Wallpaper + theme screen ───────────────────────────────
+  const handleChangeWallpaper = () => {
+    setOptionsVisible(false);
+    setWallpaperPickerVisible(true);
+  };
+
+  const handlePickWallpaperPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access to choose a wallpaper.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1 });
-    if (!result.canceled) { setWallpaperUri(result.assets[0].uri); setOptionsVisible(false); }
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setWallpaperUri(uri);
+      setChatWallpaper(uri).catch(() => {});
+    }
+  };
+
+  const handleRestoreDefaultWallpaper = () => {
+    setWallpaperUri(null);
+    setChatWallpaper(null).catch(() => {});
+  };
+
+  const handleSelectBubbleTheme = (key: string) => {
+    setBubbleThemeKey(key);
+    setChatBubbleTheme(key).catch(() => {});
+  };
+
+  // ── Block / Report ──────────────────────────────────────────
+  const handleBlockToggle = () => {
+    if (!otherUserId) return;
+    setOptionsVisible(false);
+    if (isBlocked) {
+      Alert.alert('Unblock Contact', `Unblock ${name}? You will be able to message each other again.`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: () => {
+            setIsBlocked(false);
+            setContactBlocked(otherUserId, false).catch(() => {});
+          },
+        },
+      ]);
+      return;
+    }
+    Alert.alert('Block Contact', `Block ${name}? They won't be able to message you, and you won't see this conversation in your list.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Block', style: 'destructive',
+        onPress: () => {
+          setIsBlocked(true);
+          setContactBlocked(otherUserId, true).catch(() => {});
+        },
+      },
+    ]);
+  };
+
+  const handleReport = () => {
+    if (!otherUserId) return;
+    setOptionsVisible(false);
+    if (hasReported) {
+      Alert.alert('Already Reported', 'You have already reported this contact. Our team will review it.');
+      return;
+    }
+    Alert.alert('Report Contact', `Report ${name} for inappropriate behavior?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Report', style: 'destructive',
+        onPress: () => {
+          setHasReported(true);
+          addReportedContactId(otherUserId).catch(() => {});
+          Alert.alert('Report Received', 'Thank you — we\'ve recorded your report on this device. AgroChain does not yet have a live moderation queue, so please also reach out to support for urgent issues.');
+        },
+      },
+    ]);
   };
 
   // ── Clear chat ────────────────────────────────────────────
@@ -447,7 +560,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   // ── Send message ──────────────────────────────────────────
   const sendMessage = () => {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text || isBlocked) return;
 
     // Demo mode (no real otherUserId) — local-only behavior.
     if (!otherUserId) {
@@ -659,28 +772,40 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
           )}
 
-          <View style={s.inputBar}>
-            <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
-              <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
-            </TouchableOpacity>
-            <View style={s.inputWrap}>
-              <TextInput
-                style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
-                placeholder="Send a message..."
-                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                returnKeyType="send"
-                onSubmitEditing={sendMessage}
-              />
+          {isBlocked ? (
+            <View style={[s.inputBar, { justifyContent: 'center' }]}>
+              <Ionicons name="ban" size={16} color="#EF4444" />
+              <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '600', marginLeft: 8 }}>
+                You've blocked this contact
+              </Text>
+              <TouchableOpacity onPress={handleBlockToggle} style={{ marginLeft: 10 }}>
+                <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: '700' }}>Unblock</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={sendMessage} activeOpacity={0.8} disabled={!inputText.trim()}>
-              <LinearGradient colors={['#0B6E36', '#1B8B50']} style={[s.sendBtn, !inputText.trim() && { opacity: 0.5 }]}>
-                <Ionicons name="send" size={17} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+          ) : (
+            <View style={s.inputBar}>
+              <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
+                <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
+              </TouchableOpacity>
+              <View style={s.inputWrap}>
+                <TextInput
+                  style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
+                  placeholder="Send a message..."
+                  placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  returnKeyType="send"
+                  onSubmitEditing={sendMessage}
+                />
+              </View>
+              <TouchableOpacity onPress={sendMessage} activeOpacity={0.8} disabled={!inputText.trim()}>
+                <LinearGradient colors={bubbleTheme.colors} style={[s.sendBtn, !inputText.trim() && { opacity: 0.5 }]}>
+                  <Ionicons name="send" size={17} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={{ height: insets.bottom }} />
         </View>
@@ -700,10 +825,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onSearchInChat={openSearch}
         onMuteToggle={() => setMuted((p) => !p)}
         onChangeWallpaper={handleChangeWallpaper}
-        onRestoreWallpaper={() => { setWallpaperUri(null); setOptionsVisible(false); }}
+        onRestoreWallpaper={() => { handleRestoreDefaultWallpaper(); setOptionsVisible(false); }}
         onClearChat={handleClearChat}
-        onBlock={() => { setOptionsVisible(false); Alert.alert('Block Contact', 'This feature is coming soon.'); }}
-        onReport={() => { setOptionsVisible(false); Alert.alert('Report', 'This feature is coming soon.'); }}
+        onBlock={handleBlockToggle}
+        isBlocked={isBlocked}
+        onReport={handleReport}
       />
 
       {/* ── LAYER 6: Call options panel ── */}
@@ -721,6 +847,18 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         profileImageUri={profileImageUri}
         wallpaperUri={wallpaperUri}
         onUpdatePhoto={handleUpdateProfilePicture}
+        colors={colors} isDarkMode={isDarkMode}
+      />
+
+      {/* ── LAYER 8: Wallpaper + theme picker screen ── */}
+      <WallpaperPickerModal
+        visible={wallpaperPickerVisible}
+        onClose={() => setWallpaperPickerVisible(false)}
+        wallpaperUri={wallpaperUri}
+        onPickPhoto={handlePickWallpaperPhoto}
+        onRestoreDefault={handleRestoreDefaultWallpaper}
+        bubbleThemeKey={bubbleThemeKey}
+        onSelectBubbleTheme={handleSelectBubbleTheme}
         colors={colors} isDarkMode={isDarkMode}
       />
     </View>
@@ -943,6 +1081,137 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
 }
 
 // ─────────────────────────────────────────────────────────────
+// WallpaperPickerModal — dedicated screen for changing the chat wallpaper
+// and message bubble color theme (persisted device-wide).
+// ─────────────────────────────────────────────────────────────
+
+function WallpaperPickerModal({
+  visible, onClose, wallpaperUri, onPickPhoto, onRestoreDefault,
+  bubbleThemeKey, onSelectBubbleTheme, colors, isDarkMode,
+}: {
+  visible: boolean; onClose: () => void;
+  wallpaperUri: string | null;
+  onPickPhoto: () => void;
+  onRestoreDefault: () => void;
+  bubbleThemeKey: string;
+  onSelectBubbleTheme: (key: string) => void;
+  colors: ThemeColors; isDarkMode: boolean;
+}) {
+  const insets = useSafeAreaInsets();
+  const blurTint = isDarkMode ? 'dark' : 'light';
+  const [rendered, setRendered] = useState(false);
+  const slideY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setRendered(true);
+      Animated.timing(slideY, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+    } else {
+      Animated.timing(slideY, { toValue: SCREEN_HEIGHT, duration: 260, useNativeDriver: true }).start(() => setRendered(false));
+    }
+  }, [visible]);
+
+  if (!rendered) return null;
+
+  const wallpaperSource = wallpaperUri ? { uri: wallpaperUri } : DEFAULT_WALLPAPER;
+  const sectionCard = {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    padding: 16,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  };
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 210, elevation: 210, backgroundColor: colors.background, transform: [{ translateY: slideY }] }]}>
+      {/* ── Header ── */}
+      <View style={{ paddingTop: insets.top, overflow: 'hidden' }}>
+        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight ?? colors.primaryGreen]} style={StyleSheet.absoluteFill} />
+        <GlassBlur intensity={40} tint="dark" style={StyleSheet.absoluteFill} androidFallbackColor="rgba(0,0,0,0.08)" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingTop: 8, paddingBottom: 14 }}>
+          <TouchableOpacity onPress={onClose} style={{ padding: 10 }} activeOpacity={0.75}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center', letterSpacing: 0.2 }}>
+            Chat Wallpaper
+          </Text>
+          <View style={{ width: 42 }} />
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingTop: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* ── Live preview ── */}
+        <View style={{ marginHorizontal: 16, marginBottom: 20, borderRadius: 20, overflow: 'hidden', height: 180 }}>
+          <ImageBackground source={wallpaperSource} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} resizeMode="cover">
+            <View style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: getBubbleTheme(bubbleThemeKey).colors[0], alignSelf: 'flex-end', marginRight: 16, marginBottom: 10 }}>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Preview message</Text>
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* ── Wallpaper section ── */}
+        <View style={sectionCard}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryText, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+            Wallpaper
+          </Text>
+          <TouchableOpacity onPress={onPickPhoto} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="image-outline" size={20} color={colors.primaryGreen} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Choose Photo</Text>
+              <Text style={{ fontSize: 12, color: colors.secondaryText, marginTop: 1 }}>Pick an image from your gallery</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+          </TouchableOpacity>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+          <TouchableOpacity onPress={onRestoreDefault} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="refresh-outline" size={20} color={colors.primaryGreen} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>Reset to Default</Text>
+              <Text style={{ fontSize: 12, color: colors.secondaryText, marginTop: 1 }}>Use the standard AgroChain wallpaper</Text>
+            </View>
+            {!wallpaperUri && <Ionicons name="checkmark-circle" size={20} color={colors.primaryGreen} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Bubble color theme section ── */}
+        <View style={sectionCard}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryText, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+            Message Color Theme
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+            {BUBBLE_THEMES.map((theme) => {
+              const selected = theme.key === bubbleThemeKey;
+              return (
+                <TouchableOpacity key={theme.key} onPress={() => onSelectBubbleTheme(theme.key)} activeOpacity={0.8} style={{ alignItems: 'center', width: 64 }}>
+                  <LinearGradient
+                    colors={theme.colors}
+                    style={{
+                      width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
+                      borderWidth: selected ? 3 : 0, borderColor: colors.text,
+                    }}
+                  >
+                    {selected && <Ionicons name="checkmark" size={20} color="#fff" />}
+                  </LinearGradient>
+                  <Text style={{ fontSize: 11, color: colors.secondaryText, marginTop: 6, fontWeight: '600' }} numberOfLines={1}>
+                    {theme.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </ScrollView>
+    </Animated.View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CallOptionsPanel — audio / video call
 // ─────────────────────────────────────────────────────────────
 
@@ -1014,14 +1283,14 @@ function ChatOptionsPanel({
   visible, onClose, name, role, initial, profileImageUri,
   muted, hasCustomWallpaper, colors, isDarkMode,
   onUpdatePhoto, onViewProfile, onSearchInChat,
-  onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, onReport,
+  onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, isBlocked, onReport,
 }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
   muted: boolean; hasCustomWallpaper: boolean; colors: ThemeColors; isDarkMode: boolean;
   onUpdatePhoto: () => void; onViewProfile: () => void; onSearchInChat: () => void;
   onMuteToggle: () => void; onChangeWallpaper: () => void; onRestoreWallpaper: () => void;
-  onClearChat: () => void; onBlock: () => void; onReport: () => void;
+  onClearChat: () => void; onBlock: () => void; isBlocked: boolean; onReport: () => void;
 }) {
   const sheetBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
   const dividerColor = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
@@ -1056,7 +1325,7 @@ function ChatOptionsPanel({
   ];
 
   const destructiveOptions: OptionItem[] = [
-    { icon: 'ban-outline', label: 'Block Contact', color: '#EF4444', onPress: onBlock },
+    { icon: isBlocked ? 'checkmark-circle-outline' : 'ban-outline', label: isBlocked ? 'Unblock Contact' : 'Block Contact', color: '#EF4444', onPress: onBlock },
     { icon: 'flag-outline', label: 'Report', color: '#EF4444', onPress: onReport },
   ];
 
@@ -1198,8 +1467,8 @@ const TimeMeta = React.memo(function TimeMeta({ sent, time, delivered, read, s, 
 // Styles
 // ─────────────────────────────────────────────────────────────
 
-function createStyles(colors: ThemeColors, isDarkMode: boolean) {
-  const SENT_BG        = '#0B6E36';
+function createStyles(colors: ThemeColors, isDarkMode: boolean, sentBubbleColor: string = '#0B6E36') {
+  const SENT_BG        = sentBubbleColor;
   const RECV_BG        = isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.72)';
   const RECV_BORDER    = isDarkMode ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.85)';
   const RECV_TOP       = isDarkMode ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)';

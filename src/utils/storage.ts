@@ -13,6 +13,12 @@ const LIKED_LISTINGS_KEY = '@agrochain/liked_listings';
 const ITEM_COMMENTS_KEY = '@agrochain/item_comments';
 const VIEWED_LISTING_SNAPSHOTS_KEY = '@agrochain/viewed_listing_snapshots';
 const CHAT_CLEARED_AT_KEY = '@agrochain/chat_cleared_at';
+const PINNED_ROOMS_KEY = '@agrochain/pinned_rooms';
+const HIDDEN_ROOMS_AT_KEY = '@agrochain/hidden_rooms_at';
+const BLOCKED_CONTACTS_KEY = '@agrochain/blocked_contacts';
+const REPORTED_CONTACTS_KEY = '@agrochain/reported_contacts';
+const CHAT_WALLPAPER_KEY = '@agrochain/chat_wallpaper';
+const CHAT_BUBBLE_THEME_KEY = '@agrochain/chat_bubble_theme';
 
 export interface StoredComment {
   id: string;
@@ -245,6 +251,127 @@ export async function setChatClearedAt(roomId: string, isoTimestamp: string): Pr
     return;
   }
   await AsyncStorage.setItem(CHAT_CLEARED_AT_KEY, json);
+}
+
+// ── Pinned chat rooms ──────────────────────────────────────────────────
+export async function getPinnedRoomIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[PINNED_ROOMS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(PINNED_ROOMS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function setRoomPinned(roomId: string, pinned: boolean): Promise<void> {
+  const ids = await getPinnedRoomIds();
+  const updated = pinned ? [...new Set([...ids, roomId])] : ids.filter((id) => id !== roomId);
+  const json = JSON.stringify(updated);
+  if (USE_MOCK_DATA) {
+    memoryStore[PINNED_ROOMS_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(PINNED_ROOMS_KEY, json);
+}
+
+// ── Hidden (locally "deleted") chat rooms ──────────────────────────────
+// There's no backend endpoint to delete a conversation, so we hide it on
+// this device from the timestamp it was deleted. If a NEW message arrives
+// later (lastMessageAt newer than the hide time), the room reappears
+// automatically — "deleted" until the account is texted again.
+async function getAllHiddenRoomsAt(): Promise<Record<string, string>> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[HIDDEN_ROOMS_AT_KEY];
+    return raw ? JSON.parse(raw) : {};
+  }
+  const raw = await AsyncStorage.getItem(HIDDEN_ROOMS_AT_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+export async function getHiddenRoomsAt(): Promise<Record<string, string>> {
+  return getAllHiddenRoomsAt();
+}
+
+export async function hideRoom(roomId: string, isoTimestamp: string): Promise<void> {
+  const all = await getAllHiddenRoomsAt();
+  all[roomId] = isoTimestamp;
+  const json = JSON.stringify(all);
+  if (USE_MOCK_DATA) {
+    memoryStore[HIDDEN_ROOMS_AT_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(HIDDEN_ROOMS_AT_KEY, json);
+}
+
+// ── Blocked contacts ────────────────────────────────────────────────────
+export async function getBlockedContactIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[BLOCKED_CONTACTS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(BLOCKED_CONTACTS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function setContactBlocked(userId: string, blocked: boolean): Promise<void> {
+  const ids = await getBlockedContactIds();
+  const updated = blocked ? [...new Set([...ids, userId])] : ids.filter((id) => id !== userId);
+  const json = JSON.stringify(updated);
+  if (USE_MOCK_DATA) {
+    memoryStore[BLOCKED_CONTACTS_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(BLOCKED_CONTACTS_KEY, json);
+}
+
+// ── Reported contacts (local-only ack — no backend endpoint exists) ────
+export async function getReportedContactIds(): Promise<string[]> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[REPORTED_CONTACTS_KEY];
+    return raw ? JSON.parse(raw) : [];
+  }
+  const raw = await AsyncStorage.getItem(REPORTED_CONTACTS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function addReportedContactId(userId: string): Promise<void> {
+  const ids = await getReportedContactIds();
+  if (ids.includes(userId)) return;
+  const json = JSON.stringify([...ids, userId]);
+  if (USE_MOCK_DATA) {
+    memoryStore[REPORTED_CONTACTS_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(REPORTED_CONTACTS_KEY, json);
+}
+
+// ── Chat wallpaper + bubble color theme (device-wide, applies to all chats) ──
+export async function getChatWallpaper(): Promise<string | null> {
+  if (USE_MOCK_DATA) return memoryStore[CHAT_WALLPAPER_KEY] ?? null;
+  return AsyncStorage.getItem(CHAT_WALLPAPER_KEY);
+}
+
+export async function setChatWallpaper(uri: string | null): Promise<void> {
+  if (USE_MOCK_DATA) {
+    if (uri) memoryStore[CHAT_WALLPAPER_KEY] = uri;
+    else delete memoryStore[CHAT_WALLPAPER_KEY];
+    return;
+  }
+  if (uri) await AsyncStorage.setItem(CHAT_WALLPAPER_KEY, uri);
+  else await AsyncStorage.removeItem(CHAT_WALLPAPER_KEY);
+}
+
+export async function getChatBubbleTheme(): Promise<string | null> {
+  if (USE_MOCK_DATA) return memoryStore[CHAT_BUBBLE_THEME_KEY] ?? null;
+  return AsyncStorage.getItem(CHAT_BUBBLE_THEME_KEY);
+}
+
+export async function setChatBubbleTheme(themeKey: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    memoryStore[CHAT_BUBBLE_THEME_KEY] = themeKey;
+    return;
+  }
+  await AsyncStorage.setItem(CHAT_BUBBLE_THEME_KEY, themeKey);
 }
 
 async function getAllItemComments(): Promise<Record<string, StoredComment[]>> {
