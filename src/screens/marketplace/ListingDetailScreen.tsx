@@ -25,8 +25,6 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
 import GlassBlur from '../../components/GlassBlur';
-import CommentsSheet from '../../components/CommentsSheet';
-import { getLikedListingIds, setListingLiked, getItemComments, getPinnedListingViewCount } from '../../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 280;
@@ -118,40 +116,6 @@ function GlassIconCircle({
       />
       {children}
     </View>
-  );
-}
-
-function LikeButton({
-  liked,
-  isDarkMode,
-  onPress,
-  styles,
-  colors,
-}: {
-  liked: boolean;
-  isDarkMode: boolean;
-  onPress: () => void;
-  styles: ReturnType<typeof createStyles>;
-  colors: ThemeColors;
-}) {
-  const bounce = useRef(new Animated.Value(1)).current;
-
-  const handlePress = () => {
-    Animated.sequence([
-      Animated.spring(bounce, { toValue: 1.35, useNativeDriver: true, speed: 30, bounciness: 14 }),
-      Animated.spring(bounce, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }),
-    ]).start();
-    onPress();
-  };
-
-  return (
-    <GlassIconCircle isDarkMode={isDarkMode} style={styles.iconCircleBase}>
-      <Pressable style={styles.iconCircleTouchable} onPress={handlePress}>
-        <Animated.View style={{ transform: [{ scale: bounce }] }}>
-          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#DC2626' : '#fff'} />
-        </Animated.View>
-      </Pressable>
-    </GlassIconCircle>
   );
 }
 
@@ -296,24 +260,14 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(0);
-  const [commentsVisible, setCommentsVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const [data, likedIds, comments] = await Promise.all([
-          getMarketplaceListingById(listingId),
-          getLikedListingIds(),
-          getItemComments(listingId),
-        ]);
-        const pinnedViews = await getPinnedListingViewCount(listingId, data.viewsCount);
-        setListing({ ...data, viewsCount: pinnedViews });
-        setLiked(likedIds.includes(listingId));
-        setCommentsCount(comments.length);
+        const data = await getMarketplaceListingById(listingId);
+        setListing(data);
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load listing.');
       } finally {
@@ -321,12 +275,6 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
       }
     })();
   }, [listingId]);
-
-  const handleToggleLike = () => {
-    const next = !liked;
-    setLiked(next);
-    setListingLiked(listingId, next).catch(() => {});
-  };
 
   const handleShare = () => {
     if (!listing) return;
@@ -383,20 +331,12 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             </View>
           </GlassIconCircle>
           <View style={styles.heroRightActions}>
-            <LikeButton liked={liked} isDarkMode={isDarkMode} onPress={handleToggleLike} styles={styles} colors={colors} />
             <GlassIconCircle isDarkMode={isDarkMode} style={styles.iconCircleBase}>
               <View style={styles.iconCircleTouchable}>
                 <AnimatedIconButton icon="share-outline" color="#fff" onPress={handleShare} />
               </View>
             </GlassIconCircle>
           </View>
-
-          {listing.viewsCount > 0 && (
-            <View style={styles.viewsPillOnPhoto}>
-              <Ionicons name="eye" size={13} color="#fff" />
-              <Text style={styles.viewsPillOnPhotoText}>{listing.viewsCount}</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.contentCard}>
@@ -405,23 +345,6 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryBadgeText}>{CATEGORY_LABELS[listing.category]}</Text>
             </View>
-          </View>
-
-          <View style={styles.statsBar}>
-            <View style={styles.statChip}>
-              <Ionicons name="eye" size={16} color={colors.primaryGreen} />
-              <Text style={styles.statChipValue}>{listing.viewsCount}</Text>
-              <Text style={styles.statChipLabel}>view{listing.viewsCount === 1 ? '' : 's'}</Text>
-            </View>
-            <Pressable style={[styles.statChip, liked && styles.statChipLiked]} onPress={handleToggleLike}>
-              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={16} color={liked ? '#DC2626' : colors.primaryGreen} />
-              <Text style={[styles.statChipLabel, liked && styles.statChipLabelLiked]}>{liked ? 'Liked' : 'Like this item'}</Text>
-            </Pressable>
-            <Pressable style={styles.statChip} onPress={() => setCommentsVisible(true)}>
-              <Ionicons name="chatbubble-outline" size={16} color={colors.primaryGreen} />
-              <Text style={styles.statChipValue}>{commentsCount}</Text>
-              <Text style={styles.statChipLabel}>comment{commentsCount === 1 ? '' : 's'}</Text>
-            </Pressable>
           </View>
 
           <View style={styles.sellerCard}>
@@ -534,17 +457,6 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
           </Pressable>
         </Animated.View>
       </View>
-
-      <CommentsSheet
-        visible={commentsVisible}
-        onClose={() => setCommentsVisible(false)}
-        itemId={listing.id}
-        itemTitle={listing.name}
-        itemSubtitle={formatCurrency(listing.price)}
-        itemImageUrl={listing.photoUrls?.[0]}
-        itemEmoji={listing.category === 'PRODUCE' ? getCropEmoji(listing.name) : undefined}
-        onCommentsCountChange={setCommentsCount}
-      />
     </SafeAreaView>
   );
 }
@@ -634,53 +546,6 @@ function createStyles(colors: ThemeColors) {
       right: 16,
       flexDirection: 'row',
       gap: 10,
-    },
-    viewsPillOnPhoto: {
-      position: 'absolute',
-      left: 16,
-      bottom: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: 'rgba(0,0,0,0.55)',
-      borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-    },
-    viewsPillOnPhotoText: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: '#fff',
-    },
-    statsBar: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 12,
-    },
-    statChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: colors.lightGreen,
-      borderRadius: 14,
-      paddingHorizontal: 12,
-      paddingVertical: 9,
-    },
-    statChipValue: {
-      fontSize: 16,
-      fontWeight: '900',
-      color: colors.primaryGreen,
-    },
-    statChipLabel: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.primaryGreen,
-    },
-    statChipLiked: {
-      backgroundColor: '#FEE2E2',
-    },
-    statChipLabelLiked: {
-      color: '#DC2626',
     },
     contentCard: {
       backgroundColor: colors.card,

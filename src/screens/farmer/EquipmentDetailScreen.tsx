@@ -17,9 +17,6 @@ import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
 import FollowButton from '../../components/FollowButton';
-import PostEngagementBar from '../../components/PostEngagementBar';
-import CommentsSheet from '../../components/CommentsSheet';
-import { getLikedListingIds, setListingLiked, getItemComments, getPinnedListingViewCount } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
 
@@ -244,9 +241,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(0);
-  const [commentsVisible, setCommentsVisible] = useState(false);
 
   // Dates — now proper state so user can change them
   const [startDate, setStartDate] = useState(todayPlusDays(1));
@@ -261,15 +255,8 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
       setLoading(true);
       setError(null);
       try {
-        const [data, likedIds, comments] = await Promise.all([
-          getEquipmentById(equipmentId),
-          getLikedListingIds(),
-          getItemComments(equipmentId),
-        ]);
-        const pinnedViews = await getPinnedListingViewCount(equipmentId, data.viewsCount ?? 0);
-        setEquipment({ ...data, viewsCount: pinnedViews });
-        setSaved(likedIds.includes(equipmentId));
-        setCommentsCount(comments.length);
+        const data = await getEquipmentById(equipmentId);
+        setEquipment(data);
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load equipment.');
       } finally {
@@ -277,12 +264,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
       }
     })();
   }, [equipmentId]);
-
-  const handleToggleSaved = () => {
-    const next = !saved;
-    setSaved(next);
-    setListingLiked(equipmentId, next).catch(() => {});
-  };
 
   const handleBook = () => {
     if (!equipment) return;
@@ -353,14 +334,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
           <View style={[styles.topRightRow, { top: insets.top + 10 }]}>
             <View style={styles.floatingButton}>
               <AnimatedIconButton
-                icon={saved ? 'heart' : 'heart-outline'}
-                color={saved ? '#DC2626' : colors.primaryGreen}
-                onPress={handleToggleSaved}
-                style={StyleSheet.absoluteFill}
-              />
-            </View>
-            <View style={styles.floatingButton}>
-              <AnimatedIconButton
                 icon="share-social-outline"
                 color={colors.primaryGreen}
                 onPress={() => Alert.alert('Coming soon', 'Share feature coming soon.')}
@@ -402,17 +375,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
                 }}
               />
             </View>
-          </View>
-
-          {/* Engagement bar */}
-          <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: 4 }}>
-            <PostEngagementBar
-              viewsCount={equipment.viewsCount}
-              liked={saved}
-              onToggleLike={handleToggleSaved}
-              commentsCount={commentsCount}
-              onPressComment={() => setCommentsVisible(true)}
-            />
           </View>
 
           {/* Follow strip */}
@@ -592,16 +554,6 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
         colors={colors}
         isDarkMode={isDarkMode}
         onSelect={(d) => setEndDate(d)}
-      />
-      <CommentsSheet
-        visible={commentsVisible}
-        onClose={() => setCommentsVisible(false)}
-        itemId={equipmentId}
-        itemTitle={equipment.name}
-        itemSubtitle={`GHS ${equipment.dailyRate}/day`}
-        itemImageUrl={equipment.imageUrl?.startsWith('http') ? equipment.imageUrl : undefined}
-        itemEmoji="🚜"
-        onCommentsCountChange={setCommentsCount}
       />
     </SafeAreaView>
   );
