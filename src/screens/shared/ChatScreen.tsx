@@ -14,13 +14,14 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
 import { ChatSocketMessage } from '../../types';
-import { getOrCreateRoom, getMessages, markRead } from '../../api/chatApi';
+import { getOrCreateRoom, getRooms, getMessages, markRead } from '../../api/chatApi';
 import {
   connect as connectChatSocket,
   sendMessage as sendSocketMessage,
   disconnect as disconnectChatSocket,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
+import { getChatClearedAt, setChatClearedAt } from '../../utils/storage';
 import { USE_MOCK_DATA } from '../../config';
 
 // Bundled default wallpaper — always shown unless user picks a custom one
@@ -134,6 +135,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   );
   const [sendError, setSendError] = useState<string | null>(null);
   const lastDateKeyRef = useRef<string>('');
+  // Holds a first message's text while its room is being lazily created —
+  // flushed once the socket for that new room finishes connecting.
+  const pendingFirstMessageRef = useRef<string | null>(null);
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -179,7 +183,50 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
   }, [matchCursor, matchedList, messages]);
 
-  // ── Load / create room + message history ──────────────────
+  // ── Load message history for an EXISTING room only ─────────
+  // Does not create anything on the backend — used both at mount (to check
+  // if a conversation already exists) and after a room is lazily created
+  // once the user actually sends their first message.
+  const loadHistoryForRoom = useCallback(async (resolvedRoomId: string) => {
+    const [history, clearedAt] = await Promise.all([
+      getMessages(resolvedRoomId),
+      getChatClearedAt(resolvedRoomId),
+    ]);
+    const clearedAtMs = clearedAt ? new Date(clearedAt).getTime() : 0;
+    const sorted = [...history]
+      .filter((m) => new Date(m.createdAt).getTime() > clearedAtMs)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const ui: Message[] = [];
+    let dateKey = '';
+    sorted.forEach((m) => {
+      const d = new Date(m.createdAt);
+      const dk = d.toDateString();
+      if (dk !== dateKey) {
+        ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
+        dateKey = dk;
+      }
+      ui.push({
+        id: String(m.id),
+        type: 'text',
+        text: m.content,
+        audioUrl: (m as any).audioUrl,
+        sent: user != null && String(m.senderId) === String(user.id),
+        time: formatMessageTime(m.createdAt),
+        delivered: true, // messages from history are always server-confirmed
+        read: m.isRead,
+      });
+    });
+    console.log('[ChatScreen] History loaded:', sorted.length, 'message(s)');
+    lastDateKeyRef.current = dateKey;
+    setMessages(ui);
+  }, [user?.id]);
+
+  // ── Resolve the conversation on mount — WITHOUT creating a room ────────
+  // Simply opening someone's chat screen must not create a permanent
+  // conversation record (that made every viewed profile show up in the
+  // Messages list, even ones never actually texted). We only check whether
+  // a room already exists; a new room is created lazily in sendMessage(),
+  // the moment the user actually sends their first message.
   useEffect(() => {
     if (!otherUserId) {
       if (!USE_MOCK_DATA) {
@@ -193,40 +240,38 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       setInitialLoading(true);
       setLoadError(null);
       try {
-        const room = await getOrCreateRoom(otherUserId);
-        if (cancelled) return;
-        const resolvedRoomId = String(room.id);
-        console.log('[ChatScreen] Room resolved:', resolvedRoomId);
+        if (USE_MOCK_DATA) {
+          const room = await getOrCreateRoom(otherUserId);
+          if (cancelled) return;
+          await loadHistoryForRoom(String(room.id));
+          if (cancelled) return;
+          setRoomId(String(room.id));
+          return;
+        }
 
-        const history = await getMessages(resolvedRoomId);
+        const allRooms = await getRooms();
         if (cancelled) return;
-
-        const sorted = [...history].sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        const ui: Message[] = [];
-        let dateKey = '';
-        sorted.forEach((m) => {
-          const d = new Date(m.createdAt);
-          const dk = d.toDateString();
-          if (dk !== dateKey) {
-            ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
-            dateKey = dk;
-          }
-          ui.push({
-            id: String(m.id),
-            type: 'text',
-            text: m.content,
-            audioUrl: (m as any).audioUrl,
-            sent: user != null && String(m.senderId) === String(user.id),
-            time: formatMessageTime(m.createdAt),
-            delivered: true, // messages from history are always server-confirmed
-            read: m.isRead,
-          });
+        const existing = allRooms.find((r) => {
+          const otherId = user != null && String(r.participant1.id) === String(user.id)
+            ? r.participant2.id
+            : r.participant1.id;
+          return String(otherId) === String(otherUserId);
         });
-        console.log('[ChatScreen] History loaded:', sorted.length, 'message(s)');
-        lastDateKeyRef.current = dateKey;
-        setMessages(ui);
+
+        if (!existing) {
+          // No conversation with this person yet — don't create one just
+          // because the screen was opened. Show an empty chat; the room
+          // is created only when the user actually sends a message.
+          console.log('[ChatScreen] No existing room with', otherUserId, '— waiting for first message');
+          setMessages([]);
+          setRoomId(null);
+          return;
+        }
+
+        const resolvedRoomId = String(existing.id);
+        console.log('[ChatScreen] Existing room resolved:', resolvedRoomId);
+        await loadHistoryForRoom(resolvedRoomId);
+        if (cancelled) return;
         setRoomId(resolvedRoomId);
       } catch (err: any) {
         if (!cancelled) {
@@ -238,7 +283,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     })();
 
     return () => { cancelled = true; };
-  }, [otherUserId, user?.id]);
+  }, [otherUserId, user?.id, loadHistoryForRoom]);
 
   // Stable ref so the socket callback always reads the current user id
   const currentUserIdRef = useRef(user?.id);
@@ -253,6 +298,13 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         console.log('[ChatScreen] Socket connected — room', roomId);
         setSocketConnected(true);
         setSendError(null);
+        // A room created lazily for a first message queues that text here
+        // until the socket is actually ready to emit it.
+        if (pendingFirstMessageRef.current) {
+          const pending = pendingFirstMessageRef.current;
+          pendingFirstMessageRef.current = null;
+          sendSocketMessage(roomId, pending);
+        }
       },
       onMessage: (payload: ChatSocketMessage) => {
         const msgId = String(payload.id ?? `${payload.senderId}-${payload.createdAt}`);
@@ -381,6 +433,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onPress: () => {
           setMessages([{ id: 'sep1', type: 'sep', label: 'Today', sent: false, time: '' }]);
           setOptionsVisible(false);
+          // The backend has no message-delete endpoint, so this only clears
+          // what THIS device shows — persist the cutoff so reopening the
+          // chat doesn't silently bring the "deleted" messages back.
+          if (roomId) {
+            setChatClearedAt(roomId, new Date().toISOString()).catch(() => {});
+          }
         },
       },
     ]);
@@ -392,7 +450,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     if (!text) return;
 
     // Demo mode (no real otherUserId) — local-only behavior.
-    if (!otherUserId || !roomId) {
+    if (!otherUserId) {
       const msg: Message = {
         id: Date.now().toString(), type: 'text', text, sent: true,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -417,6 +475,28 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setInputText('');
     setSendError(null);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+
+    if (!roomId) {
+      // First message in a brand-new conversation — the room is created now,
+      // at the moment of actually sending, not back when the screen was
+      // opened. The socket for it connects asynchronously; onConnect flushes
+      // this queued text once ready.
+      pendingFirstMessageRef.current = text;
+      (async () => {
+        try {
+          const room = await getOrCreateRoom(otherUserId);
+          console.log('[ChatScreen] Room created for first message:', room.id);
+          setRoomId(String(room.id));
+        } catch (err) {
+          console.log('[ChatScreen] failed to create room:', err);
+          pendingFirstMessageRef.current = null;
+          setSendError('Not connected — reconnecting, please try again shortly.');
+          setMessages((prev) => prev.filter((m) => String(m.id) !== optimisticId));
+          setInputText(text);
+        }
+      })();
+      return;
+    }
 
     try {
       console.log('[ChatScreen] send_message → room', roomId, ':', text.slice(0, 60));

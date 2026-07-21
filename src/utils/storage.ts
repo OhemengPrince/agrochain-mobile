@@ -12,6 +12,7 @@ const HIDDEN_OWNER_BOOKINGS_KEY = '@agrochain/hidden_owner_bookings';
 const LIKED_LISTINGS_KEY = '@agrochain/liked_listings';
 const ITEM_COMMENTS_KEY = '@agrochain/item_comments';
 const VIEWED_LISTING_SNAPSHOTS_KEY = '@agrochain/viewed_listing_snapshots';
+const CHAT_CLEARED_AT_KEY = '@agrochain/chat_cleared_at';
 
 export interface StoredComment {
   id: string;
@@ -214,6 +215,36 @@ export async function getPinnedListingViewCount(listingId: string, freshCount: n
     await AsyncStorage.setItem(VIEWED_LISTING_SNAPSHOTS_KEY, json);
   }
   return freshCount;
+}
+
+// "Clear Chat" has no backend delete endpoint — the server still has every
+// message. We persist, per room, the timestamp the user cleared up to, and
+// filter out anything older than that whenever history reloads, so a
+// cleared chat stays cleared after closing and reopening it instead of the
+// full history silently coming back.
+async function getAllChatClearedAt(): Promise<Record<string, string>> {
+  if (USE_MOCK_DATA) {
+    const raw = memoryStore[CHAT_CLEARED_AT_KEY];
+    return raw ? JSON.parse(raw) : {};
+  }
+  const raw = await AsyncStorage.getItem(CHAT_CLEARED_AT_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+export async function getChatClearedAt(roomId: string): Promise<string | null> {
+  const all = await getAllChatClearedAt();
+  return all[roomId] ?? null;
+}
+
+export async function setChatClearedAt(roomId: string, isoTimestamp: string): Promise<void> {
+  const all = await getAllChatClearedAt();
+  all[roomId] = isoTimestamp;
+  const json = JSON.stringify(all);
+  if (USE_MOCK_DATA) {
+    memoryStore[CHAT_CLEARED_AT_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(CHAT_CLEARED_AT_KEY, json);
 }
 
 async function getAllItemComments(): Promise<Record<string, StoredComment[]>> {
