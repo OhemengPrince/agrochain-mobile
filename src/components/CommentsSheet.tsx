@@ -7,11 +7,11 @@ import {
   TextInput,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Dimensions,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
@@ -107,7 +107,24 @@ export default function CommentsSheet({
   const [reactingCommentId, setReactingCommentId] = useState<string | null>(null);
   const [commentReactions, setCommentReactions] = useState<Record<string, { emoji: string; label: string }>>({});
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef<TextInput>(null);
+
+  // Tracked manually instead of relying on KeyboardAvoidingView, whose
+  // automatic height/padding measurement is unreliable inside a Modal (it was
+  // either shrinking the sheet to nothing or pushing content off the top of
+  // the screen). Applying the measured height as padding ourselves is
+  // predictable and keeps the header + comments list visible.
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -244,14 +261,12 @@ export default function CommentsSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <KeyboardAvoidingView
-          style={{ backgroundColor: p.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, height: SHEET_HEIGHT }}
-          behavior={Platform.OS === 'ios' ? 'height' : undefined}
+        <View
+          style={{
+            backgroundColor: p.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            height: SHEET_HEIGHT, paddingBottom: keyboardHeight,
+          }}
         >
-          {/* behavior="height" (not "padding") shrinks this container's own
-              height from the bottom when the keyboard opens, instead of
-              adding bottom padding that grows its total size and pushes the
-              top — with comments and the header — off the top of the screen. */}
           <View style={{ flex: 1 }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: p.handle, alignSelf: 'center', marginTop: 10 }} />
 
@@ -374,7 +389,7 @@ export default function CommentsSheet({
               )}
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </View>
     </Modal>
   );
