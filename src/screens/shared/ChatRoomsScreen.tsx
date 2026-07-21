@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable,
-  ActivityIndicator, RefreshControl, Animated, PanResponder, StyleSheet as RNStyleSheet, Alert,
+  ActivityIndicator, RefreshControl, StyleSheet as RNStyleSheet, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
-import { getRooms } from '../../api/chatApi';
+import { getRooms, markRead } from '../../api/chatApi';
 import { ChatRoom } from '../../types';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import GlassBlur from '../../components/GlassBlur';
@@ -19,10 +19,7 @@ import {
   getBlockedContactIds,
 } from '../../utils/storage';
 
-const PIN_WIDTH = 64;
-const DELETE_WIDTH = 64;
-const LONG_SWIPE_THRESHOLD = 110;
-const MAX_DRAG_LEFT = 130;
+const MAX_PINNED = 3;
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -35,109 +32,65 @@ function formatTime(iso: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SwipeableRoomRow — swipe right to pin/unpin, swipe left to reveal
-// delete (red bin only); a long swipe left deletes immediately.
+// RoomActionsMenu — long-press context menu: Pin, Mark as read, Delete
 // ─────────────────────────────────────────────────────────────
-function SwipeableRoomRow({
-  rowId, registerReset, onRowOpened, onTogglePin, onDelete, pinned, colors, children,
+function RoomActionsMenu({
+  visible, onClose, name, pinned, hasUnread, onTogglePin, onMarkRead, onDelete, colors, isDarkMode,
 }: {
-  rowId: string;
-  registerReset: (id: string, reset: () => void) => void;
-  onRowOpened: (id: string) => void;
-  onTogglePin: () => void;
-  onDelete: () => void;
-  pinned: boolean;
-  colors: any;
-  children: React.ReactNode;
+  visible: boolean; onClose: () => void;
+  name: string; pinned: boolean; hasUnread: boolean;
+  onTogglePin: () => void; onMarkRead: () => void; onDelete: () => void;
+  colors: any; isDarkMode: boolean;
 }) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const rowHeight = useRef(new Animated.Value(1)).current;
-  const openStateRef = useRef<'none' | 'delete'>('none');
-  const removedRef = useRef(false);
-  // The pin/delete panels only ever MOUNT while this is true — driven by
-  // React state (not the Animated value) so there is no way for them to be
-  // visible at rest, regardless of how the sliding content is laid out.
-  const [panelsVisible, setPanelsVisible] = useState(false);
+  const sheetBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
+  const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
+  const dividerColor = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
 
-  const resetSwipe = useCallback(() => {
-    openStateRef.current = 'none';
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 300, friction: 26 }).start(() => {
-      setPanelsVisible(false);
-    });
-  }, [translateX]);
-
-  useEffect(() => {
-    registerReset(rowId, resetSwipe);
-  }, [rowId, registerReset, resetSwipe]);
-
-  const triggerDelete = useCallback(() => {
-    if (removedRef.current) return;
-    removedRef.current = true;
-    Animated.parallel([
-      Animated.timing(translateX, { toValue: -500, duration: 220, useNativeDriver: true }),
-      Animated.timing(rowHeight, { toValue: 0, duration: 220, useNativeDriver: false, delay: 100 }),
-    ]).start(() => onDelete());
-  }, [translateX, rowHeight, onDelete]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
-      onPanResponderGrant: () => {
-        setPanelsVisible(true);
-        if (openStateRef.current === 'none') onRowOpened(rowId);
-      },
-      onPanResponderMove: (_, gesture) => {
-        const base = openStateRef.current === 'delete' ? -DELETE_WIDTH : 0;
-        const next = base + gesture.dx;
-        translateX.setValue(Math.max(-MAX_DRAG_LEFT, Math.min(PIN_WIDTH, next)));
-      },
-      onPanResponderRelease: (_, gesture) => {
-        const base = openStateRef.current === 'delete' ? -DELETE_WIDTH : 0;
-        const projected = base + gesture.dx;
-
-        if (projected <= -LONG_SWIPE_THRESHOLD) {
-          triggerDelete();
-          return;
-        }
-        if (projected <= -DELETE_WIDTH / 2) {
-          openStateRef.current = 'delete';
-          onRowOpened(rowId);
-          Animated.spring(translateX, { toValue: -DELETE_WIDTH, useNativeDriver: true, tension: 300, friction: 26 }).start();
-          return;
-        }
-        if (projected >= PIN_WIDTH / 2) {
-          resetSwipe();
-          onTogglePin();
-          return;
-        }
-        resetSwipe();
-      },
-    })
-  ).current;
+  const items = [
+    {
+      icon: <Text style={{ fontSize: 20 }}>📌</Text>,
+      label: pinned ? 'Unpin Chat' : 'Pin Chat',
+      onPress: onTogglePin,
+    },
+    ...(hasUnread ? [{
+      icon: <Ionicons name="checkmark-done-outline" size={20} color={colors.primaryGreen} />,
+      label: 'Mark as Read',
+      onPress: onMarkRead,
+    }] : []),
+    {
+      icon: <Ionicons name="trash-outline" size={20} color="#EF4444" />,
+      label: 'Delete Chat',
+      labelColor: '#EF4444',
+      onPress: onDelete,
+    },
+  ];
 
   return (
-    <Animated.View style={{ maxHeight: rowHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 200] }) }}>
-      <View style={[styles.swipeWrap, { overflow: 'hidden' }]}>
-        {panelsVisible && (
-          <>
-            {/* Pin action — revealed behind on the left ONLY while swiping right */}
-            <View style={[styles.pinAction, { backgroundColor: colors.card }]}>
-              <Text style={{ fontSize: 24 }}>📌</Text>
-            </View>
-            {/* Delete action — revealed behind on the right ONLY while swiping left */}
-            <View style={[styles.deleteAction, { backgroundColor: colors.card }]}>
-              <Pressable onPress={() => { resetSwipe(); onDelete(); }} hitSlop={8}>
-                <Ionicons name="trash" size={24} color="#EF4444" />
-              </Pressable>
-            </View>
-          </>
-        )}
-        <Animated.View style={{ width: '100%', transform: [{ translateX }], backgroundColor: colors.cardBackground }} {...panResponder.panHandlers}>
-          {children}
-        </Animated.View>
-      </View>
-    </Animated.View>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }} onPress={onClose}>
+        <Pressable style={{ backgroundColor: sheetBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 8 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: dividerColor, alignSelf: 'center', marginTop: 10, marginBottom: 6 }} />
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.secondaryText, textAlign: 'center', paddingVertical: 10 }} numberOfLines={1}>
+            {name}
+          </Text>
+          <View style={{ height: 1, backgroundColor: dividerColor }} />
+          {items.map((item, i) => (
+            <TouchableOpacity
+              key={item.label}
+              onPress={() => { onClose(); item.onPress(); }}
+              activeOpacity={0.7}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: i < items.length - 1 ? 1 : 0, borderBottomColor: dividerColor }}
+            >
+              {item.icon}
+              <Text style={{ fontSize: 15, fontWeight: '600', color: item.labelColor ?? labelColor }}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={{ paddingVertical: 16, alignItems: 'center', marginTop: 4 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colors.secondaryText }}>Cancel</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -153,17 +106,7 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roomSearch, setRoomSearch] = useState('');
-  const rowResettersRef = useRef<Record<string, () => void>>({});
-
-  const registerRowReset = useCallback((id: string, reset: () => void) => {
-    rowResettersRef.current[id] = reset;
-  }, []);
-
-  const handleRowOpened = useCallback((openedId: string) => {
-    Object.entries(rowResettersRef.current).forEach(([id, reset]) => {
-      if (id !== openedId) reset();
-    });
-  }, []);
+  const [actionMenuRoomId, setActionMenuRoomId] = useState<string | null>(null);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -239,8 +182,6 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     });
   }, [orderedRooms, roomSearch, user]);
 
-  const MAX_PINNED = 3;
-
   const handleTogglePin = useCallback((roomId: string) => {
     setPinnedIds((prev) => {
       const alreadyPinned = prev.has(roomId);
@@ -257,12 +198,26 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
   }, []);
 
   const handleDeleteRoom = useCallback((roomId: string) => {
-    const now = new Date().toISOString();
-    setHiddenAt((prev) => ({ ...prev, [roomId]: now }));
-    hideRoom(roomId, now).catch(() => {});
+    Alert.alert('Delete Chat', 'This conversation will be removed from your list. It will come back if the other person messages you again.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: () => {
+          const now = new Date().toISOString();
+          setHiddenAt((prev) => ({ ...prev, [roomId]: now }));
+          hideRoom(roomId, now).catch(() => {});
+        },
+      },
+    ]);
+  }, []);
+
+  const handleMarkRead = useCallback((roomId: string) => {
+    setRooms((prev) => prev.map((r) => String(r.id) === roomId ? { ...r, unreadCount: 0 } : r));
+    markRead(roomId).catch(() => {});
   }, []);
 
   const s = createStyles(colors, isDarkMode);
+  const actionMenuRoom = rooms.find((r) => String(r.id) === actionMenuRoomId) ?? null;
 
   function renderRoom({ item }: { item: ChatRoom }) {
     const other = getOtherParticipant(item);
@@ -274,57 +229,49 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     const roomId = String(item.id);
 
     return (
-      <SwipeableRoomRow
-        rowId={roomId}
-        registerReset={registerRowReset}
-        onRowOpened={handleRowOpened}
-        onTogglePin={() => handleTogglePin(roomId)}
-        onDelete={() => handleDeleteRoom(roomId)}
-        pinned={pinnedIds.has(roomId)}
-        colors={colors}
+      <Pressable
+        style={s.row}
+        onPress={() =>
+          navigation.navigate('Chat', {
+            name: other.fullName ?? other.email ?? 'User',
+            role: other.role ?? 'AgroChain User',
+            otherUserId: String(other.id),
+          })
+        }
+        onLongPress={() => setActionMenuRoomId(roomId)}
+        delayLongPress={350}
       >
-        <Pressable
-          style={s.row}
-          onPress={() =>
-            navigation.navigate('Chat', {
-              name: other.fullName ?? other.email ?? 'User',
-              role: other.role ?? 'AgroChain User',
-              otherUserId: String(other.id),
-            })
-          }
-        >
-          <View style={s.avatar}>
-            <Text style={s.avatarText}>{initials || '?'}</Text>
-          </View>
+        <View style={s.avatar}>
+          <Text style={s.avatarText}>{initials || '?'}</Text>
+        </View>
 
-          <View style={s.rowBody}>
-            <View style={s.rowTop}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
-                {pinnedIds.has(roomId) && (
-                  <Text style={{ fontSize: 12, marginRight: 4 }}>📌</Text>
-                )}
-                <Text style={s.name} numberOfLines={1}>{other.fullName ?? other.email ?? 'User'}</Text>
-              </View>
-              <Text style={s.time}>{formatTime(item.lastMessageAt)}</Text>
-            </View>
-            <View style={s.rowBottom}>
-              {blockedIds.has(String(other.id)) ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="ban" size={12} color="#EF4444" />
-                  <Text style={[s.preview, { color: '#EF4444', fontWeight: '600' }]}>Blocked</Text>
-                </View>
-              ) : (
-                <Text style={s.preview} numberOfLines={1}>Tap to open conversation</Text>
+        <View style={s.rowBody}>
+          <View style={s.rowTop}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+              {pinnedIds.has(roomId) && (
+                <Text style={{ fontSize: 12, marginRight: 4 }}>📌</Text>
               )}
-              {item.unreadCount > 0 && (
-                <View style={s.badge}>
-                  <Text style={s.badgeText}>{item.unreadCount > 99 ? '99+' : String(item.unreadCount)}</Text>
-                </View>
-              )}
+              <Text style={s.name} numberOfLines={1}>{other.fullName ?? other.email ?? 'User'}</Text>
             </View>
+            <Text style={s.time}>{formatTime(item.lastMessageAt)}</Text>
           </View>
-        </Pressable>
-      </SwipeableRoomRow>
+          <View style={s.rowBottom}>
+            {blockedIds.has(String(other.id)) ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="ban" size={12} color="#EF4444" />
+                <Text style={[s.preview, { color: '#EF4444', fontWeight: '600' }]}>Blocked</Text>
+              </View>
+            ) : (
+              <Text style={s.preview} numberOfLines={1}>Tap to open · Hold for options</Text>
+            )}
+            {item.unreadCount > 0 && (
+              <View style={s.badge}>
+                <Text style={s.badgeText}>{item.unreadCount > 99 ? '99+' : String(item.unreadCount)}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Pressable>
     );
   }
 
@@ -394,25 +341,29 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
             renderItem={renderRoom}
             style={{ flex: 1 }}
             contentContainerStyle={s.list}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.border, marginLeft: 80 }} />}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primaryGreen]} tintColor={colors.primaryGreen} />}
           />
         )}
       </SafeAreaView>
+
+      {actionMenuRoom && (
+        <RoomActionsMenu
+          visible={!!actionMenuRoom}
+          onClose={() => setActionMenuRoomId(null)}
+          name={getOtherParticipant(actionMenuRoom).fullName ?? getOtherParticipant(actionMenuRoom).email ?? 'User'}
+          pinned={pinnedIds.has(String(actionMenuRoom.id))}
+          hasUnread={actionMenuRoom.unreadCount > 0}
+          onTogglePin={() => handleTogglePin(String(actionMenuRoom.id))}
+          onMarkRead={() => handleMarkRead(String(actionMenuRoom.id))}
+          onDelete={() => handleDeleteRoom(String(actionMenuRoom.id))}
+          colors={colors}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  swipeWrap: { position: 'relative' },
-  pinAction: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, width: PIN_WIDTH,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  deleteAction: {
-    position: 'absolute', right: 0, top: 0, bottom: 0, width: DELETE_WIDTH,
-    alignItems: 'center', justifyContent: 'center',
-  },
-});
 
 function createStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
