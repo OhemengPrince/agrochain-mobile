@@ -37,6 +37,7 @@ import FloatToast from '../../components/FloatToast';
 import { uploadImage } from '../../api/fileApi';
 import { updatePhotoUrl } from '../../api/userApi';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
+import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
@@ -127,11 +128,20 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
   const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       getEarnings().then(r => setEarnings(r.data)).catch(() => {});
-    }, [])
+      // Re-fetched every time this screen gains focus, so a follow/unfollow
+      // made from someone else's session is reflected as soon as you return here.
+      if (user?.id) {
+        getFollowCounts(user.id)
+          .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+      }
+    }, [user?.id])
   );
 
   const loadData = useCallback(async () => {
@@ -279,15 +289,21 @@ export default function FarmerProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.statsStrip}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{bookings.length}</Text>
-              <Text style={styles.statLabel}>Rentals</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'followers', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followerCount}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </Pressable>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{batches.length}</Text>
-              <Text style={styles.statLabel}>Batches</Text>
-            </View>
+            <Pressable
+              style={styles.statItem}
+              onPress={() => user?.id && navigation.navigate('FollowList', { userId: user.id, type: 'following', userName: user.fullName })}
+            >
+              <Text style={styles.statValue}>{followingCount}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </Pressable>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>4.8 ⭐</Text>

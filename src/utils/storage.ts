@@ -25,6 +25,7 @@ export interface StoredComment {
   authorName: string;
   text: string;
   createdAt: string;
+  parentId?: string;
 }
 
 // Mock mode never touches the native AsyncStorage module — it keeps
@@ -397,13 +398,14 @@ export async function getItemComments(itemId: string): Promise<StoredComment[]> 
   return all[itemId] ?? [];
 }
 
-export async function addItemComment(itemId: string, authorName: string, text: string): Promise<StoredComment> {
+export async function addItemComment(itemId: string, authorName: string, text: string, parentId?: string): Promise<StoredComment> {
   const all = await getAllItemComments();
   const comment: StoredComment = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     authorName,
     text,
     createdAt: new Date().toISOString(),
+    ...(parentId ? { parentId } : {}),
   };
   all[itemId] = [...(all[itemId] ?? []), comment];
   await saveAllItemComments(all);
