@@ -176,6 +176,12 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const [cancelMode, setCancelMode] = useState(false);
   const [displayTime, setDisplayTime] = useState('0:00');
   const recordingSeconds = useRef(0);
+  // Wall-clock start time for the actual duration sent with the message.
+  // recordingSeconds only ticks once per full second (setInterval fires
+  // *after* each 1000ms elapses), so any recording under ~1s would always
+  // read back as 0 even though real audio was captured — Date.now() math
+  // is accurate down to the millisecond regardless of recording length.
+  const recordingStartedAtRef = useRef(0);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveAnim = useRef(new Animated.Value(0)).current;
@@ -549,6 +555,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         return;
       }
       audioRecorder.record();
+      recordingStartedAtRef.current = Date.now();
       setIsRecording(true);
       setCancelMode(false);
       recordingSeconds.current = 0;
@@ -607,13 +614,22 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       return;
     }
 
-    const durationSec = recordingSeconds.current;
+    const elapsedMs = recordingStartedAtRef.current > 0 ? Date.now() - recordingStartedAtRef.current : 0;
+    const durationSec = Math.max(recordingSeconds.current, Math.round(elapsedMs / 1000));
     let uri: string | null = null;
     try {
       await audioRecorder.stop();
       uri = audioRecorder.uri;
     } catch (err) {
       console.log('[Voice] stop error:', err);
+    }
+
+    // Too short to be a real voice note (e.g. an accidental tap) — treat like
+    // a cancel instead of sending/showing a 0:00 bubble.
+    if (elapsedMs < 500) {
+      recordingSeconds.current = 0;
+      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
+      return;
     }
     recordingSeconds.current = 0;
     // Always reset audio mode so playback and future recordings work
@@ -647,6 +663,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       setMessages((prev) => prev.map((m) =>
         String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false, voiceState: 'ready' } : m
       ));
+      console.log('[Voice] sending duration:', durationSec, 'url:', remoteUrl);
       sendSocketMessage(roomId, '[Voice message]', {
         messageType: 'audio',
         audioUrl: remoteUrl,
