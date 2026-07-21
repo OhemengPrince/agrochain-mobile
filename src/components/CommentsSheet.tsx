@@ -245,10 +245,14 @@ export default function CommentsSheet({
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <KeyboardAvoidingView
-          style={{ backgroundColor: p.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ backgroundColor: p.sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, height: SHEET_HEIGHT }}
+          behavior={Platform.OS === 'ios' ? 'height' : undefined}
         >
-          <View style={{ height: SHEET_HEIGHT }}>
+          {/* behavior="height" (not "padding") shrinks this container's own
+              height from the bottom when the keyboard opens, instead of
+              adding bottom padding that grows its total size and pushes the
+              top — with comments and the header — off the top of the screen. */}
+          <View style={{ flex: 1 }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: p.handle, alignSelf: 'center', marginTop: 10 }} />
 
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12 }}>
