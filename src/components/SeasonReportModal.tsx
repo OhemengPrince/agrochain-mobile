@@ -42,7 +42,7 @@ export default function SeasonReportModal({ visible, onClose, title, periodLabel
             </Pressable>
           </View>
 
-          <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.statsScroll} showsVerticalScrollIndicator={false}>
             {stats.map((stat) => (
               <View key={stat.label} style={styles.statRow}>
                 <View style={styles.statIcon}>
@@ -67,11 +67,17 @@ export default function SeasonReportModal({ visible, onClose, title, periodLabel
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    sheet: {
+      backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, paddingBottom: 36, maxHeight: '75%',
+    },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 },
     titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
     title: { fontSize: 18, fontWeight: '800', color: colors.text },
     periodLabel: { fontSize: 12, color: colors.secondaryText, marginTop: 2 },
+    // flexShrink lets this give up space to the fixed header/footer instead of
+    // overflowing them, while still being the part that actually scrolls.
+    statsScroll: { flexGrow: 0, flexShrink: 1 },
     statRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider,

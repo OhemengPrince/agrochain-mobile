@@ -20,8 +20,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BuyerStackParamList, ProduceBatch } from '../../types';
+import { BuyerStackParamList, ProduceBatch, MarketplacePurchase, ProducePurchase } from '../../types';
 import { getProduceCatalogue } from '../../api/produceApi';
+import { getMyMarketplacePurchases, getMyProducePurchases } from '../../api/purchaseApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -48,21 +49,8 @@ type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
 const TABS = ['About', 'Activity', 'Reviews'];
 
-// Illustrative placeholder data — this app has no backend model for produce
-// purchases/orders made by a buyer, so this section is static demo content.
-const RECENT_PURCHASES = [
-  { id: 'p1', emoji: '🌽', crop: 'Maize', quantity: '500kg', farmer: 'Kwame Asante', date: '2026-03-15', amount: 'GHS 1,750' },
-  { id: 'p2', emoji: '🍠', crop: 'Cassava', quantity: '300kg', farmer: 'Abena Owusu', date: '2026-03-02', amount: 'GHS 900' },
-  { id: 'p3', emoji: '🍫', crop: 'Cocoa', quantity: '200kg', farmer: 'Kofi Mensah', date: '2026-02-20', amount: 'GHS 4,800' },
-];
-
 const BIO_TEXT = 'Verified agri-buyer sourcing quality produce from Ghanaian farmers for export markets 🌍';
 const SPECIALTY = 'Export Produce';
-
-interface Supplier {
-  farmerName: string;
-  cropName: string;
-}
 
 export default function BuyerProfileScreen({ navigation }: Props) {
   const { user, logout, updateUser } = useAuth();
@@ -97,6 +85,8 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [marketplacePurchases, setMarketplacePurchases] = useState<MarketplacePurchase[]>([]);
+  const [producePurchases, setProducePurchases] = useState<ProducePurchase[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -110,8 +100,14 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   );
 
   const loadData = useCallback(async () => {
-    const data = await getProduceCatalogue({});
+    const [data, mpPurchases, producePurchasesData] = await Promise.all([
+      getProduceCatalogue({}),
+      getMyMarketplacePurchases().catch(() => []),
+      getMyProducePurchases().catch(() => []),
+    ]);
     setBatches(data);
+    setMarketplacePurchases(mpPurchases);
+    setProducePurchases(producePurchasesData);
   }, []);
 
   useEffect(() => {
@@ -184,20 +180,23 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const locationLabel = user.district && user.region ? `${user.district}, ${user.region} Region` : 'Ghana';
   const memberSince = formatDate(user.createdAt);
 
-  const suppliers: Supplier[] = [];
-  const seenFarmers = new Set<string>();
-  for (const batch of batches) {
-    if (!seenFarmers.has(batch.farmerName)) {
-      seenFarmers.add(batch.farmerName);
-      suppliers.push({ farmerName: batch.farmerName, cropName: batch.cropName });
-    }
-  }
+  // Real, distinct sellers this buyer has actually purchased from — derived
+  // from actual purchase records, not just everyone with a listing in the
+  // catalogue (which includes farmers this buyer has never bought from).
+  const purchaseSellerNames = new Set<string>([
+    ...marketplacePurchases.map((p) => p.sellerName),
+    ...producePurchases.map((p) => p.farmerName),
+  ]);
+  const totalPurchases = marketplacePurchases.length + producePurchases.length;
+  const totalSpent = marketplacePurchases.reduce((sum, p) => sum + p.totalAmount, 0)
+    + producePurchases.reduce((sum, p) => sum + p.totalAmount, 0);
 
   const seasonReportStats: ReportStat[] = [
-    { icon: 'cart-outline', label: 'Purchases', value: String(RECENT_PURCHASES.length) },
-    { icon: 'people-outline', label: 'Suppliers Worked With', value: String(suppliers.length) },
-    { icon: 'leaf-outline', label: 'Produce Batches Browsed', value: String(batches.length) },
-    { icon: 'trending-up-outline', label: 'Total Spent', value: formatCurrency(earnings?.totalEarned ?? 0) },
+    { icon: 'cart-outline', label: 'Total Purchases', value: String(totalPurchases) },
+    { icon: 'people-outline', label: 'Suppliers Purchased From', value: String(purchaseSellerNames.size) },
+    { icon: 'storefront-outline', label: 'Marketplace Orders', value: String(marketplacePurchases.length) },
+    { icon: 'leaf-outline', label: 'Produce Orders', value: String(producePurchases.length) },
+    { icon: 'trending-up-outline', label: 'Total Spent', value: formatCurrency(totalSpent) },
   ];
 
   const styles = createStyles(colors);
