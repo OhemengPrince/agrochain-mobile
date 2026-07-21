@@ -19,9 +19,10 @@ import {
   getBlockedContactIds,
 } from '../../utils/storage';
 
-const PIN_WIDTH = 76;
-const DELETE_WIDTH = 76;
-const LONG_SWIPE_THRESHOLD = 190;
+const PIN_WIDTH = 64;
+const DELETE_WIDTH = 64;
+const LONG_SWIPE_THRESHOLD = 110;
+const MAX_DRAG_LEFT = 130;
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -89,7 +90,7 @@ function SwipeableRoomRow({
       onPanResponderMove: (_, gesture) => {
         const base = openStateRef.current === 'delete' ? -DELETE_WIDTH : 0;
         const next = base + gesture.dx;
-        translateX.setValue(Math.max(-260, Math.min(PIN_WIDTH, next)));
+        translateX.setValue(Math.max(-MAX_DRAG_LEFT, Math.min(PIN_WIDTH, next)));
       },
       onPanResponderRelease: (_, gesture) => {
         const base = openStateRef.current === 'delete' ? -DELETE_WIDTH : 0;
