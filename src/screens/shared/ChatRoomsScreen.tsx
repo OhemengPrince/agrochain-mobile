@@ -132,7 +132,7 @@ function SwipeableRoomRow({
             </View>
           </>
         )}
-        <Animated.View style={{ transform: [{ translateX }], backgroundColor: colors.cardBackground }} {...panResponder.panHandlers}>
+        <Animated.View style={{ width: '100%', transform: [{ translateX }], backgroundColor: colors.cardBackground }} {...panResponder.panHandlers}>
           {children}
         </Animated.View>
       </View>
@@ -282,9 +282,8 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
         pinned={pinnedIds.has(roomId)}
         colors={colors}
       >
-        <TouchableOpacity
+        <Pressable
           style={s.row}
-          activeOpacity={0.7}
           onPress={() =>
             navigation.navigate('Chat', {
               name: other.fullName ?? other.email ?? 'User',
@@ -323,7 +322,7 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
               )}
             </View>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </SwipeableRoomRow>
     );
   }
