@@ -35,8 +35,7 @@
         {
           "locationWhenInUsePermission": "AgroChain uses your location to show local weather and nearby equipment."
         }
-      ],
-      "expo-audio"
+      ]
     ]
   }
 }

@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, ImageBackground, Alert, Modal,
   Animated, Dimensions, ScrollView, StyleProp, ViewStyle, ActivityIndicator,
-  PanResponder,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,20 +10,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
-import {
-  useAudioRecorder,
-  RecordingPresets,
-  setAudioModeAsync,
-  requestRecordingPermissionsAsync,
-  useAudioPlayer,
-  useAudioPlayerStatus,
-} from 'expo-audio';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
 import { ChatSocketMessage } from '../../types';
 import { getOrCreateRoom, getMessages, markRead } from '../../api/chatApi';
-import { uploadAudio } from '../../api/fileApi';
 import {
   connect as connectChatSocket,
   sendMessage as sendSocketMessage,
@@ -32,27 +22,6 @@ import {
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import { USE_MOCK_DATA } from '../../config';
-
-// Module-level singleton — only one voice message plays at a time across all bubbles.
-let _globalStopFn: (() => void) | null = null;
-
-// The client always sends the field as `audioDuration` (seconds), but we don't
-// control what key the backend echoes it back under in history/socket
-// payloads — check the plausible alternate spellings defensively instead of
-// silently showing 0:00 if the backend used a different name.
-function readAudioDuration(raw: any): number | undefined {
-  const candidates = [
-    raw?.audioDuration,
-    raw?.duration,
-    raw?.audioDurationSeconds,
-    raw?.voiceDuration,
-    raw?.durationSeconds,
-  ];
-  for (const c of candidates) {
-    if (typeof c === 'number' && c > 0) return c;
-  }
-  return undefined;
-}
 
 // Bundled default wallpaper — always shown unless user picks a custom one
 const DEFAULT_WALLPAPER = require('../../../assets/default message wallpaper background.jpg');
@@ -71,23 +40,18 @@ type ChatParams = {
 type Message = {
   id: string;
   text?: string;
-  type: 'text' | 'voice' | 'sep';
+  type: 'text' | 'sep';
   label?: string;
   sent: boolean;
   time: string;
   delivered?: boolean; // true once server has confirmed (echo received or loaded from history)
   read?: boolean;      // true when the other person has read it
   audioUrl?: string;
-  audioDuration?: number;
-  uploading?: boolean;
-  voiceState?: 'uploading' | 'ready' | 'failed';
 };
 
 // ─────────────────────────────────────────────────────────────
 // Static data
 // ─────────────────────────────────────────────────────────────
-
-const WAVE_HEIGHTS = [5, 13, 8, 18, 11, 22, 7, 16, 10, 20, 6, 14, 19, 9, 15, 12, 7, 17, 11, 8, 14];
 
 const SEED: Message[] = [
   { id: 'sep1', type: 'sep', label: 'Today', sent: false, time: '' },
@@ -95,7 +59,7 @@ const SEED: Message[] = [
   { id: '2', type: 'text', text: 'Welcome! Thank you for reaching out. The equipment is available.', sent: true, time: '10:05 AM', delivered: true, read: true },
   { id: '3', type: 'text', text: 'Which region are you farming in? And how many days do you need it?', sent: true, time: '10:06 AM', delivered: true, read: true },
   { id: '4', type: 'text', text: 'I am in the Ashanti region, around Kumasi. I need it for 3 days starting next Monday.', sent: false, time: '10:09 AM' },
-  { id: '5', type: 'voice', sent: true, time: '10:12 AM', delivered: true, read: true },
+  { id: '5', type: 'text', text: '[Voice message]', sent: true, time: '10:12 AM', delivered: true, read: true },
   { id: '6', type: 'text', text: 'Perfect. The rate is GHS 450/day. I can confirm Monday–Wednesday. Shall I send the booking summary?', sent: false, time: '10:15 AM' },
   { id: '7', type: 'text', text: 'Yes please! That works perfectly for me. Thank you!', sent: true, time: '10:17 AM', delivered: true, read: false },
 ];
@@ -170,32 +134,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   );
   const [sendError, setSendError] = useState<string | null>(null);
   const lastDateKeyRef = useRef<string>('');
-
-  // ── Voice recording state ────────────────────────────────
-  const [isRecording, setIsRecording] = useState(false);
-  const [cancelMode, setCancelMode] = useState(false);
-  const [displayTime, setDisplayTime] = useState('0:00');
-  const recordingSeconds = useRef(0);
-  // Wall-clock start time for the actual duration sent with the message.
-  // recordingSeconds only ticks once per full second (setInterval fires
-  // *after* each 1000ms elapses), so any recording under ~1s would always
-  // read back as 0 even though real audio was captured — Date.now() math
-  // is accurate down to the millisecond regardless of recording length.
-  const recordingStartedAtRef = useRef(0);
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const waveAnim = useRef(new Animated.Value(0)).current;
-  const startRecordingFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
-  const stopRecordingFnRef = useRef<((cancelled: boolean) => Promise<void>) | undefined>(undefined);
-  // Session counter: incremented by stop to let an in-flight startRecording detect it was cancelled
-  const recordingSessionRef = useRef(0);
-  // The optimistic id of the voice message currently waiting for its server
-  // echo. Matching the echo by this instead of comparing audioUrl strings
-  // avoids a race: sendSocketMessage fires before the optimistic bubble's
-  // audioUrl is updated from the local file path to the uploaded remote URL,
-  // so an echo arriving in that window would otherwise fail the URL match
-  // and get pushed as a duplicate message instead of replacing the original.
-  const pendingVoiceOptimisticIdRef = useRef<string | null>(null);
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -275,17 +213,11 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             ui.push({ id: `sep-${dk}`, type: 'sep', label: formatDateSeparatorLabel(d), sent: false, time: '' });
             dateKey = dk;
           }
-          const isAudioMsg = (m as any).messageType === 'audio' || !!(m as any).audioUrl
-            || m.content === '[Voice message]';
-          if (isAudioMsg) {
-            console.log('[ChatScreen] history voice message raw fields:', JSON.stringify(m));
-          }
           ui.push({
             id: String(m.id),
-            type: isAudioMsg ? 'voice' : 'text',
-            text: isAudioMsg ? undefined : m.content,
+            type: 'text',
+            text: m.content,
             audioUrl: (m as any).audioUrl,
-            audioDuration: readAudioDuration(m),
             sent: user != null && String(m.senderId) === String(user.id),
             time: formatMessageTime(m.createdAt),
             delivered: true, // messages from history are always server-confirmed
@@ -327,46 +259,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         const isMine = currentUserIdRef.current != null &&
           String(payload.senderId) === String(currentUserIdRef.current);
 
-        if ((payload as any).audioUrl || payload.messageType === 'audio' || payload.content === '[Voice message]') {
-          console.log('[ChatScreen] socket voice raw:', JSON.stringify(payload));
-        }
-
         setMessages((prev) => {
           // Replace optimistic message (sent-by-me, same content) if present;
           // otherwise dedup by id so the server echo doesn't double-render.
-          const isAudio = payload.messageType === 'audio' || !!payload.audioUrl;
           // Backend IDs are Long (number) at runtime — always use String() before .startsWith()
           const isOptimistic = (id: any) => String(id).startsWith('opt-');
 
           if (isMine) {
-            const pendingVoiceId = pendingVoiceOptimisticIdRef.current;
-            const optIdx = prev.findIndex(
-              (m) => isOptimistic(m.id) && (
-                isAudio
-                  // Prefer matching the specific pending voice message by id —
-                  // comparing audioUrl strings is unreliable because the local
-                  // bubble's URL can still be the pre-upload local file path
-                  // (or a since-changed remote URL) at the moment the echo lands.
-                  ? m.type === 'voice' && (m.id === pendingVoiceId || m.audioUrl === payload.audioUrl)
-                  : m.text === payload.content
-              )
-            );
+            const optIdx = prev.findIndex((m) => isOptimistic(m.id) && m.text === payload.content);
             if (optIdx !== -1) {
-              if (isAudio && prev[optIdx].id === pendingVoiceId) {
-                pendingVoiceOptimisticIdRef.current = null;
-              }
               const next = [...prev];
               next[optIdx] = {
                 id: msgId,
-                type: isAudio ? 'voice' : 'text',
-                text: isAudio ? undefined : payload.content,
+                type: 'text',
+                text: payload.content,
                 audioUrl: payload.audioUrl,
-                // The backend's socket echo doesn't always include audioDuration
-                // under that exact key — check alternate field names, and fall
-                // back to the locally-known duration (captured from the
-                // recording timer when we sent it) instead of letting a correct
-                // value get wiped to 0 by an incomplete echo.
-                audioDuration: readAudioDuration(payload) || prev[optIdx].audioDuration,
                 sent: true,
                 delivered: true, // server echo = delivered
                 time: formatMessageTime(payload.createdAt),
@@ -386,10 +293,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
           }
           next.push({
             id: msgId,
-            type: isAudio ? 'voice' : 'text',
-            text: isAudio ? undefined : payload.content,
+            type: 'text',
+            text: payload.content,
             audioUrl: payload.audioUrl,
-            audioDuration: readAudioDuration(payload),
             sent: isMine,
             delivered: true,
             time: formatMessageTime(payload.createdAt),
@@ -524,201 +430,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     }
   };
 
-  // ── Voice recording ────────────────────────────────────
-  const startRecording = useCallback(async () => {
-    console.log('[Recording] startRecording called');
-    // Claim a session slot. If stopAndSendRecording fires before createAsync resolves,
-    // it will increment this counter and we detect it was cancelled mid-start.
-    const session = ++recordingSessionRef.current;
-
-    try {
-      const { granted } = await requestRecordingPermissionsAsync();
-      console.log('[Recording] permission granted:', granted);
-      if (session !== recordingSessionRef.current) {
-        console.log('[Recording] cancelled during permission request');
-        return;
-      }
-      if (!granted) {
-        console.log('[Recording] permission denied!');
-        Alert.alert('Microphone Permission', 'Please allow microphone access to send voice messages.');
-        return;
-      }
-      // Unload any stale recording left from a previous session
-      if (audioRecorder.isRecording) {
-        try { await audioRecorder.stop(); } catch {}
-      }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      if (session !== recordingSessionRef.current) {
-        // stop was called while we were setting up — reset audio mode and bail
-        console.log('[Recording] cancelled while setting audio mode');
-        try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-        return;
-      }
-      await audioRecorder.prepareToRecordAsync();
-      if (session !== recordingSessionRef.current) {
-        // stop called while prepareToRecordAsync was in flight — clean up
-        console.log('[Recording] cancelled while preparing to record');
-        try { await audioRecorder.stop(); } catch {}
-        try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-        return;
-      }
-      console.log('[Recording] starting...');
-      audioRecorder.record();
-      recordingStartedAtRef.current = Date.now();
-      setIsRecording(true);
-      setCancelMode(false);
-      recordingSeconds.current = 0;
-      setDisplayTime('0:00');
-
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(waveAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(waveAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-        ])
-      ).start();
-
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-      timerIntervalRef.current = setInterval(() => {
-        recordingSeconds.current += 1;
-        const mins = Math.floor(recordingSeconds.current / 60);
-        const secs = recordingSeconds.current % 60;
-        setDisplayTime(`${mins}:${secs.toString().padStart(2, '0')}`);
-        if (recordingSeconds.current >= 120) stopRecordingFnRef.current?.(false);
-      }, 1000);
-    } catch (err) {
-      console.log('[Voice] startRecording error:', err);
-      // Always reset audio mode on any failure so next attempt works
-      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-    }
-  }, [waveAnim, audioRecorder]);
-
-  const stopAndSendRecording = useCallback(async (cancelled: boolean) => {
-    console.log('[Recording] stopRecording called — cancelled:', cancelled, '| audioRecorder.isRecording:', audioRecorder.isRecording);
-    // Invalidate any in-flight startRecording so it aborts after its next await
-    recordingSessionRef.current++;
-
-    // Stop timer and animation regardless of whether recording started
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-    waveAnim.stopAnimation();
-    waveAnim.setValue(0);
-    setIsRecording(false);
-    setCancelMode(false);
-    setDisplayTime('0:00');
-
-    if (!audioRecorder.isRecording) {
-      // startRecording was still in flight and will clean up itself via session check
-      recordingSeconds.current = 0;
-      return;
-    }
-
-    if (cancelled) {
-      try { await audioRecorder.stop(); } catch {}
-      recordingSeconds.current = 0;
-      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-      return;
-    }
-
-    const elapsedMs = recordingStartedAtRef.current > 0 ? Date.now() - recordingStartedAtRef.current : 0;
-    const durationSec = Math.max(recordingSeconds.current, Math.round(elapsedMs / 1000));
-    let uri: string | null = null;
-    try {
-      await audioRecorder.stop();
-      uri = audioRecorder.uri;
-    } catch (err) {
-      console.log('[Voice] stop error:', err);
-    }
-
-    // Too short to be a real voice note (e.g. an accidental tap) — treat like
-    // a cancel instead of sending/showing a 0:00 bubble.
-    if (elapsedMs < 500) {
-      recordingSeconds.current = 0;
-      try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-      return;
-    }
-    recordingSeconds.current = 0;
-    // Always reset audio mode so playback and future recordings work
-    try { await setAudioModeAsync({ allowsRecording: false }); } catch {}
-
-    if (!uri) return;
-    if (!otherUserId || !roomId) {
-      // Demo mode — add local-only bubble
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setMessages((prev) => [...prev, {
-        id: `opt-voice-${Date.now()}`, type: 'voice', sent: true, time: now, read: false,
-        audioUrl: uri!, audioDuration: durationSec,
-      }]);
-      return;
-    }
-
-    const optimisticId = `opt-voice-${Date.now()}`;
-    pendingVoiceOptimisticIdRef.current = optimisticId;
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, {
-      id: optimisticId, type: 'voice', sent: true, time: now,
-      delivered: false, read: false,
-      audioUrl: uri!, audioDuration: durationSec, uploading: true, voiceState: 'uploading',
-    }]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-
-    try {
-      const remoteUrl = await uploadAudio(uri);
-      // Update the local bubble to the real remote URL BEFORE emitting, so if
-      // the server echo arrives quickly it lands after this state update.
-      setMessages((prev) => prev.map((m) =>
-        String(m.id) === optimisticId ? { ...m, audioUrl: remoteUrl, uploading: false, voiceState: 'ready' } : m
-      ));
-      console.log('[Voice] sending duration:', durationSec, 'url:', remoteUrl);
-      sendSocketMessage(roomId, '[Voice message]', {
-        messageType: 'audio',
-        audioUrl: remoteUrl,
-        audioDuration: durationSec,
-      });
-    } catch (err) {
-      console.log('[Voice] upload error:', err);
-      if (pendingVoiceOptimisticIdRef.current === optimisticId) {
-        pendingVoiceOptimisticIdRef.current = null;
-      }
-      setMessages((prev) => prev.map((m) =>
-        String(m.id) === optimisticId ? { ...m, uploading: false, voiceState: 'failed' } : m
-      ));
-    }
-  }, [roomId, otherUserId, waveAnim, audioRecorder]);
-
-  // Keep stable refs so PanResponder callbacks (created once) can call the latest fn
-  useEffect(() => { startRecordingFnRef.current = startRecording; }, [startRecording]);
-  useEffect(() => { stopRecordingFnRef.current = stopAndSendRecording; }, [stopAndSendRecording]);
-
-  // Clean up interval on unmount (safety net)
-  useEffect(() => () => {
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-  }, []);
-
-  const micPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        console.log('[Mic] button pressed — starting recording');
-        startRecordingFnRef.current?.();
-      },
-      onPanResponderMove: (_, gs) => { setCancelMode(gs.dx < -40); },
-      onPanResponderRelease: (_, gs) => {
-        console.log('[Mic] button released — stopping recording, cancelled:', gs.dx < -40);
-        stopRecordingFnRef.current?.(gs.dx < -40);
-      },
-      onPanResponderTerminate: () => {
-        console.log('[Mic] gesture terminated — stopping recording (cancelled)');
-        stopRecordingFnRef.current?.(true);
-      },
-    })
-  ).current;
-
   // ── renderItem — stable reference so FlatList skips unnecessary re-renders ──
   const renderItem = useCallback(({ item }: { item: Message }) => {
     const isMatch = matchedIds.has(item.id);
@@ -733,54 +444,22 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
       );
     }
 
-    // Voice bubble — also catches type='text' messages with audioUrl or '[Voice message]' content
-    if (item.type === 'voice' || item.audioUrl || item.text === '[Voice message]') {
-      const voiceColor = (opacity: number) =>
-        item.sent ? `rgba(255,255,255,${opacity})` : colors.secondaryText;
-      return (
-        <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
-          {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
-          <View>
-            <View style={[s.voiceBubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-              {(item.voiceState === 'uploading' || item.uploading) ? (
-                <>
-                  <ActivityIndicator size="small" color={item.sent ? '#fff' : '#0B6E36'} style={{ marginRight: 8 }} />
-                  <Text style={[s.voiceDur, { color: voiceColor(0.80) }]}>Sending…</Text>
-                </>
-              ) : item.voiceState === 'failed' ? (
-                <>
-                  <Ionicons name="alert-circle-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-                  <Text style={[s.voiceDur, { color: '#EF4444' }]}>Failed to send</Text>
-                </>
-              ) : (item.voiceState === 'ready' || item.audioUrl) ? (
-                <AudioPlayer
-                  audioUrl={item.audioUrl!}
-                  durationSec={item.audioDuration ?? 0}
-                  sent={item.sent}
-                  colors={colors}
-                  s={s}
-                />
-              ) : (
-                <>
-                  <View style={[s.playBtn, { opacity: 0.5 }]}>
-                    <Ionicons name="mic" size={15} color="#fff" />
-                  </View>
-                  <Text style={[s.voiceDur, { color: voiceColor(0.65) }]}>Voice message</Text>
-                </>
-              )}
-            </View>
-            <TimeMeta sent={item.sent} time={item.time} delivered={item.delivered} read={item.read} s={s} colors={colors} />
-          </View>
-        </View>
-      );
-    }
+    // Legacy voice messages already in the database — shown as a plain
+    // placeholder bubble now that voice recording has been removed.
+    const isLegacyVoiceMessage = !!item.audioUrl || item.text === '[Voice message]';
 
     return (
       <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
         {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
         <View style={{ maxWidth: '75%' }}>
           <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-            <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
+            {isLegacyVoiceMessage ? (
+              <Text style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>
+                🎤 Voice message
+              </Text>
+            ) : (
+              <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
+            )}
           </View>
           <TimeMeta sent={item.sent} time={item.time} delivered={item.delivered} read={item.read} s={s} colors={colors} />
         </View>
@@ -900,59 +579,28 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
           )}
 
-          {isRecording ? (
-            <View style={s.inputBar}>
-              {/* Recording overlay — replaces input bar while holding mic */}
-              <View style={[s.recordingOverlay]}>
-                <Animated.View style={[s.recordingMicBtn, { opacity: waveAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }) }]}>
-                  <Ionicons name="mic" size={22} color="#fff" />
-                </Animated.View>
-                <Text style={[s.recordingTimer, cancelMode && { color: '#EF4444' }]}>
-                  {displayTime}
-                </Text>
-                <Text style={[s.recordingCancel, cancelMode && { color: '#EF4444', fontWeight: '700' }]}>
-                  {'< Slide to cancel'}
-                </Text>
-              </View>
-              {/* Mic button stays on the right, wired to PanResponder */}
-              <View {...micPanResponder.panHandlers}>
-                <LinearGradient colors={cancelMode ? ['#EF4444', '#DC2626'] : ['#0B6E36', '#1B8B50']} style={s.sendBtn}>
-                  <Ionicons name="mic" size={20} color="#fff" />
-                </LinearGradient>
-              </View>
+          <View style={s.inputBar}>
+            <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
+              <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
+            </TouchableOpacity>
+            <View style={s.inputWrap}>
+              <TextInput
+                style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
+                placeholder="Send a message..."
+                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                returnKeyType="send"
+                onSubmitEditing={sendMessage}
+              />
             </View>
-          ) : (
-            <View style={s.inputBar}>
-              <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
-                <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
-              </TouchableOpacity>
-              <View style={s.inputWrap}>
-                <TextInput
-                  style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
-                  placeholder="Send a message..."
-                  placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
-                  value={inputText}
-                  onChangeText={setInputText}
-                  multiline
-                  returnKeyType="send"
-                  onSubmitEditing={sendMessage}
-                />
-              </View>
-              {inputText.trim() ? (
-                <TouchableOpacity onPress={sendMessage} activeOpacity={0.8}>
-                  <LinearGradient colors={['#0B6E36', '#1B8B50']} style={s.sendBtn}>
-                    <Ionicons name="send" size={17} color="#fff" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <View {...micPanResponder.panHandlers}>
-                  <LinearGradient colors={['#0B6E36', '#1B8B50']} style={s.sendBtn}>
-                    <Ionicons name="mic" size={20} color="#fff" />
-                  </LinearGradient>
-                </View>
-              )}
-            </View>
-          )}
+            <TouchableOpacity onPress={sendMessage} activeOpacity={0.8} disabled={!inputText.trim()}>
+              <LinearGradient colors={['#0B6E36', '#1B8B50']} style={[s.sendBtn, !inputText.trim() && { opacity: 0.5 }]}>
+                <Ionicons name="send" size={17} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
           <View style={{ height: insets.bottom }} />
         </View>
@@ -1401,84 +1049,6 @@ function ChatOptionsPanel({
 }
 
 // ─────────────────────────────────────────────────────────────
-// AudioPlayer — plays a voice message; enforces global single-play
-// ─────────────────────────────────────────────────────────────
-
-const AudioPlayer = React.memo(function AudioPlayer({
-  audioUrl, durationSec, sent, colors, s,
-}: {
-  audioUrl: string; durationSec: number; sent: boolean; colors: ThemeColors; s: any;
-}) {
-  const isValidUrl = !!audioUrl && audioUrl.startsWith('http');
-  const player = useAudioPlayer(isValidUrl ? audioUrl : null, { updateInterval: 200 });
-  const status = useAudioPlayerStatus(player);
-  const isPlaying = status.playing ?? false;
-
-  // Only one voice message plays at a time across the whole screen.
-  const stopSelf = useCallback(() => {
-    try { player.pause(); } catch {}
-  }, [player]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      if (_globalStopFn && _globalStopFn !== stopSelf) {
-        _globalStopFn();
-      }
-      _globalStopFn = stopSelf;
-    } else if (_globalStopFn === stopSelf) {
-      _globalStopFn = null;
-    }
-  }, [isPlaying, stopSelf]);
-
-  useEffect(() => () => {
-    if (_globalStopFn === stopSelf) _globalStopFn = null;
-  }, [stopSelf]);
-
-  const toggle = useCallback(async () => {
-    if (isPlaying) {
-      player.pause();
-      return;
-    }
-    try {
-      await setAudioModeAsync({
-        allowsRecording: false,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-        interruptionMode: 'duckOthers',
-      });
-    } catch {}
-    if (status.didJustFinish || status.currentTime >= status.duration) {
-      try { await player.seekTo(0); } catch {}
-    }
-    player.play();
-  }, [isPlaying, player, status.didJustFinish, status.currentTime, status.duration]);
-
-  // All hooks above — safe to early-return here
-  if (!isValidUrl) {
-    return <Text style={{ color: '#EF4444', fontSize: 11, flex: 1 }}>Audio unavailable</Text>;
-  }
-
-  const position = status.currentTime ?? 0;
-  const duration = status.duration || durationSec || 0;
-  const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
-  const elapsed = Math.floor(position);
-  const total = Math.floor(duration);
-  const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')} / ${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-      <TouchableOpacity onPress={toggle} style={s.playBtn} activeOpacity={0.8}>
-        <Ionicons name={isPlaying ? 'pause' : 'play'} size={15} color="#fff" />
-      </TouchableOpacity>
-      <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: sent ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.18)', marginHorizontal: 6 }}>
-        <View style={{ width: `${progress * 100}%`, height: 4, borderRadius: 2, backgroundColor: sent ? '#fff' : '#0B6E36' }} />
-      </View>
-      <Text style={[s.voiceDur, { color: sent ? 'rgba(255,255,255,0.80)' : colors.secondaryText, minWidth: 68 }]}>{timeStr}</Text>
-    </View>
-  );
-});
-
-// ─────────────────────────────────────────────────────────────
 // HighlightedText — renders message text with search matches highlighted
 // ─────────────────────────────────────────────────────────────
 
@@ -1682,13 +1252,6 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     timeSent: { color: 'rgba(255,255,255,0.55)' },
     timeRecv: { color: isDarkMode ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.45)' },
 
-    // ── Voice bubble ────────────────────────────────────────
-    voiceBubble: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderRadius: 20, borderWidth: 1, gap: 8, minWidth: 200 },
-    playBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    waveform: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 24 },
-    waveBar: { width: 3, borderRadius: 2 },
-    voiceDur: { fontSize: 11, fontWeight: '600', flexShrink: 0 },
-
     // ── Input bar ────────────────────────────────────────────
     inputBarOuter: { overflow: 'hidden' },
     inputBarBlurOverlay: { backgroundColor: INPUT_OVERLAY },
@@ -1698,11 +1261,5 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
     inputWrap: { flex: 1, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10, maxHeight: 120, backgroundColor: INPUT_PILL_BG, borderWidth: 1, borderColor: INPUT_PILL_BRD },
     input: { fontSize: 15, lineHeight: 20 },
     sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-
-    // ── Recording overlay ────────────────────────────────────
-    recordingOverlay: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
-    recordingMicBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
-    recordingTimer: { fontSize: 16, fontWeight: '700', color: isDarkMode ? '#fff' : '#111827', minWidth: 42 },
-    recordingCancel: { fontSize: 13, color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280', flex: 1 },
   });
 }
