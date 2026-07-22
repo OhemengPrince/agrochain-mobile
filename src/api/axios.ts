@@ -5,7 +5,7 @@ const BASE_URL = 'https://agrochain-backend-uq43.onrender.com/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 25000,
+  timeout: 60000, // 60 seconds for Render cold starts
   headers: {
     'Content-Type': 'application/json',
   },
