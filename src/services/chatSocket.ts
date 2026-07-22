@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { ChatSocketMessage } from '../types';
 
-export const SOCKET_URL = 'https://agrochain-backend-uq43.onrender.com';
+export const SOCKET_URL = 'https://agrochain-socketio.onrender.com';
 
 let socket: Socket | null = null;
 
