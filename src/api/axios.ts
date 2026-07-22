@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { getToken, clearAll } from '../utils/storage';
 
-const BASE_URL = 'https://agrochain-backend-uq43.onrender.com/api';
+const BASE_URL = 'http://172.20.10.2:8080/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

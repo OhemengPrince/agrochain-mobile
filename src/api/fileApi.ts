@@ -1,7 +1,7 @@
 import apiClient from './axios';
 import { USE_MOCK_DATA } from '../config';
 
-const BASE_ORIGIN = 'https://agrochain-backend-uq43.onrender.com';
+const BASE_ORIGIN = 'http://172.20.10.2:8080';
 
 export async function uploadImage(localUri: string): Promise<string> {
   if (USE_MOCK_DATA) return localUri;
