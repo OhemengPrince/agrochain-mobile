@@ -1,21 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { ChatSocketMessage } from '../types';
 
-// Derive Socket.IO URL from the REST API base URL — same host, port 9092.
-// 'http://172.20.10.2:8080/api' → 'http://172.20.10.2:9092'
-function getSocketIOUrl(apiBaseUrl: string): string {
-  try {
-    const u = new URL(apiBaseUrl);
-    u.port = '9092';
-    u.pathname = '/';
-    return u.origin;
-  } catch {
-    return apiBaseUrl.replace(/:\d+\/.*$/, ':9092');
-  }
-}
-
-const BASE_URL = 'http://172.20.10.2:8080/api';
-export const SOCKET_URL = getSocketIOUrl(BASE_URL); // 'http://172.20.10.2:9092'
+export const SOCKET_URL = 'https://agrochain-backend-uq43.onrender.com';
 
 let socket: Socket | null = null;
 
