@@ -342,22 +342,25 @@ export default function CommentsSheet({
                   </Text>
                 </View>
               ) : (
-                <FlatList
-                  data={threadedComments}
-                  keyExtractor={(c) => c.id}
-                  style={{ flex: 1 }}
-                  contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="interactive"
-                  renderItem={({ item }) => (
-                    <View>
-                      <CommentRow item={item} />
-                      {item.replies.map((reply) => (
-                        <CommentRow key={reply.id} item={reply} isReply />
-                      ))}
-                    </View>
-                  )}
-                />
+                <Pressable style={{ flex: 1 }} onPress={() => setActiveCommentId(null)}>
+                  <FlatList
+                    data={threadedComments}
+                    keyExtractor={(c) => c.id}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                    onScrollBeginDrag={() => setActiveCommentId(null)}
+                    renderItem={({ item }) => (
+                      <View>
+                        <CommentRow item={item} />
+                        {item.replies.map((reply) => (
+                          <CommentRow key={reply.id} item={reply} isReply />
+                        ))}
+                      </View>
+                    )}
+                  />
+                </Pressable>
               )}
             </View>
 

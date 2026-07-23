@@ -879,17 +879,20 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
               <Text style={s.centerStateText}>{loadError}</Text>
             </View>
           ) : (
-            <FlatList
-              ref={listRef}
-              data={messages}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              contentContainerStyle={s.list}
-              onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-              showsVerticalScrollIndicator={false}
-              style={s.flatList}
-              onScrollToIndexFailed={() => {}}
-            />
+            <Pressable style={{ flex: 1 }} onPress={() => setActiveMessageId(null)}>
+              <FlatList
+                ref={listRef}
+                data={messages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={s.list}
+                onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+                onScrollBeginDrag={() => setActiveMessageId(null)}
+                showsVerticalScrollIndicator={false}
+                style={s.flatList}
+                onScrollToIndexFailed={() => {}}
+              />
+            </Pressable>
           )}
         </View>
 
