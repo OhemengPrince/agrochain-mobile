@@ -1,5 +1,5 @@
 import apiClient, { extractArray } from './axios';
-import { User, UserRole } from '../types';
+import { User, UserRole, UserReview } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { MOCK_USERS, MOCK_EQUIPMENT } from '../mock/mockData';
 import { mockDelay } from '../mock/mockHelpers';
@@ -182,4 +182,29 @@ export async function getTopRatedUsers(limit = 10): Promise<TopRatedUser[]> {
   const result = extractArray<TopRatedUser>(data);
   console.log('[API] /users/top-rated ->', result.length, 'users');
   return result.slice(0, limit);
+}
+
+export interface AverageRating {
+  averageRating: number;
+  totalReviews: number;
+}
+
+export async function getUserReviews(userId: string): Promise<UserReview[]> {
+  if (USE_MOCK_DATA) return mockDelay([]);
+  try {
+    const { data } = await apiClient.get<any>(`/users/${userId}/reviews`);
+    return extractArray<UserReview>(data);
+  } catch {
+    return [];
+  }
+}
+
+export async function getUserAverageRating(userId: string): Promise<AverageRating> {
+  if (USE_MOCK_DATA) return mockDelay({ averageRating: 0, totalReviews: 0 });
+  try {
+    const { data } = await apiClient.get<any>(`/users/${userId}/average-rating`);
+    return { averageRating: data?.averageRating ?? 0, totalReviews: data?.totalReviews ?? 0 };
+  } catch {
+    return { averageRating: 0, totalReviews: 0 };
+  }
 }

@@ -148,6 +148,15 @@ export interface ReviewPayload {
   comment?: string;
 }
 
+export interface UserReview {
+  id: string;
+  reviewerName: string;
+  reviewerAvatar?: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
 // ===== Produce / Traceability =====
 
 export type BatchStatus =

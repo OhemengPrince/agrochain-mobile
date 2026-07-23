@@ -39,6 +39,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
 import { getFollowCounts } from '../../api/followApi';
+import { getUserReviews, getUserAverageRating } from '../../api/userApi';
+import { UserReview } from '../../types';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import RateAppModal from '../../components/RateAppModal';
@@ -50,32 +52,15 @@ type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
 const TABS = ['About', 'Activity', 'Reviews'];
 
-// Illustrative placeholder data — this app has no backend model for
-// reviews received by an equipment owner, so this section is static demo content.
-const RATING_BREAKDOWN: { stars: number; percentage: number; count: number }[] = [
-  { stars: 5, percentage: 78, count: 14 },
-  { stars: 4, percentage: 55, count: 6 },
-  { stars: 3, percentage: 15, count: 1 },
-  { stars: 2, percentage: 0, count: 0 },
-  { stars: 1, percentage: 0, count: 0 },
-];
-
-const SAMPLE_REVIEWS = [
-  {
-    id: 'r1',
-    reviewer: 'Kwame Asante',
-    date: '2026-05-20',
-    rating: 5,
-    comment: 'Tractor was well maintained and ready exactly on time. Will rent again.',
-  },
-  {
-    id: 'r2',
-    reviewer: 'Akosua Mensah',
-    date: '2026-04-18',
-    rating: 4,
-    comment: 'Good equipment, owner was responsive throughout the booking.',
-  },
-];
+function computeRatingBreakdown(reviews: UserReview[]): { stars: number; percentage: number; count: number }[] {
+  const counts = [5, 4, 3, 2, 1].map((stars) => reviews.filter((r) => r.rating === stars).length);
+  const max = Math.max(...counts, 1);
+  return [5, 4, 3, 2, 1].map((stars, i) => ({
+    stars,
+    percentage: Math.round((counts[i] / max) * 100),
+    count: counts[i],
+  }));
+}
 
 const BIO_TEXT = 'Equipment owner with 5 tractors and harvesters serving farmers across Ashanti Region 🚜';
 const SPECIALTY = 'Tractors & Harvesters';
@@ -151,6 +136,9 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,6 +146,10 @@ export default function OwnerProfileScreen({ navigation }: Props) {
       if (user?.id) {
         getFollowCounts(user.id)
           .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+        getUserReviews(user.id).then(setReviews).catch(() => {});
+        getUserAverageRating(user.id)
+          .then(r => { setAverageRating(r.averageRating); setTotalReviews(r.totalReviews); })
           .catch(() => {});
       }
     }, [user?.id])
@@ -466,60 +458,68 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                   <Ionicons name="star-outline" size={18} color={colors.accentAmber} />
                 </View>
                 <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
-                <TouchableOpacity onPress={() => showComingSoon('All reviews')} style={styles.seeAllWrap}>
-                  <Text style={styles.seeAllText}>See All</Text>
-                </TouchableOpacity>
               </View>
 
-              <View style={styles.ratingOverviewBlock}>
-                <Text style={styles.ratingBigNumber}>4.7</Text>
-                <View style={styles.ratingStarsRow}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Ionicons key={i} name="star" size={16} color={colors.accentAmber} />
-                  ))}
-                </View>
-                <Text style={styles.ratingCountText}>21 reviews</Text>
-              </View>
-
-              <View style={styles.ratingBarsWrap}>
-                {RATING_BREAKDOWN.map((row) => (
-                  <View key={row.stars} style={styles.ratingBarRow}>
-                    <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                    <View style={styles.ratingBarTrack}>
-                      <LinearGradient
-                        colors={['#FF8F00', '#FFB300']}
-                        style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                      />
-                    </View>
-                    <Text style={styles.ratingBarCount}>{row.count}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {SAMPLE_REVIEWS.map((review) => (
-                <PressableScale key={review.id} style={styles.reviewCardOuter}>
-                  <View style={styles.reviewCard}>
-                    <View style={styles.reviewHeaderRow}>
-                      <View style={styles.reviewAvatar}>
-                        <Text style={styles.reviewAvatarText}>{review.reviewer.charAt(0)}</Text>
-                      </View>
-                      <Text style={styles.reviewerName}>{review.reviewer}</Text>
-                      <Text style={styles.reviewDate}>{formatDate(review.date)}</Text>
-                    </View>
-                    <View style={styles.reviewStarsRow}>
+              {reviews.length === 0 ? (
+                <Text style={styles.emptyText}>No reviews yet.</Text>
+              ) : (
+                <>
+                  <View style={styles.ratingOverviewBlock}>
+                    <Text style={styles.ratingBigNumber}>{averageRating.toFixed(1)}</Text>
+                    <View style={styles.ratingStarsRow}>
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Ionicons
                           key={i}
                           name="star"
-                          size={12}
-                          color={i < review.rating ? colors.accentAmber : colors.border}
+                          size={16}
+                          color={i < Math.round(averageRating) ? colors.accentAmber : colors.border}
                         />
                       ))}
                     </View>
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                    <Text style={styles.ratingCountText}>{totalReviews} review{totalReviews === 1 ? '' : 's'}</Text>
                   </View>
-                </PressableScale>
-              ))}
+
+                  <View style={styles.ratingBarsWrap}>
+                    {computeRatingBreakdown(reviews).map((row) => (
+                      <View key={row.stars} style={styles.ratingBarRow}>
+                        <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                        <View style={styles.ratingBarTrack}>
+                          <LinearGradient
+                            colors={['#FF8F00', '#FFB300']}
+                            style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                          />
+                        </View>
+                        <Text style={styles.ratingBarCount}>{row.count}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {reviews.map((review) => (
+                    <PressableScale key={review.id} style={styles.reviewCardOuter}>
+                      <View style={styles.reviewCard}>
+                        <View style={styles.reviewHeaderRow}>
+                          <View style={styles.reviewAvatar}>
+                            <Text style={styles.reviewAvatarText}>{review.reviewerName.charAt(0)}</Text>
+                          </View>
+                          <Text style={styles.reviewerName}>{review.reviewerName}</Text>
+                          <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
+                        </View>
+                        <View style={styles.reviewStarsRow}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Ionicons
+                              key={i}
+                              name="star"
+                              size={12}
+                              color={i < review.rating ? colors.accentAmber : colors.border}
+                            />
+                          ))}
+                        </View>
+                        {!!review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
+                      </View>
+                    </PressableScale>
+                  ))}
+                </>
+              )}
             </LinearGradient>
           </View>
         )}
