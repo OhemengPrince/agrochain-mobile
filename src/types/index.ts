@@ -461,7 +461,7 @@ export type AuthStackParamList = {
   OtpVerify: { email: string };
   ForgotPassword: undefined;
   ResetPassword: { identifier: string; method: 'email' | 'sms' };
-  RoleSelection: { idToken: string; email: string; fullName: string; profilePhotoUrl?: string };
+  RoleSelection: { email: string; fullName: string; profilePhotoUrl?: string };
 };
 
 export type MapRouteParams = {

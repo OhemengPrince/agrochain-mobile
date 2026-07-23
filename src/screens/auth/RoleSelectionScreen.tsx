@@ -4,8 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList, UserRole } from '../../types';
-import { googleRegister } from '../../api/authApi';
-import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -15,10 +13,13 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'RoleSelection'>;
 
 const PLACEHOLDER_COLOR = '#9CA3AF';
 
+// Reached only after Google Sign-In identifies a first-time user (currently
+// disabled — see LoginScreen/CreateAccountScreen). Kept in place, unwired,
+// so the role/region/phone form doesn't need rebuilding once Google
+// Sign-In is restored via a proper dev-client build.
 export default function RoleSelectionScreen({ route }: Props) {
-  const { idToken, email, fullName, profilePhotoUrl } = route.params;
+  const { email, fullName, profilePhotoUrl } = route.params;
   const { colors } = useTheme();
-  const { login } = useAuth();
   const styles = createStyles(colors);
 
   const [role, setRole] = useState<UserRole>('FARMER');
@@ -29,23 +30,7 @@ export default function RoleSelectionScreen({ route }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const { token, user } = await googleRegister({
-        idToken,
-        role,
-        phoneNumber: phoneNumber.trim() || undefined,
-        region: region.trim() || undefined,
-        district: district.trim() || undefined,
-        fallbackProfile: { email, fullName, profilePhotoUrl },
-      });
-      await login(token, user);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Could not complete sign-up. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    setError('Sign-up is temporarily unavailable. Please check back soon.');
   };
 
   return (

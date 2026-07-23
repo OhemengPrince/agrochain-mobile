@@ -16,9 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList, UserRole } from '../../types';
-import { register, googleAuth } from '../../api/authApi';
-import { signInWithGoogle } from '../../services/googleAuth';
-import { useAuth } from '../../hooks/useAuth';
+import { register } from '../../api/authApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -82,7 +80,6 @@ function CreateAccountButton({
 
 export default function CreateAccountScreen({ navigation }: Props) {
   const { colors } = useTheme();
-  const { login } = useAuth();
   const styles = createStyles(colors);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -96,36 +93,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    setGoogleLoading(true);
-    try {
-      const profile = await signInWithGoogle();
-      if (!profile) return; // user cancelled
-      const result = await googleAuth(profile.idToken, {
-        email: profile.email,
-        fullName: profile.fullName ?? profile.email.split('@')[0],
-        profilePhotoUrl: profile.profilePhotoUrl ?? undefined,
-      });
-      if (!result.newUser && result.token && result.user) {
-        await login(result.token, result.user);
-      } else {
-        navigation.navigate('RoleSelection', {
-          idToken: profile.idToken,
-          email: result.email ?? profile.email,
-          fullName: result.fullName ?? profile.fullName ?? profile.email.split('@')[0],
-          profilePhotoUrl: result.profilePhotoUrl ?? profile.profilePhotoUrl ?? undefined,
-        });
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Google sign-in failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
 
   const handleCreateAccount = async () => {
     setError(null);
@@ -344,23 +312,6 @@ export default function CreateAccountScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <CreateAccountButton loading={loading} onPress={handleCreateAccount} styles={styles} colors={colors} />
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <Pressable
-          onPress={handleGoogleSignIn}
-          disabled={googleLoading}
-          style={[styles.googleButton, googleLoading && styles.registerButtonDisabled]}
-        >
-          <Ionicons name="logo-google" size={18} color={colors.text} />
-          <Text style={styles.googleButtonText}>
-            {googleLoading ? 'Signing in...' : 'Continue with Google'}
-          </Text>
-        </Pressable>
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
@@ -601,39 +552,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.white,
       fontSize: 17,
       fontWeight: '700',
-    },
-    dividerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 20,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: colors.border,
-    },
-    dividerText: {
-      marginHorizontal: 12,
-      color: colors.secondaryText,
-      fontSize: 13,
-      fontWeight: '600',
-    },
-    googleButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      marginTop: 16,
-      height: 52,
-      borderRadius: 14,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.white,
-    },
-    googleButtonText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
     },
     loginRow: {
       flexDirection: 'row',
