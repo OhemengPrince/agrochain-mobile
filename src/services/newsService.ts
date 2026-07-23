@@ -74,6 +74,7 @@ interface NewsDataResponse {
   status: string;
   totalResults?: number;
   results: NewsDataArticle[];
+  nextPage?: string;
   results_message?: string;
 }
 
@@ -126,41 +127,53 @@ function toNewsItem(a: NewsDataArticle): NewsItem {
   };
 }
 
-async function newsDataFetch(q: string): Promise<NewsDataArticle[]> {
+// NewsData.io's free plan rejects any `q` longer than 100 characters
+// (422 UnsupportedQueryLength) — the request fails outright, not partially.
+const MAX_QUERY_LENGTH = 100;
+
+async function newsDataFetch(q: string, extra?: { size?: number; page?: string }): Promise<NewsDataResponse> {
   const params = new URLSearchParams({
     apikey: NEWSDATA_API_KEY,
     language: 'en',
     country: COUNTRIES,
-    q,
+    q: q.slice(0, MAX_QUERY_LENGTH),
   });
+  if (extra?.size) params.set('size', String(extra.size));
+  if (extra?.page) params.set('page', extra.page);
+
   const res = await fetch(`${BASE}?${params}`);
   const data: NewsDataResponse = await res.json();
   if (!res.ok || data.status !== 'success') {
-    throw new Error(data.results_message ?? `NewsData.io ${res.status}`);
+    const message = data.results_message ?? (data.results as unknown as { message?: string })?.message ?? `NewsData.io ${res.status}`;
+    console.error('[newsService] NewsData.io request failed:', message);
+    throw new Error(message);
   }
-  return data.results ?? [];
+  return data;
 }
 
 // Real-time search against NewsData.io, scoped to agriculture + Ghana region
 export async function searchNews(query: string): Promise<NewsItem[]> {
-  const results = await newsDataFetch(`${query} agriculture`);
-  return results.filter((a) => a.title && a.link).map(toNewsItem);
+  const data = await newsDataFetch(`${query} agriculture`, { size: 10 });
+  return data.results.filter((a) => a.title && a.link).map(toNewsItem);
 }
 
-// Single broad query covering all agric topics — cheaper on the free-tier
-// rate limit than one request per category, since topic chips filter
-// client-side over this one result set instead of re-fetching per tap.
+// Broad query covering all agric topics, kept under NewsData.io's 100-char
+// `q` limit — cheaper on the free-tier rate limit than one request per
+// category, since topic chips filter client-side over this one result set
+// instead of re-fetching per tap. Pulls two pages (~20 articles) so pull-
+// to-refresh has fresh volume each time rather than the same 10 headlines.
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const results = await newsDataFetch(
-    'agriculture OR farming OR cocoa OR maize OR rice OR cassava OR yam OR ' +
-    'groundnut OR livestock OR poultry OR cattle OR fertilizer OR fertiliser OR ' +
-    'irrigation OR tractor OR harvester OR equipment OR harvest OR "market price"'
-  );
+  const query = 'agriculture OR farming OR cocoa OR maize OR livestock OR fertilizer OR harvest';
+
+  const page1 = await newsDataFetch(query, { size: 10 });
+  const page2 = page1.nextPage
+    ? await newsDataFetch(query, { size: 10, page: page1.nextPage }).catch(() => null)
+    : null;
 
   const seen = new Set<string>();
   const merged: NewsItem[] = [];
 
-  for (const a of results) {
+  for (const a of [...page1.results, ...(page2?.results ?? [])]) {
     if (!a.title || !a.link) continue;
     const key = a.article_id ?? a.link;
     if (seen.has(key)) continue;
