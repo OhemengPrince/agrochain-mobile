@@ -7,6 +7,8 @@ let socket: Socket | null = null;
 
 export interface ChatSocketHandlers {
   onMessage: (message: ChatSocketMessage) => void;
+  onMessageDeleted?: (messageId: string) => void;
+  onMessageReaction?: (messageId: string, reactions: { emoji: string; count: number }[]) => void;
   onConnect?: () => void;
   onError?: (error: unknown) => void;
 }
@@ -48,6 +50,14 @@ export function connect(
     handlers.onMessage(message);
   });
 
+  socket.on('message_deleted', (payload: { messageId: string }) => {
+    handlers.onMessageDeleted?.(String(payload.messageId));
+  });
+
+  socket.on('message_reaction', (payload: { messageId: string; reactions: { emoji: string; count: number }[] }) => {
+    handlers.onMessageReaction?.(String(payload.messageId), payload.reactions);
+  });
+
   socket.on('connect_error', (error: Error) => {
     console.log('[SocketIO] connect_error:', error.message);
     handlers.onError?.(error);
@@ -71,6 +81,16 @@ export function sendMessage(
   if (!socket) throw new Error('[SocketIO] No socket — call connect() first');
   console.log('[SocketIO] send_message → room:', roomId, '|', content.slice(0, 60));
   socket.emit('send_message', { roomId, content, ...extra });
+}
+
+export function deleteMessage(roomId: string, messageId: string): void {
+  if (!socket) throw new Error('[SocketIO] No socket — call connect() first');
+  socket.emit('delete_message', { roomId, messageId });
+}
+
+export function reactToMessage(roomId: string, messageId: string, emoji: string): void {
+  if (!socket) throw new Error('[SocketIO] No socket — call connect() first');
+  socket.emit('react_message', { roomId, messageId, emoji });
 }
 
 export function disconnect(): void {

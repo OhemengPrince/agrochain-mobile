@@ -10,7 +10,6 @@ const DISMISSED_NOTIFS_KEY = '@agrochain/dismissed_notifications';
 const HIDDEN_BOOKINGS_KEY = '@agrochain/hidden_bookings';
 const HIDDEN_OWNER_BOOKINGS_KEY = '@agrochain/hidden_owner_bookings';
 const LIKED_LISTINGS_KEY = '@agrochain/liked_listings';
-const ITEM_COMMENTS_KEY = '@agrochain/item_comments';
 const VIEWED_LISTING_SNAPSHOTS_KEY = '@agrochain/viewed_listing_snapshots';
 const CHAT_CLEARED_AT_KEY = '@agrochain/chat_cleared_at';
 const PINNED_ROOMS_KEY = '@agrochain/pinned_rooms';
@@ -21,14 +20,6 @@ const CHAT_WALLPAPER_KEY = '@agrochain/chat_wallpaper';
 const CHAT_BUBBLE_THEME_KEY = '@agrochain/chat_bubble_theme';
 const CERTIFICATIONS_KEY = '@agrochain/certifications';
 const APP_RATING_KEY = '@agrochain/app_rating';
-
-export interface StoredComment {
-  id: string;
-  authorName: string;
-  text: string;
-  createdAt: string;
-  parentId?: string;
-}
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -446,43 +437,6 @@ export async function setAppRating(rating: StoredAppRating): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(APP_RATING_KEY, json);
-}
-
-async function getAllItemComments(): Promise<Record<string, StoredComment[]>> {
-  if (USE_MOCK_DATA) {
-    const raw = memoryStore[ITEM_COMMENTS_KEY];
-    return raw ? JSON.parse(raw) : {};
-  }
-  const raw = await AsyncStorage.getItem(ITEM_COMMENTS_KEY);
-  return raw ? JSON.parse(raw) : {};
-}
-
-async function saveAllItemComments(all: Record<string, StoredComment[]>): Promise<void> {
-  const json = JSON.stringify(all);
-  if (USE_MOCK_DATA) {
-    memoryStore[ITEM_COMMENTS_KEY] = json;
-    return;
-  }
-  await AsyncStorage.setItem(ITEM_COMMENTS_KEY, json);
-}
-
-export async function getItemComments(itemId: string): Promise<StoredComment[]> {
-  const all = await getAllItemComments();
-  return all[itemId] ?? [];
-}
-
-export async function addItemComment(itemId: string, authorName: string, text: string, parentId?: string): Promise<StoredComment> {
-  const all = await getAllItemComments();
-  const comment: StoredComment = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    authorName,
-    text,
-    createdAt: new Date().toISOString(),
-    ...(parentId ? { parentId } : {}),
-  };
-  all[itemId] = [...(all[itemId] ?? []), comment];
-  await saveAllItemComments(all);
-  return comment;
 }
 
 export async function clearAll(): Promise<void> {

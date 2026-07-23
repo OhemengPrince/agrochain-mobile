@@ -32,7 +32,8 @@ import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import TopRatedCarousel from '../../components/TopRatedCarousel';
 import CommentsSheet from '../../components/CommentsSheet';
 import GlassStatPill from '../../components/GlassStatPill';
-import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
+import { getLikedListingIds, setListingLiked } from '../../utils/storage';
+import { getComments } from '../../api/itemCommentApi';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
@@ -270,7 +271,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
 
       const [liked, commentCounts] = await Promise.all([
         getLikedListingIds(),
-        Promise.all(data.map((l) => getItemComments(l.id))),
+        Promise.all(data.map((l) => getComments('LISTING', l.id).catch(() => []))),
       ]);
       setLikedIds(new Set(liked));
       const counts: Record<string, number> = {};
@@ -441,6 +442,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
       <CommentsSheet
         visible={activeCommentsListing !== null}
         onClose={() => setActiveCommentsListing(null)}
+        itemType="LISTING"
         itemId={activeCommentsListing?.id ?? ''}
         itemTitle={activeCommentsListing?.name ?? ''}
         itemSubtitle={activeCommentsListing ? formatCurrency(activeCommentsListing.price) : undefined}

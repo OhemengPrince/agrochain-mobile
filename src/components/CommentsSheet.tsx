@@ -16,8 +16,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import GlassBlur from './GlassBlur';
-import { getItemComments, addItemComment, StoredComment } from '../utils/storage';
+import ReactionBar from './ReactionBar';
+import { getComments } from '../api/itemCommentApi';
+import * as commentSocket from '../services/itemCommentSocket';
+import { ItemComment, ItemType } from '../types';
 
 // Instagram-style palette for the sheet, swapped based on the app's own
 // light/dark mode toggle rather than being hardcoded to one look.
@@ -49,17 +51,6 @@ const LIGHT_PALETTE = {
 // pixel value computed from the window avoids that entirely.
 const SHEET_HEIGHT = Math.round(Dimensions.get('window').height * 0.8);
 
-const QUICK_REACTIONS: { emoji: string; label: string }[] = [
-  { emoji: '🤣', label: 'Haha' },
-  { emoji: '👀', label: 'Watching' },
-  { emoji: '🔥', label: 'Fire' },
-  { emoji: '👏', label: 'Clap' },
-  { emoji: '😢', label: 'Sad' },
-  { emoji: '😍', label: 'Love' },
-  { emoji: '😮', label: 'Wow' },
-  { emoji: '😂', label: 'Funny' },
-];
-
 function timeAgo(dateString: string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const diffMin = Math.floor(diffMs / 60000);
@@ -74,6 +65,7 @@ function timeAgo(dateString: string): string {
 interface Props {
   visible: boolean;
   onClose: () => void;
+  itemType: ItemType;
   itemId: string;
   itemTitle: string;
   itemSubtitle?: string;
@@ -82,13 +74,14 @@ interface Props {
   onCommentsCountChange?: (count: number) => void;
 }
 
-interface CommentWithReplies extends StoredComment {
-  replies: StoredComment[];
+interface CommentWithReplies extends ItemComment {
+  replies: ItemComment[];
 }
 
 export default function CommentsSheet({
   visible,
   onClose,
+  itemType,
   itemId,
   itemTitle,
   itemSubtitle,
@@ -96,16 +89,14 @@ export default function CommentsSheet({
   itemEmoji,
   onCommentsCountChange,
 }: Props) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { isDarkMode } = useTheme();
   const p = isDarkMode ? DARK_PALETTE : LIGHT_PALETTE;
-  const [comments, setComments] = useState<StoredComment[]>([]);
+  const [comments, setComments] = useState<ItemComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [reactingCommentId, setReactingCommentId] = useState<string | null>(null);
-  const [commentReactions, setCommentReactions] = useState<Record<string, { emoji: string; label: string }>>({});
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef<TextInput>(null);
@@ -129,13 +120,52 @@ export default function CommentsSheet({
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
-    getItemComments(itemId)
+    getComments(itemType, itemId)
       .then((data) => {
         setComments(data);
         onCommentsCountChange?.(data.length);
       })
       .finally(() => setLoading(false));
-  }, [visible, itemId]);
+  }, [visible, itemType, itemId]);
+
+  // Live sync — any account viewing this item's comments sees new posts,
+  // deletes, and reactions from every other account the moment they happen.
+  useEffect(() => {
+    if (!visible || !token) return;
+
+    commentSocket.connect(token, itemType, itemId, {
+      onNewComment: (comment) => {
+        setComments((prev) => {
+          const isMine = user != null && String(comment.authorId) === String(user.id);
+          if (isMine) {
+            const optIdx = prev.findIndex((c) => String(c.id).startsWith('opt-') && c.text === comment.text);
+            if (optIdx !== -1) {
+              const next = [...prev];
+              next[optIdx] = comment;
+              onCommentsCountChange?.(next.length);
+              return next;
+            }
+          }
+          if (prev.some((c) => String(c.id) === String(comment.id))) return prev;
+          const next = [...prev, comment];
+          onCommentsCountChange?.(next.length);
+          return next;
+        });
+      },
+      onCommentDeleted: (commentId) => {
+        setComments((prev) => {
+          const next = prev.filter((c) => String(c.id) !== commentId && String(c.parentId) !== commentId);
+          onCommentsCountChange?.(next.length);
+          return next;
+        });
+      },
+      onCommentReaction: (commentId, reactions) => {
+        setComments((prev) => prev.map((c) => (String(c.id) === commentId ? { ...c, reactions } : c)));
+      },
+    });
+
+    return () => commentSocket.disconnect();
+  }, [visible, token, itemType, itemId]);
 
   // Top-level comments with their replies nested underneath — replies don't
   // need their own scrollable list, they're just a handful of rows indented
@@ -148,16 +178,29 @@ export default function CommentsSheet({
     }));
   }, [comments]);
 
-  const handleSend = async () => {
+  const handleSend = () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || !user) return;
     setSending(true);
     try {
-      const authorName = user?.fullName ?? 'You';
-      const comment = await addItemComment(itemId, authorName, trimmed, replyingTo?.id);
-      const next = [...comments, comment];
-      setComments(next);
-      onCommentsCountChange?.(next.length);
+      const optimistic: ItemComment = {
+        id: `opt-${Date.now()}`,
+        itemType,
+        itemId,
+        authorId: user.id,
+        authorName: user.fullName,
+        text: trimmed,
+        parentId: replyingTo?.id,
+        createdAt: new Date().toISOString(),
+        reactions: [],
+        myReaction: null,
+      };
+      setComments((prev) => {
+        const next = [...prev, optimistic];
+        onCommentsCountChange?.(next.length);
+        return next;
+      });
+      commentSocket.postComment(itemType, itemId, trimmed, replyingTo?.id);
       setText('');
       setReplyingTo(null);
     } finally {
@@ -165,95 +208,84 @@ export default function CommentsSheet({
     }
   };
 
-  const toggleLike = (commentId: string) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(commentId)) next.delete(commentId);
-      else next.add(commentId);
+  const startReply = (comment: ItemComment) => {
+    setReplyingTo({ id: comment.id, authorName: comment.authorName });
+    setActiveCommentId(null);
+    inputRef.current?.focus();
+  };
+
+  const handleDelete = (comment: ItemComment) => {
+    setActiveCommentId(null);
+    setComments((prev) => {
+      const next = prev.filter((c) => c.id !== comment.id && c.parentId !== comment.id);
+      onCommentsCountChange?.(next.length);
       return next;
     });
+    commentSocket.deleteComment(itemType, itemId, comment.id);
   };
 
-  const chooseReaction = (commentId: string, reaction: { emoji: string; label: string }) => {
-    setCommentReactions((prev) => ({ ...prev, [commentId]: reaction }));
-    setReactingCommentId(null);
-  };
-
-  const startReply = (comment: StoredComment) => {
-    setReplyingTo({ id: comment.id, authorName: comment.authorName });
-    setReactingCommentId(null);
-    inputRef.current?.focus();
+  const handleReact = (comment: ItemComment, emoji: string) => {
+    setActiveCommentId(null);
+    commentSocket.reactToComment(itemType, itemId, comment.id, emoji);
   };
 
   const userInitial = (user?.fullName ?? 'Y').charAt(0).toUpperCase();
 
-  function CommentRow({ item, isReply }: { item: StoredComment; isReply?: boolean }) {
-    const liked = likedIds.has(item.id);
-    const reaction = commentReactions[item.id];
-    const isReacting = reactingCommentId === item.id;
+  function CommentRow({ item, isReply }: { item: ItemComment; isReply?: boolean }) {
+    const isOwn = user != null && String(item.authorId) === String(user.id);
+    const isActive = activeCommentId === item.id;
     return (
-      <Pressable
-        onLongPress={() => setReactingCommentId(item.id)}
-        delayLongPress={350}
-        style={{ flexDirection: 'row', gap: 12, marginBottom: 16, marginLeft: isReply ? 46 : 0, marginTop: isReply ? 12 : 0 }}
-      >
-        <View style={{ width: isReply ? 28 : 34, height: isReply ? 28 : 34, borderRadius: isReply ? 14 : 17, backgroundColor: p.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#fff', fontSize: isReply ? 11 : 13, fontWeight: '700' }}>{item.authorName.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, color: p.text }}>
-            <Text style={{ fontWeight: '700' }}>{item.authorName}</Text>
-            <Text style={{ color: p.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
-          </Text>
-          <Text style={{ fontSize: 14, color: p.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <Pressable hitSlop={8} onPress={() => startReply(item)}>
-              <Text style={{ fontSize: 12, color: p.secondaryText, fontWeight: '600' }}>Reply</Text>
-            </Pressable>
-            {reaction ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Text style={{ fontSize: 13 }}>{reaction.emoji}</Text>
-                <Text style={{ fontSize: 11, color: p.secondaryText, fontWeight: '600' }}>{reaction.label}</Text>
+      <View style={{ marginBottom: 16, marginLeft: isReply ? 46 : 0, marginTop: isReply ? 12 : 0 }}>
+        {isActive && (
+          <View style={{ alignItems: 'flex-start', marginBottom: 8 }}>
+            <ReactionBar
+              isDarkMode={isDarkMode}
+              onPick={(emoji) => handleReact(item, emoji)}
+            />
+          </View>
+        )}
+        <Pressable
+          onLongPress={() => setActiveCommentId(item.id)}
+          delayLongPress={350}
+          style={{ flexDirection: 'row', gap: 12 }}
+        >
+          <View style={{ width: isReply ? 28 : 34, height: isReply ? 28 : 34, borderRadius: isReply ? 14 : 17, backgroundColor: p.primaryGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: isReply ? 11 : 13, fontWeight: '700' }}>{item.authorName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, color: p.text }}>
+              <Text style={{ fontWeight: '700' }}>{item.authorName}</Text>
+              <Text style={{ color: p.secondaryText }}>  {timeAgo(item.createdAt)}</Text>
+            </Text>
+            <Text style={{ fontSize: 14, color: p.text, marginTop: 4, lineHeight: 19 }}>{item.text}</Text>
+            {item.reactions.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                {item.reactions.map((r) => (
+                  <View key={r.emoji} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                    <Text style={{ fontSize: 13 }}>{r.emoji}</Text>
+                    <Text style={{ fontSize: 11, color: p.secondaryText, fontWeight: '600' }}>{r.count}</Text>
+                  </View>
+                ))}
               </View>
-            ) : null}
+            )}
           </View>
-          {isReacting && (
-            <View style={{
-              flexDirection: 'row', gap: 10, marginTop: 10,
-              backgroundColor: p.inputBg, borderRadius: 16,
-              paddingHorizontal: 10, paddingVertical: 8, alignSelf: 'flex-start',
-            }}>
-              {QUICK_REACTIONS.map((reactionOption) => (
-                <Pressable
-                  key={reactionOption.emoji}
-                  onPress={() => chooseReaction(item.id, reactionOption)}
-                  hitSlop={4}
-                  style={{ alignItems: 'center', width: 34 }}
-                >
-                  <Text style={{ fontSize: 18 }}>{reactionOption.emoji}</Text>
-                  <Text style={{ fontSize: 9, color: p.secondaryText, marginTop: 2 }} numberOfLines={1}>{reactionOption.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
-        <Pressable onPress={() => toggleLike(item.id)} hitSlop={8} style={{ alignItems: 'center', paddingTop: 2 }}>
-          <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <GlassBlur
-              intensity={35}
-              tint={isDarkMode ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFillObject}
-              androidFallbackColor={isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}
-            />
-            <Ionicons
-              name={liked ? 'heart' : 'heart-outline'}
-              size={15}
-              color={liked ? p.heartRed : p.secondaryText}
-            />
-          </View>
-          <Text style={{ fontSize: 11, color: p.secondaryText, marginTop: 3 }}>{liked ? 1 : ''}</Text>
         </Pressable>
-      </Pressable>
+        {isActive && (
+          <View style={{
+            marginTop: 8, marginLeft: isReply ? 40 : 46,
+            backgroundColor: p.inputBg, borderRadius: 12, overflow: 'hidden', alignSelf: 'flex-start',
+          }}>
+            <Pressable onPress={() => startReply(item)} style={{ paddingVertical: 9, paddingHorizontal: 16 }}>
+              <Text style={{ fontSize: 13, color: p.text, fontWeight: '600' }}>Reply</Text>
+            </Pressable>
+            {isOwn && (
+              <Pressable onPress={() => handleDelete(item)} style={{ paddingVertical: 9, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: p.divider }}>
+                <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+      </View>
     );
   }
 
@@ -355,7 +387,7 @@ export default function CommentsSheet({
                 ref={inputRef}
                 value={text}
                 onChangeText={setText}
-                onFocus={() => setReactingCommentId(null)}
+                onFocus={() => setActiveCommentId(null)}
                 placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : 'Join the conversation...'}
                 placeholderTextColor={p.secondaryText}
                 style={{

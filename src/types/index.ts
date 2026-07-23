@@ -226,6 +226,11 @@ export interface ChatRoom {
   unreadCount: number;
 }
 
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+}
+
 export interface ChatMessage {
   id: string;
   senderId: string;
@@ -233,6 +238,10 @@ export interface ChatMessage {
   content: string;
   isRead: boolean;
   createdAt: string;
+  replyToId?: string;
+  deleted?: boolean;
+  reactions?: ReactionSummary[];
+  myReaction?: string | null;
 }
 
 export interface ChatSocketMessage {
@@ -245,6 +254,25 @@ export interface ChatSocketMessage {
   audioUrl?: string;
   audioDuration?: number;
   messageType?: string;
+  replyToId?: string;
+  deleted?: boolean;
+  reactions?: ReactionSummary[];
+  myReaction?: string | null;
+}
+
+export type ItemType = 'EQUIPMENT' | 'LISTING';
+
+export interface ItemComment {
+  id: string;
+  itemType: ItemType;
+  itemId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  parentId?: string;
+  createdAt: string;
+  reactions: ReactionSummary[];
+  myReaction?: string | null;
 }
 
 // ===== Notifications =====

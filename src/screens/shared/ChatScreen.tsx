@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Pressable,
   KeyboardAvoidingView, Platform, Image, ImageBackground, Alert, Modal,
   Animated, Dimensions, ScrollView, StyleProp, ViewStyle, ActivityIndicator,
 } from 'react-native';
@@ -10,17 +10,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeColors } from '../../context/ThemeContext';
-import { ChatSocketMessage } from '../../types';
+import { ChatSocketMessage, ReactionSummary } from '../../types';
 import { getOrCreateRoom, getRooms, getMessages, markRead } from '../../api/chatApi';
 import {
   connect as connectChatSocket,
   sendMessage as sendSocketMessage,
+  deleteMessage as deleteSocketMessage,
+  reactToMessage as reactToSocketMessage,
   disconnect as disconnectChatSocket,
 } from '../../services/chatSocket';
 import ActiveIndicator from '../../components/ActiveIndicator';
+import ReactionBar from '../../components/ReactionBar';
 import {
   getChatClearedAt, setChatClearedAt,
   getChatWallpaper, setChatWallpaper,
@@ -71,6 +75,9 @@ type Message = {
   delivered?: boolean; // true once server has confirmed (echo received or loaded from history)
   read?: boolean;      // true when the other person has read it
   audioUrl?: string;
+  replyToId?: string;
+  deleted?: boolean;
+  reactions?: ReactionSummary[];
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -197,6 +204,10 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
   const listRef = useRef<FlatList>(null);
   const searchInputRef = useRef<TextInput>(null);
 
+  // Long-press reaction bar + action menu (Reply/Copy/Delete) on a message bubble
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; text: string } | null>(null);
+
   const initial = name.trim()[0]?.toUpperCase() ?? '?';
   // Memoize styles — createStyles allocates many StyleSheet objects, reuse between renders
   const bubbleTheme = useMemo(() => getBubbleTheme(bubbleThemeKey), [bubbleThemeKey]);
@@ -259,6 +270,9 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         time: formatMessageTime(m.createdAt),
         delivered: true, // messages from history are always server-confirmed
         read: m.isRead,
+        replyToId: m.replyToId != null ? String(m.replyToId) : undefined,
+        deleted: m.deleted,
+        reactions: m.reactions,
       });
     });
     console.log('[ChatScreen] History loaded:', sorted.length, 'message(s)');
@@ -375,6 +389,8 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                 delivered: true, // server echo = delivered
                 time: formatMessageTime(payload.createdAt),
                 read: false,
+                replyToId: payload.replyToId != null ? String(payload.replyToId) : undefined,
+                reactions: payload.reactions,
               };
               return next;
             }
@@ -397,9 +413,21 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             delivered: true,
             time: formatMessageTime(payload.createdAt),
             read: false,
+            replyToId: payload.replyToId != null ? String(payload.replyToId) : undefined,
+            reactions: payload.reactions,
           });
           return next;
         });
+      },
+      onMessageDeleted: (messageId) => {
+        setMessages((prev) => prev.map((m) => (
+          String(m.id) === messageId
+            ? { ...m, text: 'This message was deleted', deleted: true, audioUrl: undefined, reactions: [] }
+            : m
+        )));
+      },
+      onMessageReaction: (messageId, reactions) => {
+        setMessages((prev) => prev.map((m) => (String(m.id) === messageId ? { ...m, reactions } : m)));
       },
       onError: (err) => {
         console.log('[ChatScreen] Socket error:', err);
@@ -579,14 +607,17 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     // When the server echoes it back via 'new_message', the optimistic entry is
     // replaced by the server-authoritative one (matched by content).
     const optimisticId = `opt-${Date.now()}`;
+    const replyToId = replyingTo?.id;
     const optimistic: Message = {
       id: optimisticId, type: 'text', text, sent: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       delivered: false, read: false,
+      replyToId,
     };
     setMessages((prev) => [...prev, optimistic]);
     setInputText('');
     setSendError(null);
+    setReplyingTo(null);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
     if (!roomId) {
@@ -613,13 +644,47 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
     try {
       console.log('[ChatScreen] send_message → room', roomId, ':', text.slice(0, 60));
-      sendSocketMessage(roomId, text);
+      sendSocketMessage(roomId, text, replyToId ? { replyToId } : undefined);
     } catch (err) {
       console.log('[ChatScreen] send failed:', err);
       setSendError('Not connected — reconnecting, please try again shortly.');
       // Remove the optimistic message so the user can retry
       setMessages((prev) => prev.filter((m) => String(m.id) !== optimisticId));
       setInputText(text);
+    }
+  };
+
+  // ── Long-press actions: reply / copy / delete / react ──────
+  const startReply = (message: Message) => {
+    setActiveMessageId(null);
+    setReplyingTo({ id: message.id, text: message.text ?? '' });
+  };
+
+  const handleCopyMessage = async (message: Message) => {
+    setActiveMessageId(null);
+    if (message.text) await Clipboard.setStringAsync(message.text);
+  };
+
+  const handleDeleteMessage = (message: Message) => {
+    setActiveMessageId(null);
+    if (!roomId) return;
+    setMessages((prev) => prev.map((m) => (
+      m.id === message.id ? { ...m, text: 'This message was deleted', deleted: true, audioUrl: undefined, reactions: [] } : m
+    )));
+    try {
+      deleteSocketMessage(roomId, message.id);
+    } catch (err) {
+      console.log('[ChatScreen] delete failed:', err);
+    }
+  };
+
+  const handleReactMessage = (message: Message, emoji: string) => {
+    setActiveMessageId(null);
+    if (!roomId) return;
+    try {
+      reactToSocketMessage(roomId, message.id, emoji);
+    } catch (err) {
+      console.log('[ChatScreen] react failed:', err);
     }
   };
 
@@ -641,25 +706,86 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     // placeholder bubble now that voice recording has been removed.
     const isLegacyVoiceMessage = !!item.audioUrl || item.text === '[Voice message]';
 
+    const isActive = activeMessageId === item.id;
+    const repliedTo = item.replyToId ? messages.find((m) => m.id === item.replyToId) : undefined;
+    const canDelete = item.sent && !item.deleted;
+
     return (
       <View style={[s.row, item.sent ? s.rowSent : s.rowReceived, isMatch && s.rowHighlight]}>
         {!item.sent && <SmallAvatar initial={initial} profileUri={profileImageUri} s={s} />}
         <View style={{ maxWidth: '75%' }}>
-          <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
-            {isLegacyVoiceMessage ? (
-              <Text style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>
-                🎤 Voice message
-              </Text>
-            ) : (
-              <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
-            )}
-          </View>
+          {isActive && (
+            <View style={{ alignItems: item.sent ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
+              <ReactionBar isDarkMode={isDarkMode} onPick={(emoji) => handleReactMessage(item, emoji)} />
+            </View>
+          )}
+          <Pressable
+            onLongPress={() => !item.deleted && setActiveMessageId(item.id)}
+            delayLongPress={350}
+            disabled={item.deleted}
+          >
+            <View style={[s.bubble, item.sent ? s.bubbleSent : s.bubbleReceived]}>
+              {repliedTo && (
+                <View style={{
+                  borderLeftWidth: 2, borderLeftColor: item.sent ? 'rgba(255,255,255,0.6)' : colors.primaryGreen,
+                  paddingLeft: 8, marginBottom: 6, opacity: 0.8,
+                }}>
+                  <Text numberOfLines={1} style={{ fontSize: 12, color: item.sent ? 'rgba(255,255,255,0.85)' : colors.secondaryText }}>
+                    {repliedTo.text}
+                  </Text>
+                </View>
+              )}
+              {isLegacyVoiceMessage ? (
+                <Text style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>
+                  🎤 Voice message
+                </Text>
+              ) : item.deleted ? (
+                <Text style={{ fontSize: 13, fontStyle: 'italic', color: item.sent ? 'rgba(255,255,255,0.7)' : colors.secondaryText }}>
+                  This message was deleted
+                </Text>
+              ) : (
+                <HighlightedText text={item.text ?? ''} query={searchQuery} sent={item.sent} s={s} />
+              )}
+            </View>
+          </Pressable>
+          {!!item.reactions?.length && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, alignSelf: item.sent ? 'flex-end' : 'flex-start' }}>
+              {item.reactions.map((r) => (
+                <View key={r.emoji} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <Text style={{ fontSize: 13 }}>{r.emoji}</Text>
+                  <Text style={{ fontSize: 11, color: colors.secondaryText, fontWeight: '600' }}>{r.count}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           <TimeMeta sent={item.sent} time={item.time} delivered={item.delivered} read={item.read} s={s} colors={colors} />
+          {isActive && (
+            <View style={{
+              alignSelf: item.sent ? 'flex-end' : 'flex-start', marginTop: 6,
+              backgroundColor: isDarkMode ? '#26262A' : '#FFFFFF', borderRadius: 12, overflow: 'hidden',
+            }}>
+              <Pressable onPress={() => startReply(item)} style={{ paddingVertical: 9, paddingHorizontal: 16 }}>
+                <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }}>Reply</Text>
+              </Pressable>
+              <View style={{ height: 1, backgroundColor: isDarkMode ? '#3A3A3E' : '#E5E7EB' }} />
+              <Pressable onPress={() => handleCopyMessage(item)} style={{ paddingVertical: 9, paddingHorizontal: 16 }}>
+                <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }}>Copy</Text>
+              </Pressable>
+              {canDelete && (
+                <>
+                  <View style={{ height: 1, backgroundColor: isDarkMode ? '#3A3A3E' : '#E5E7EB' }} />
+                  <Pressable onPress={() => handleDeleteMessage(item)} style={{ paddingVertical: 9, paddingHorizontal: 16 }}>
+                    <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          )}
         </View>
       </View>
     );
   // deps: everything used inside renderItem
-  }, [matchedIds, searchQuery, initial, profileImageUri, s, colors]);
+  }, [matchedIds, searchQuery, initial, profileImageUri, s, colors, activeMessageId, messages, isDarkMode]);
 
   return (
     <View style={s.root}>
@@ -784,6 +910,20 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
           )}
 
+          {replyingTo && (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              paddingHorizontal: 16, paddingVertical: 8,
+            }}>
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, color: colors.secondaryText }}>
+                Replying to <Text style={{ fontWeight: '700', color: colors.text }}>{replyingTo.text}</Text>
+              </Text>
+              <Pressable onPress={() => setReplyingTo(null)} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
+              </Pressable>
+            </View>
+          )}
+
           {isBlocked ? (
             <View style={[s.inputBar, { justifyContent: 'center' }]}>
               <Ionicons name="ban" size={16} color="#EF4444" />
@@ -806,6 +946,7 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
                   placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.35)' : '#9CA3AF'}
                   value={inputText}
                   onChangeText={setInputText}
+                  onFocus={() => setActiveMessageId(null)}
                   multiline
                   returnKeyType="send"
                   onSubmitEditing={sendMessage}

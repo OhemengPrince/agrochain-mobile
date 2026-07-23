@@ -1,5 +1,5 @@
 import apiClient, { extractArray } from './axios';
-import { ChatRoom, ChatMessage } from '../types';
+import { ChatRoom, ChatMessage, ReactionSummary } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { mockDelay } from '../mock/mockHelpers';
 
@@ -52,4 +52,18 @@ export async function markRead(roomId: string): Promise<void> {
   }
   console.log('[chatApi] PATCH /chat/rooms/' + roomId + '/read');
   await apiClient.patch(`/chat/rooms/${roomId}/read`);
+}
+
+export async function deleteMessage(messageId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.delete(`/chat/messages/${messageId}`);
+}
+
+export async function reactToMessage(messageId: string, emoji: string): Promise<ReactionSummary[]> {
+  if (USE_MOCK_DATA) return mockDelay([]);
+  const { data } = await apiClient.post<ReactionSummary[]>(`/chat/messages/${messageId}/react`, { emoji });
+  return data;
 }

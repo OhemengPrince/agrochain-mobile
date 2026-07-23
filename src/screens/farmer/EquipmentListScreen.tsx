@@ -29,7 +29,8 @@ import { getEquipmentImage } from '../../constants/equipmentImages';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import GlassStatPill from '../../components/GlassStatPill';
 import CommentsSheet from '../../components/CommentsSheet';
-import { getLikedListingIds, setListingLiked, getItemComments } from '../../utils/storage';
+import { getLikedListingIds, setListingLiked } from '../../utils/storage';
+import { getComments } from '../../api/itemCommentApi';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerEquipmentList'>;
 
@@ -193,7 +194,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
 
       const [liked, commentCounts] = await Promise.all([
         getLikedListingIds(),
-        Promise.all(data.map((e) => getItemComments(e.id))),
+        Promise.all(data.map((e) => getComments('EQUIPMENT', e.id).catch(() => []))),
       ]);
       setLikedIds(new Set(liked));
       const counts: Record<string, number> = {};
@@ -394,6 +395,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
       <CommentsSheet
         visible={activeCommentsItem !== null}
         onClose={() => setActiveCommentsItem(null)}
+        itemType="EQUIPMENT"
         itemId={activeCommentsItem?.id ?? ''}
         itemTitle={activeCommentsItem?.name ?? ''}
         itemSubtitle={activeCommentsItem ? `GHS ${activeCommentsItem.dailyRate}/day` : undefined}
