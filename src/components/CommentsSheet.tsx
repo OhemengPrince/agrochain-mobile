@@ -94,6 +94,7 @@ export default function CommentsSheet({
   const p = isDarkMode ? DARK_PALETTE : LIGHT_PALETTE;
   const [comments, setComments] = useState<ItemComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
@@ -120,10 +121,15 @@ export default function CommentsSheet({
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
+    setLoadError(null);
     getComments(itemType, itemId)
       .then((data) => {
         setComments(data);
         onCommentsCountChange?.(data.length);
+      })
+      .catch((err) => {
+        console.log('[CommentsSheet] getComments failed:', err?.message ?? err);
+        setLoadError('Could not load comments. Check your connection and try again.');
       })
       .finally(() => setLoading(false));
   }, [visible, itemType, itemId]);
@@ -334,6 +340,13 @@ export default function CommentsSheet({
             <View style={{ flex: 1 }}>
               {loading ? (
                 <ActivityIndicator color={p.primaryGreen} style={{ marginVertical: 32 }} />
+              ) : loadError ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
+                  <Ionicons name="cloud-offline-outline" size={36} color={p.secondaryText} />
+                  <Text style={{ color: p.secondaryText, fontSize: 13, marginTop: 10, textAlign: 'center' }}>
+                    {loadError}
+                  </Text>
+                </View>
               ) : threadedComments.length === 0 ? (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
                   <Ionicons name="chatbubble-outline" size={36} color={p.secondaryText} />
