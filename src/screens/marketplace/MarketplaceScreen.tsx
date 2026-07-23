@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Pressable,
   Animated,
-  Alert,
   Platform,
   RefreshControl,
   Image,
@@ -34,6 +33,7 @@ import CommentsSheet from '../../components/CommentsSheet';
 import GlassStatPill from '../../components/GlassStatPill';
 import { getLikedListingIds, setListingLiked } from '../../utils/storage';
 import { getComments } from '../../api/itemCommentApi';
+import MarketplaceFiltersSheet, { MarketplaceFilters, DEFAULT_FILTERS, isFiltersActive } from '../../components/MarketplaceFiltersSheet';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MarketplaceList'>;
 
@@ -262,6 +262,8 @@ export default function MarketplaceScreen({ navigation }: Props) {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [commentsCounts, setCommentsCounts] = useState<Record<string, number>>({});
   const [activeCommentsListing, setActiveCommentsListing] = useState<MarketplaceListing | null>(null);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [filters, setFilters] = useState<MarketplaceFilters>(DEFAULT_FILTERS);
 
   const loadListings = useCallback(async () => {
     setError(null);
@@ -305,16 +307,26 @@ export default function MarketplaceScreen({ navigation }: Props) {
   };
 
   const handleFilterPress = () => {
-    Alert.alert('Filters', 'Advanced filtering is coming soon. Use the category chips for now.');
+    setFiltersVisible(true);
   };
 
   const handleContact = (listing: MarketplaceListing) => {
     navigation.navigate('Chat', { name: listing.sellerName, role: 'Seller', otherUserId: listing.sellerId });
   };
 
+  const regions = useMemo(() => {
+    return Array.from(new Set(listings.map((l) => l.region).filter(Boolean))).sort();
+  }, [listings]);
+
   const filtered = useMemo(() => {
-    return listings.filter((listing) => {
+    const min = filters.minPrice ? Number(filters.minPrice) : undefined;
+    const max = filters.maxPrice ? Number(filters.maxPrice) : undefined;
+
+    const base = listings.filter((listing) => {
       if (category && listing.category !== category) return false;
+      if (filters.region && listing.region !== filters.region) return false;
+      if (min != null && listing.price < min) return false;
+      if (max != null && listing.price > max) return false;
       if (query.trim()) {
         const q = query.toLowerCase();
         return (
@@ -326,7 +338,14 @@ export default function MarketplaceScreen({ navigation }: Props) {
       }
       return true;
     });
-  }, [listings, category, query]);
+
+    const sorted = [...base];
+    if (filters.sortBy === 'price_asc') sorted.sort((a, b) => a.price - b.price);
+    else if (filters.sortBy === 'price_desc') sorted.sort((a, b) => b.price - a.price);
+    else sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return sorted;
+  }, [listings, category, query, filters]);
 
   const rows = useMemo((): ListRow[] => {
     const base: ListRow[] = [{ kind: 'promo' }, { kind: 'chips' }];
@@ -362,6 +381,7 @@ export default function MarketplaceScreen({ navigation }: Props) {
           />
           <TouchableOpacity style={styles.filterButton} onPress={handleFilterPress}>
             <Ionicons name="options-outline" size={18} color={colors.white} />
+            {isFiltersActive(filters) && <View style={styles.filterBadge} />}
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -418,7 +438,12 @@ export default function MarketplaceScreen({ navigation }: Props) {
               <View style={styles.emptyState}>
                 <Ionicons name="storefront-outline" size={48} color={colors.secondaryText} />
                 <Text style={styles.emptyTitle}>No listings found</Text>
-                <Text style={styles.emptyText}>Try a different search or category.</Text>
+                <Text style={styles.emptyText}>Try a different search, category, or filters.</Text>
+                {isFiltersActive(filters) && (
+                  <TouchableOpacity onPress={() => setFilters(DEFAULT_FILTERS)} style={styles.clearFiltersBtn}>
+                    <Text style={styles.clearFiltersText}>Clear filters</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           }
@@ -453,6 +478,15 @@ export default function MarketplaceScreen({ navigation }: Props) {
             setCommentsCounts((prev) => ({ ...prev, [activeCommentsListing.id]: count }));
           }
         }}
+      />
+
+      <MarketplaceFiltersSheet
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+        filters={filters}
+        onChange={setFilters}
+        regions={regions}
+        colors={colors}
       />
     </SafeAreaView>
   );
@@ -528,6 +562,17 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(255,255,255,0.25)',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    filterBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 9,
+      height: 9,
+      borderRadius: 5,
+      backgroundColor: colors.accentAmber,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
     },
     chipsStickyWrap: {
       backgroundColor: colors.background,
@@ -727,6 +772,18 @@ function createStyles(colors: ThemeColors) {
       color: colors.secondaryText,
       marginTop: 4,
       textAlign: 'center',
+    },
+    clearFiltersBtn: {
+      marginTop: 16,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.primaryGreen,
+    },
+    clearFiltersText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
   });
 }
