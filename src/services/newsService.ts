@@ -166,14 +166,7 @@ export async function searchNews(query: string): Promise<NewsItem[]> {
 const TARGET_ARTICLE_COUNT = 50;
 const MAX_PAGES = 5;
 
-// Broad query covering all agric topics, kept under NewsData.io's 100-char
-// limit. Uses qInTitle (not q) — a plain `q` search matches anywhere in the
-// article body, which let mostly unrelated stories (politics, crime, sports)
-// through and left almost nothing after the headline-keyword filter. Title-
-// scoped search raises the on-topic hit rate from ~1-in-10 to ~9-in-10, so
-// paginating a handful of pages actually yields close to TARGET_ARTICLE_COUNT
-// instead of the single digits it did before.
-export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
+async function fetchFreshGhanaAgricultureNews(): Promise<NewsItem[]> {
   const query = 'agriculture OR farming OR cocoa OR maize OR livestock OR fertilizer OR harvest';
 
   const seen = new Set<string>();
@@ -184,8 +177,9 @@ export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
     let batch: NewsDataResponse;
     try {
       batch = await newsDataFetch(query, { size: 10, page });
-    } catch {
-      break; // Stop paginating on error; return whatever was already fetched.
+    } catch (err) {
+      if (i === 0) throw err; // First page failed — nothing to fall back to here.
+      break; // Later page failed — return what was already fetched.
     }
 
     for (const a of batch.results) {
@@ -205,4 +199,45 @@ export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
   merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   return merged.slice(0, TARGET_ARTICLE_COUNT);
+}
+
+// NewsData.io's free plan allows 200 requests/day and 10/minute. A single
+// fetchFreshGhanaAgricultureNews() call already costs up to MAX_PAGES
+// requests, and this feed is loaded independently by the News tab AND each
+// of the 4 home dashboards' MarketNewsFeed — without a shared cache, one
+// app open could burn 5x that. Cache is module-level (not per-component)
+// so all callers share one budget.
+interface NewsCache { data: NewsItem[]; timestamp: number }
+let newsCache: NewsCache | null = null;
+const CACHE_DURATION_MS = 30 * 60 * 1000; // Serve cache untouched for 30 min.
+const MIN_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // Even an explicit refresh can't force a network hit sooner than this.
+
+// Broad query covering all agric topics, kept under NewsData.io's 100-char
+// limit. Uses qInTitle (not q) — a plain `q` search matches anywhere in the
+// article body, which let mostly unrelated stories (politics, crime, sports)
+// through and left almost nothing after the headline-keyword filter. Title-
+// scoped search raises the on-topic hit rate from ~1-in-10 to ~9-in-10, so
+// paginating a handful of pages actually yields close to TARGET_ARTICLE_COUNT
+// instead of the single digits it did before.
+export async function fetchGhanaAgricultureNews(opts?: { forceRefresh?: boolean }): Promise<NewsItem[]> {
+  const now = Date.now();
+  const cacheAge = newsCache ? now - newsCache.timestamp : Infinity;
+
+  if (newsCache && cacheAge < CACHE_DURATION_MS && !opts?.forceRefresh) {
+    return newsCache.data;
+  }
+  // Pull-to-refresh still honors a cooldown — repeated rapid refreshes serve
+  // the same cache instead of spending more of the rate limit.
+  if (newsCache && cacheAge < MIN_REFRESH_INTERVAL_MS) {
+    return newsCache.data;
+  }
+
+  try {
+    const fresh = await fetchFreshGhanaAgricultureNews();
+    newsCache = { data: fresh, timestamp: now };
+    return fresh;
+  } catch (err) {
+    if (newsCache) return newsCache.data; // Serve stale data rather than erroring the UI.
+    throw err;
+  }
 }

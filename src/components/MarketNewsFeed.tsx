@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Linking, ActivityIndicator, Image,
@@ -39,13 +39,21 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const markImageBroken = (id: string) => setBrokenImages((prev) => new Set(prev).add(id));
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(false);
 
-    fetchGhanaAgricultureNews()
+    // First mount reads the shared cache; a refreshKey bump (pull-to-
+    // refresh on the dashboard) forces a real network check.
+    const forceRefresh = !isFirstLoad.current;
+    isFirstLoad.current = false;
+
+    fetchGhanaAgricultureNews({ forceRefresh })
       .then((items) => {
         if (!cancelled) {
           const base = items.length > 0 ? items : FALLBACK_NEWS;
@@ -94,8 +102,13 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 
                 onPress={() => openArticle(item.url)}
                 activeOpacity={item.url ? 0.75 : 1}
               >
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.newsImage} resizeMode="cover" />
+                {item.imageUrl && !brokenImages.has(item.id) ? (
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.newsImage}
+                    resizeMode="cover"
+                    onError={() => markImageBroken(item.id)}
+                  />
                 ) : (
                   <LinearGradient
                     colors={['#14532d', '#16a34a', '#4ade80']}

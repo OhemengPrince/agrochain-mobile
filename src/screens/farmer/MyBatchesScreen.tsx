@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Alert, Platform, Modal, Share, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -284,10 +284,6 @@ export default function MyBatchesScreen({ navigation }: Props) {
     return result;
   }, [batches, activeTab, search]);
 
-  const handleBellPress = () => {
-    Alert.alert('Notifications', 'Coming soon.');
-  };
-
   if (loading) {
     return <LoadingOverlay message="Loading batches..." />;
   }
@@ -297,9 +293,6 @@ export default function MyBatchesScreen({ navigation }: Props) {
       <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>My Harvest</Text>
-          <Pressable style={styles.bellButton} onPress={handleBellPress}>
-            <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
-          </Pressable>
         </View>
 
         <View style={styles.statsRow}>
@@ -397,14 +390,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 24,
       fontWeight: '800',
       color: '#FFFFFF',
-    },
-    bellButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     statsRow: {
       flexDirection: 'row',

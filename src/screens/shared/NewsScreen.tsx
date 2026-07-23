@@ -40,6 +40,8 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [activeTopic, setActiveTopic] = useState<NewsTopicChip>('All');
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const markImageBroken = (id: string) => setBrokenImages((prev) => new Set(prev).add(id));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<NewsItem[]>([]);
@@ -74,10 +76,10 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
     return () => clearTimeout(timer);
   }, [searchQuery, searchNews]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forceRefresh = false) => {
     setError(false);
     try {
-      const items = await fetchGhanaAgricultureNews();
+      const items = await fetchGhanaAgricultureNews({ forceRefresh });
       setAllNews(items);
     } catch {
       setError(true);
@@ -93,7 +95,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try { await load(); } finally { setRefreshing(false); }
+    try { await load(true); } finally { setRefreshing(false); }
   };
 
   // ── Filter logic: activeTopic === 'All' shows everything ──
@@ -244,8 +246,13 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                 onPress={() => openArticle(item.url, item.headline)}
                 activeOpacity={item.url ? 0.75 : 1}
               >
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+                {item.imageUrl && !brokenImages.has(item.id) ? (
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                    onError={() => markImageBroken(item.id)}
+                  />
                 ) : (
                   <LinearGradient
                     colors={['#14532d', '#16a34a', '#4ade80']}

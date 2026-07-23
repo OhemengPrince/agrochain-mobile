@@ -10,7 +10,6 @@ import {
   Animated,
   Pressable,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -245,12 +244,6 @@ export default function GeneralHomeScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
             <Text style={styles.searchPlaceholderText}>Search...</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
-          >
-            <Ionicons name="options-outline" size={18} color="#fff" />
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -384,14 +377,6 @@ function createStyles(colors: ThemeColors) {
     searchPlaceholderText: {
       fontSize: 14,
       color: colors.secondaryText,
-    },
-    filterButton: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: 'rgba(255,255,255,0.22)',
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     headerIconBtn: {
       width: 38,

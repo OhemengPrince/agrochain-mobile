@@ -439,12 +439,6 @@ export default function OwnerDashboardScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={18} color={colors.secondaryText} />
             <Text style={styles.searchPlaceholderText}>Search...</Text>
           </Pressable>
-          <Pressable
-            style={styles.filterButton}
-            onPress={() => Alert.alert('Filters', 'Advanced filtering is coming soon.')}
-          >
-            <Ionicons name="options-outline" size={18} color="#fff" />
-          </Pressable>
         </View>
       </LinearGradient>
 
@@ -655,14 +649,6 @@ function createStyles(colors: ThemeColors) {
     searchPlaceholderText: {
       fontSize: 14,
       color: colors.secondaryText,
-    },
-    filterButton: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: 'rgba(255,255,255,0.22)',
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     bellButton: {
       width: 40,
