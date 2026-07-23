@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GeneralStackParamList, MarketplaceListing } from '../../types';
+import { GeneralStackParamList, MarketplaceListing, UserReview } from '../../types';
 import { getMyMarketplaceListings } from '../../api/produceApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -34,7 +34,7 @@ import ActiveIndicator from '../../components/ActiveIndicator';
 import UserAvatar from '../../components/UserAvatar';
 import FloatToast from '../../components/FloatToast';
 import { uploadImage } from '../../api/fileApi';
-import { updatePhotoUrl } from '../../api/userApi';
+import { updatePhotoUrl, getUserReviews, getUserAverageRating } from '../../api/userApi';
 import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
 import { getFollowCounts } from '../../api/followApi';
@@ -48,6 +48,16 @@ import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModa
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
 const TABS = ['About', 'Activity', 'Reviews'];
+
+function computeRatingBreakdown(reviews: UserReview[]): { stars: number; percentage: number; count: number }[] {
+  const counts = [5, 4, 3, 2, 1].map((stars) => reviews.filter((r) => r.rating === stars).length);
+  const max = Math.max(...counts, 1);
+  return [5, 4, 3, 2, 1].map((stars, i) => ({
+    stars,
+    percentage: Math.round((counts[i] / max) * 100),
+    count: counts[i],
+  }));
+}
 
 const BIO_TEXT = 'General AgroChain user buying and selling agricultural items';
 const SPECIALTY = 'General Trading';
@@ -85,6 +95,9 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -92,6 +105,10 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       if (user?.id) {
         getFollowCounts(user.id)
           .then(r => { setFollowerCount(r.data.followerCount); setFollowingCount(r.data.followingCount); })
+          .catch(() => {});
+        getUserReviews(user.id).then(setReviews).catch(() => {});
+        getUserAverageRating(user.id)
+          .then(r => { setAverageRating(r.averageRating); setTotalReviews(r.totalReviews); })
           .catch(() => {});
       }
     }, [user?.id])
@@ -369,7 +386,67 @@ export default function GeneralProfileScreen({ navigation }: Props) {
                 </View>
                 <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
               </View>
-              <Text style={styles.emptyText}>No reviews yet.</Text>
+
+              {reviews.length === 0 ? (
+                <Text style={styles.emptyText}>No reviews yet.</Text>
+              ) : (
+                <>
+                  <View style={styles.ratingOverviewBlock}>
+                    <Text style={styles.ratingBigNumber}>{averageRating.toFixed(1)}</Text>
+                    <View style={styles.ratingStarsRow}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Ionicons
+                          key={i}
+                          name="star"
+                          size={16}
+                          color={i < Math.round(averageRating) ? colors.accentAmber : colors.border}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.ratingCountText}>{totalReviews} review{totalReviews === 1 ? '' : 's'}</Text>
+                  </View>
+
+                  <View style={styles.ratingBarsWrap}>
+                    {computeRatingBreakdown(reviews).map((row) => (
+                      <View key={row.stars} style={styles.ratingBarRow}>
+                        <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                        <View style={styles.ratingBarTrack}>
+                          <LinearGradient
+                            colors={['#FF8F00', '#FFB300']}
+                            style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                          />
+                        </View>
+                        <Text style={styles.ratingBarCount}>{row.count}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {reviews.map((review) => (
+                    <View key={review.id} style={styles.reviewCardOuter}>
+                      <View style={styles.reviewCard}>
+                        <View style={styles.reviewHeaderRow}>
+                          <View style={styles.reviewAvatar}>
+                            <Text style={styles.reviewAvatarText}>{review.reviewerName.charAt(0)}</Text>
+                          </View>
+                          <Text style={styles.reviewerName}>{review.reviewerName}</Text>
+                          <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
+                        </View>
+                        <View style={styles.reviewStarsRow}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Ionicons
+                              key={i}
+                              name="star"
+                              size={12}
+                              color={i < review.rating ? colors.accentAmber : colors.border}
+                            />
+                          ))}
+                        </View>
+                        {!!review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
             </LinearGradient>
           </View>
         )}
@@ -797,6 +874,112 @@ function createStyles(colors: ThemeColors) {
     emptyText: {
       fontSize: 13,
       color: colors.secondaryText,
+    },
+    ratingOverviewBlock: {
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    ratingBigNumber: {
+      fontSize: 56,
+      fontWeight: '800',
+      color: '#FF8F00',
+      textShadowColor: 'rgba(255,143,0,0.3)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 6,
+    },
+    ratingStarsRow: {
+      flexDirection: 'row',
+      gap: 2,
+      marginTop: 4,
+    },
+    ratingCountText: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+    ratingBarsWrap: {
+      gap: 6,
+      marginBottom: 8,
+    },
+    ratingBarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    ratingBarLabel: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      width: 22,
+    },
+    ratingBarTrack: {
+      flex: 1,
+      height: 8,
+      borderRadius: 10,
+      backgroundColor: '#F0F0F0',
+      overflow: 'hidden',
+    },
+    ratingBarFill: {
+      height: 8,
+      borderRadius: 10,
+    },
+    ratingBarCount: {
+      fontSize: 12,
+      color: colors.secondaryText,
+      width: 18,
+      textAlign: 'right',
+    },
+    reviewCardOuter: {
+      marginTop: 12,
+    },
+    reviewCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    reviewHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    reviewAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.primaryGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    reviewAvatarText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    reviewerName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+      flex: 1,
+    },
+    reviewDate: {
+      fontSize: 11,
+      color: colors.secondaryText,
+    },
+    reviewStarsRow: {
+      flexDirection: 'row',
+      gap: 2,
+      marginTop: 6,
+    },
+    reviewComment: {
+      fontSize: 13,
+      fontStyle: 'italic',
+      color: colors.secondaryText,
+      marginTop: 6,
+      lineHeight: 18,
     },
     listingRow: {
       flexDirection: 'row',
