@@ -8,6 +8,8 @@ import {
   VerifyResetOtpPayload,
   ResetPasswordPayload,
   User,
+  GoogleAuthResult,
+  GoogleRegisterPayload,
 } from '../types';
 import { USE_MOCK_DATA } from '../config';
 import { MOCK_USERS } from '../mock/mockData';
@@ -97,6 +99,47 @@ export async function loginAsRole(role: User['role']): Promise<AuthResponse> {
       ? 'general@agrochain.com'
       : 'farmer@agrochain.com';
   const { data } = await apiClient.post<AuthResponse>('/auth/login', { email: demoEmail, password: 'demo1234' });
+  return data;
+}
+
+// `fallbackProfile` is only used in mock mode (no backend to decode the ID
+// token) — in real mode only the idToken is sent, since the backend
+// re-derives the verified email/name/photo from Google itself.
+export async function googleAuth(
+  idToken: string,
+  fallbackProfile: { email: string; fullName: string; profilePhotoUrl?: string }
+): Promise<GoogleAuthResult> {
+  if (USE_MOCK_DATA) {
+    const existing = findUserByEmail(fallbackProfile.email);
+    if (existing) {
+      return mockDelay({ newUser: false, token: generateMockId('token'), user: existing });
+    }
+    return mockDelay({ newUser: true, ...fallbackProfile });
+  }
+  const { data } = await apiClient.post<GoogleAuthResult>('/auth/google-login', { idToken });
+  return data;
+}
+
+export async function googleRegister(payload: GoogleRegisterPayload & { fallbackProfile?: { email: string; fullName: string; profilePhotoUrl?: string } }): Promise<AuthResponse> {
+  if (USE_MOCK_DATA) {
+    const profile = payload.fallbackProfile!;
+    const user: User = {
+      id: generateMockId('u'),
+      fullName: profile.fullName,
+      email: profile.email,
+      phoneNumber: payload.phoneNumber ?? '',
+      role: payload.role,
+      region: payload.region,
+      district: payload.district,
+      profilePhotoUrl: profile.profilePhotoUrl,
+      isVerified: true,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_USERS.push(user);
+    return mockDelay({ token: generateMockId('token'), user });
+  }
+  const { fallbackProfile, ...body } = payload;
+  const { data } = await apiClient.post<AuthResponse>('/auth/google-register', body);
   return data;
 }
 

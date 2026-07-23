@@ -9,6 +9,7 @@ import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import RoleSelectionScreen from '../screens/auth/RoleSelectionScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -33,6 +34,11 @@ export default function AuthNavigator() {
         name="ResetPassword"
         component={ResetPasswordScreen}
         options={{ ...stackHeaderOptions, title: 'Reset Password' }}
+      />
+      <Stack.Screen
+        name="RoleSelection"
+        component={RoleSelectionScreen}
+        options={{ ...stackHeaderOptions, title: 'Complete Your Profile', headerBackVisible: false }}
       />
     </Stack.Navigator>
   );

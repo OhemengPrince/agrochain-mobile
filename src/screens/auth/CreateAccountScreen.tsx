@@ -16,11 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList, UserRole } from '../../types';
-import { register } from '../../api/authApi';
+import { register, googleAuth } from '../../api/authApi';
+import { signInWithGoogle } from '../../services/googleAuth';
+import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
 import GlassBlur from '../../components/GlassBlur';
+import RolePicker from '../../components/RolePicker';
 
 const Logo = require('../../../assets/images/agrochain_logo.png');
 
@@ -28,13 +31,6 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PLACEHOLDER_COLOR = '#9CA3AF';
-
-const ROLE_OPTIONS: { value: UserRole; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { value: 'FARMER', label: 'Farmer', icon: 'leaf-outline' },
-  { value: 'EQUIPMENT_OWNER', label: 'Equipment Owner', icon: 'construct-outline' },
-  { value: 'BUYER', label: 'Buyer', icon: 'cart-outline' },
-  { value: 'GENERAL', label: 'General User', icon: 'people-outline' },
-];
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -55,43 +51,6 @@ function usePressAnimation() {
     onFocus: () => animateTo(1.02, 1, 100),
     onBlur: () => animateTo(1, 1, 150),
   };
-}
-
-function RoleCard({
-  option,
-  selected,
-  scaleAnim,
-  onPress,
-  styles,
-  colors,
-}: {
-  option: { value: UserRole; label: string; icon: keyof typeof Ionicons.glyphMap };
-  selected: boolean;
-  scaleAnim: Animated.Value;
-  onPress: () => void;
-  styles: ReturnType<typeof createStyles>;
-  colors: ThemeColors;
-}) {
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  const animateOpacityTo = (toOpacity: number, duration: number) => {
-    Animated.timing(opacity, { toValue: toOpacity, duration, useNativeDriver: true }).start();
-  };
-
-  return (
-    <Animated.View style={[styles.roleCardWrap, { transform: [{ scale: scaleAnim }], opacity }]}>
-      <Pressable
-        style={[styles.roleCard, selected && styles.roleCardSelected]}
-        onPress={onPress}
-        onPressIn={() => animateOpacityTo(0.95, 100)}
-        onPressOut={() => animateOpacityTo(1, 150)}
-      >
-        <Ionicons name={option.icon} size={26} color={selected ? colors.white : colors.secondaryText} />
-        <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>{option.label}</Text>
-        {selected && <View style={styles.roleGoldBar} />}
-      </Pressable>
-    </Animated.View>
-  );
 }
 
 function CreateAccountButton({
@@ -123,6 +82,7 @@ function CreateAccountButton({
 
 export default function CreateAccountScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const { login } = useAuth();
   const styles = createStyles(colors);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -136,19 +96,36 @@ export default function CreateAccountScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const roleScaleAnims = useRef(ROLE_OPTIONS.map(() => new Animated.Value(1))).current;
-
-  useEffect(() => {
-    ROLE_OPTIONS.forEach((option, index) => {
-      Animated.spring(roleScaleAnims[index], {
-        toValue: option.value === role ? 1.05 : 1,
-        useNativeDriver: true,
-        friction: 6,
-      }).start();
-    });
-  }, [role, roleScaleAnims]);
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const profile = await signInWithGoogle();
+      if (!profile) return; // user cancelled
+      const result = await googleAuth(profile.idToken, {
+        email: profile.email,
+        fullName: profile.fullName ?? profile.email.split('@')[0],
+        profilePhotoUrl: profile.profilePhotoUrl ?? undefined,
+      });
+      if (!result.newUser && result.token && result.user) {
+        await login(result.token, result.user);
+      } else {
+        navigation.navigate('RoleSelection', {
+          idToken: profile.idToken,
+          email: result.email ?? profile.email,
+          fullName: result.fullName ?? profile.fullName ?? profile.email.split('@')[0],
+          profilePhotoUrl: result.profilePhotoUrl ?? profile.profilePhotoUrl ?? undefined,
+        });
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleCreateAccount = async () => {
     setError(null);
@@ -350,22 +327,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
           <View style={styles.sectionLabelLine} />
         </View>
 
-        <View style={styles.roleRow}>
-          {ROLE_OPTIONS.map((option, index) => {
-            const selected = role === option.value;
-            return (
-              <RoleCard
-                key={option.value}
-                option={option}
-                selected={selected}
-                scaleAnim={roleScaleAnims[index]}
-                onPress={() => setRole(option.value)}
-                styles={styles}
-                colors={colors}
-              />
-            );
-          })}
-        </View>
+        <RolePicker value={role} onChange={setRole} colors={colors} />
 
         <TouchableOpacity
           style={styles.termsRow}
@@ -382,6 +344,23 @@ export default function CreateAccountScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <CreateAccountButton loading={loading} onPress={handleCreateAccount} styles={styles} colors={colors} />
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+          style={[styles.googleButton, googleLoading && styles.registerButtonDisabled]}
+        >
+          <Ionicons name="logo-google" size={18} color={colors.text} />
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Signing in...' : 'Continue with Google'}
+          </Text>
+        </Pressable>
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
@@ -567,54 +546,6 @@ function createStyles(colors: ThemeColors) {
     half: {
       flex: 1,
     },
-    roleRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    roleCardWrap: {
-      width: '48%',
-      height: 84,
-      marginBottom: 12,
-    },
-    roleCard: {
-      flex: 1,
-      borderRadius: 16,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.white,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-    },
-    roleCardSelected: {
-      backgroundColor: colors.primaryGreen,
-      borderWidth: 0,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 4,
-    },
-    roleLabel: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.secondaryText,
-      textAlign: 'center',
-      marginTop: 8,
-    },
-    roleLabelSelected: {
-      color: colors.white,
-    },
-    roleGoldBar: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 3,
-      backgroundColor: '#FFD700',
-    },
     termsRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -670,6 +601,39 @@ function createStyles(colors: ThemeColors) {
       color: colors.white,
       fontSize: 17,
       fontWeight: '700',
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      marginHorizontal: 12,
+      color: colors.secondaryText,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    googleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      marginTop: 16,
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.white,
+    },
+    googleButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
     },
     loginRow: {
       flexDirection: 'row',

@@ -35,7 +35,8 @@
         {
           "locationWhenInUsePermission": "AgroChain uses your location to show local weather and nearby equipment."
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ]
   }
 }

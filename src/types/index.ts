@@ -35,6 +35,27 @@ export interface LoginPayload {
   password: string;
 }
 
+// Mirrors the backend's GoogleLoginResponse exactly: newUser=false means
+// token/user are populated (treat like a normal login); newUser=true means
+// email/fullName/profilePhotoUrl are populated instead (verified by Google,
+// not yet an account) — collect role/region/etc. and call googleRegister.
+export interface GoogleAuthResult {
+  newUser: boolean;
+  token?: string;
+  user?: User;
+  email?: string;
+  fullName?: string;
+  profilePhotoUrl?: string;
+}
+
+export interface GoogleRegisterPayload {
+  idToken: string;
+  role: UserRole;
+  phoneNumber?: string;
+  region?: string;
+  district?: string;
+}
+
 export interface VerifyOtpPayload {
   email: string;
   otp: string;
@@ -440,6 +461,7 @@ export type AuthStackParamList = {
   OtpVerify: { email: string };
   ForgotPassword: undefined;
   ResetPassword: { identifier: string; method: 'email' | 'sms' };
+  RoleSelection: { idToken: string; email: string; fullName: string; profilePhotoUrl?: string };
 };
 
 export type MapRouteParams = {
