@@ -37,7 +37,7 @@
 | Location | `expo-location` ~19 |
 | Notifications | `expo-notifications` ~0.32 |
 | Haptics | `expo-haptics` ~15 |
-| News API | The Guardian (`content.guardianapis.com`) — gated by `GUARDIAN_API_KEY` env var |
+| News API | NewsData.io (`newsdata.io/api/1/news`) — gated by `NEWSDATA_API_KEY` env var |
 | Safe area | `react-native-safe-area-context` ~5.6 |
 | Icons | `@expo/vector-icons` ^15 (Ionicons) |
 
@@ -151,7 +151,7 @@ Can browse equipment, list items on the marketplace, and read news — no equipm
 | `NotificationsScreen.tsx` | `Notifications` | Notifications list grouped by type (BOOKING / PAYMENT / BATCH / SYSTEM); mark-as-read and mark-all-read | All |
 | `BookingDetailScreen.tsx` | `BookingDetail` | Full booking detail with status timeline, payment status, equipment and farmer/owner info cards, action buttons (confirm / cancel / complete / review) | Farmer, Owner |
 | `MapScreen.tsx` | `Map` | Full-screen map view centred on equipment/listing location with title overlay | All |
-| `NewsScreen.tsx` | `News` | Live agriculture news feed from The Guardian API; topic filter chips (All / Farming / Harvest / Fertilizers / Livestock / Markets); article cards with thumbnail, headline, source, time | All |
+| `NewsScreen.tsx` | `News` | Live agriculture news feed from the NewsData.io API; topic filter chips (All / Cocoa / Maize / Rice / Livestock / Fertilizer / Equipment / Market Prices); article cards with thumbnail, headline, source, time | All |
 
 ---
 
@@ -203,13 +203,12 @@ Can browse equipment, list items on the marketplace, and read news — no equipm
 - All screens, components, and modals respond to theme change instantly
 
 ### 4.7 Agriculture News Feed
-- Live articles from **The Guardian API** (endpoint: `content.guardianapis.com/search`)
-- Runs 4 parallel queries: crops, fertilizers, livestock, markets
-- Filters to Ghana-tagged articles (`tag: world/ghana`)
+- Live articles from **NewsData.io** (endpoint: `newsdata.io/api/1/news`)
+- Single broad query across Ghana + neighbouring countries (`country=gh,ng,ci,tg,bf`), filtered client-side to avoid burning free-tier rate limits per category tap
 - Headline filtering against 50+ agriculture keywords
-- Topic classification into: All / Farming / Harvest / Fertilizers / Livestock / Markets
+- Topic classification into: All / Cocoa / Maize / Rice / Livestock / Fertilizer / Equipment / Market Prices
 - Filter chip bar at top of screen
-- Article cards with thumbnail, headline, source ("The Guardian"), relative time, summary
+- Article cards with thumbnail, headline, source, relative time, summary
 - Opens article in external browser on tap
 
 ### 4.8 Market Prices Feed
@@ -490,7 +489,7 @@ On 401, the interceptor auto-clears storage and forces logout.
 
 | Service | Endpoint | Auth | Purpose |
 |---|---|---|---|
-| The Guardian | `https://content.guardianapis.com/search` | `api-key` query param (`GUARDIAN_API_KEY` env var) | Live Ghana agriculture news feed |
+| NewsData.io | `https://newsdata.io/api/1/news` | `apikey` query param (`NEWSDATA_API_KEY` env var) | Live Ghana agriculture news feed |
 
 ---
 
@@ -602,7 +601,7 @@ Pre-defined shadow presets (small, medium, large) for consistent elevation acros
 
 ### Active Issues
 - **Backend not connected** — `USE_MOCK_DATA = true`; `BASE_URL` in `axios.ts` is a placeholder (`192.168.x.x`)
-- **GUARDIAN_API_KEY** — stored in `.env` (gitignored); the news feed will silently fail if the env var is absent or the key quota is exceeded
+- **NEWSDATA_API_KEY** — stored in `.env` (gitignored); the news feed will silently fail if the env var is absent or the key quota is exceeded
 - **Voice Call / Video Call** — placeholders only; both show "Coming soon" alert
 - **Block / Report** — placeholder only; shows "Coming soon" alert
 - **Resend OTP** — `Resend` button in `ResetPasswordScreen` is a tappable `TouchableOpacity` but has no handler wired up

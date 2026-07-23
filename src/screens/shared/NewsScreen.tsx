@@ -8,29 +8,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { fetchGhanaAgricultureNews, searchGuardianNews, NewsItem, NewsTopicChip } from '../../services/newsService';
+import { fetchGhanaAgricultureNews, searchNews as searchNewsApi, NewsItem, NewsTopicChip } from '../../services/newsService';
 
 const POPULAR_SEARCHES = ['Cocoa Ghana', 'Maize prices', 'Rice harvest', 'Farm equipment', 'Fertiliser'];
 
 const PLACEHOLDER_ICONS: Record<NewsTopicChip, string> = {
-  All: '🌾',
-  Farming: '🌱',
-  Harvest: '🚜',
-  Fertilizers: '🧪',
+  All: '🌍',
+  Cocoa: '🍫',
+  Maize: '🌽',
+  Rice: '🌾',
   Livestock: '🐄',
-  Markets: '📈',
+  Fertilizer: '🧪',
+  Equipment: '🚜',
+  'Market Prices': '📈',
 };
 
-const CHIP_ICONS: Record<NewsTopicChip, string> = {
-  All: '🌐',
-  Farming: '🌱',
-  Harvest: '🚜',
-  Fertilizers: '🧪',
-  Livestock: '🐄',
-  Markets: '📈',
-};
+const CHIP_ICONS: Record<NewsTopicChip, string> = PLACEHOLDER_ICONS;
 
-const TOPIC_CHIPS: NewsTopicChip[] = ['All', 'Farming', 'Harvest', 'Fertilizers', 'Livestock', 'Markets'];
+const TOPIC_CHIPS: NewsTopicChip[] = [
+  'All', 'Cocoa', 'Maize', 'Rice', 'Livestock', 'Fertilizer', 'Equipment', 'Market Prices',
+];
 
 const FALLBACK_EMOJIS = ['🌾', '🌽', '🍠', '🍅', '🐄', '🚜', '🌱', '🥬', '🥜', '🍚', '🧪', '🌿'];
 
@@ -56,7 +53,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
     const reqId = ++searchReqId.current;
     setSearching(true);
     try {
-      const results = await searchGuardianNews(query);
+      const results = await searchNewsApi(query);
       if (reqId === searchReqId.current) setSearchResults(results);
     } catch {
       if (reqId === searchReqId.current) setSearchResults([]);
@@ -125,7 +122,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>Ghana Agric News</Text>
-            <Text style={styles.headerSub}>Live feed • The Guardian</Text>
+            <Text style={styles.headerSub}>Live feed • NewsData.io</Text>
           </View>
           {!loading && !error && (
             <View style={styles.liveBadge}>
@@ -229,7 +226,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
           searching ? (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color={colors.primaryGreen} />
-              <Text style={styles.loadingText}>Searching Guardian news…</Text>
+              <Text style={styles.loadingText}>Searching agriculture news…</Text>
             </View>
           ) : searchResults.length === 0 ? (
             <View style={styles.centerBox}>
@@ -294,7 +291,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color={colors.primaryGreen} />
             <Text style={styles.loadingText}>Fetching Ghana agriculture news…</Text>
-            <Text style={styles.loadingSubText}>Farming • Harvest • Fertilizers • Livestock</Text>
+            <Text style={styles.loadingSubText}>Cocoa • Maize • Rice • Livestock • Equipment</Text>
           </View>
         ) : error ? (
           <View style={styles.centerBox}>

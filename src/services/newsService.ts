@@ -1,9 +1,10 @@
-import { GUARDIAN_API_KEY } from '@env';
+import { NEWSDATA_API_KEY } from '@env';
 
-const BASE = 'https://content.guardianapis.com/search';
-const FIELDS = 'trailText,thumbnail';
+const BASE = 'https://newsdata.io/api/1/news';
+const COUNTRIES = 'gh,ng,ci,tg,bf';
 
-export type NewsTopicChip = 'All' | 'Farming' | 'Harvest' | 'Fertilizers' | 'Livestock' | 'Markets';
+export type NewsTopicChip =
+  | 'All' | 'Cocoa' | 'Maize' | 'Rice' | 'Livestock' | 'Fertilizer' | 'Equipment' | 'Market Prices';
 
 // Keywords that must appear in the HEADLINE for an article to pass the agric gate
 const AGRIC_HEADLINE_KEYWORDS = [
@@ -14,23 +15,15 @@ const AGRIC_HEADLINE_KEYWORDS = [
   'fertiliser', 'fertilizer', 'soil', 'plantation', 'seeds',
   'COCOBOD', 'smallholder', 'rural', 'MoFA', 'GAEC',
   'fishing', 'aquaculture', 'agroforest', 'feed', 'pest',
-  'NPK', 'urea', 'manure', 'compost', 'nutrient',
+  'NPK', 'urea', 'manure', 'compost', 'nutrient', 'tractor',
+  'equipment', 'machinery',
 ];
 
 // Topic classification — checked in priority order (most-specific first)
 const TOPIC_RULES: { topic: NewsTopicChip; keywords: string[] }[] = [
-  {
-    topic: 'Harvest',
-    keywords: ['harvest', 'yield', 'bumper', 'post-harvest', 'storage', 'drying', 'milling', 'season'],
-  },
-  {
-    topic: 'Fertilizers',
-    keywords: [
-      'fertiliser', 'fertilizer', 'npk', 'urea', 'manure', 'compost',
-      'nutrient', 'soil health', 'soil fertility', 'agro-chemical', 'pesticide',
-      'herbicide', 'weedicide', 'insecticide', 'planting material',
-    ],
-  },
+  { topic: 'Cocoa', keywords: ['cocoa', 'cocobod', 'chocolate'] },
+  { topic: 'Maize', keywords: ['maize', 'corn'] },
+  { topic: 'Rice', keywords: ['rice', 'paddy'] },
   {
     topic: 'Livestock',
     keywords: [
@@ -39,18 +32,18 @@ const TOPIC_RULES: { topic: NewsTopicChip; keywords: string[] }[] = [
     ],
   },
   {
-    topic: 'Markets',
+    topic: 'Fertilizer',
     keywords: [
-      'market', 'price', 'export', 'import', 'trade', 'agribusiness',
-      'commodity', 'supply', 'demand', 'cocobod', 'buyer', 'revenue',
+      'fertiliser', 'fertilizer', 'npk', 'urea', 'manure', 'compost',
+      'nutrient', 'soil health', 'soil fertility', 'agro-chemical', 'pesticide',
+      'herbicide', 'weedicide', 'insecticide',
     ],
   },
   {
-    topic: 'Farming',
+    topic: 'Equipment',
     keywords: [
-      'farm', 'agric', 'crop', 'plantation', 'smallholder', 'cocoa',
-      'maize', 'cassava', 'rice', 'yam', 'groundnut', 'tomato', 'food',
-      'irrigation', 'seeds', 'rural', 'rural', 'shea',
+      'tractor', 'harvester', 'equipment', 'machinery', 'irrigation pump',
+      'sprayer', 'tiller', 'plough', 'plow', 'mechanization', 'mechanisation',
     ],
   },
 ];
@@ -60,19 +53,28 @@ function classifyTopic(headline: string, summary = ''): NewsTopicChip {
   for (const { topic, keywords } of TOPIC_RULES) {
     if (keywords.some((kw) => text.includes(kw))) return topic;
   }
-  return 'Farming';
+  // Nothing matched a specific crop/input/equipment keyword — bucket it
+  // under the broadest catch-all topic rather than dropping it.
+  return 'Market Prices';
 }
 
-interface GuardianArticle {
-  id: string;
-  webTitle: string;
-  webPublicationDate: string;
-  webUrl: string;
-  fields?: { trailText?: string; thumbnail?: string };
+interface NewsDataArticle {
+  article_id: string;
+  title: string;
+  link: string;
+  description?: string | null;
+  pubDate: string;
+  image_url?: string | null;
+  source_id?: string;
+  source_name?: string;
+  category?: string[];
 }
 
-interface GuardianResponse {
-  response: { status: string; results: GuardianArticle[] };
+interface NewsDataResponse {
+  status: string;
+  totalResults?: number;
+  results: NewsDataArticle[];
+  results_message?: string;
 }
 
 export interface NewsItem {
@@ -102,90 +104,72 @@ function isAgricHeadline(title: string): boolean {
   return AGRIC_HEADLINE_KEYWORDS.some((kw) => t.includes(kw.toLowerCase()));
 }
 
-function toNewsItem(a: GuardianArticle): NewsItem {
-  const summary = a.fields?.trailText;
+// NewsData.io returns "YYYY-MM-DD HH:mm:ss" (UTC, no timezone marker) —
+// normalise to ISO-8601 so Date parsing doesn't fall back to local time.
+function toIsoUtc(pubDate: string): string {
+  return pubDate.includes('T') ? pubDate : `${pubDate.replace(' ', 'T')}Z`;
+}
+
+function toNewsItem(a: NewsDataArticle): NewsItem {
+  const summary = a.description ?? undefined;
+  const publishedAt = toIsoUtc(a.pubDate);
   return {
-    id: a.id,
-    headline: a.webTitle,
-    source: 'The Guardian',
-    time: timeAgo(a.webPublicationDate),
-    publishedAt: a.webPublicationDate,
-    url: a.webUrl,
+    id: a.article_id ?? a.link,
+    headline: a.title,
+    source: a.source_name ?? a.source_id ?? 'NewsData.io',
+    time: timeAgo(publishedAt),
+    publishedAt,
+    url: a.link,
     summary,
-    imageUrl: a.fields?.thumbnail,
-    topic: classifyTopic(a.webTitle, summary),
+    imageUrl: a.image_url ?? undefined,
+    topic: classifyTopic(a.title, summary),
   };
 }
 
-async function guardianFetch(q: string, pageSize: number): Promise<GuardianArticle[]> {
+async function newsDataFetch(q: string): Promise<NewsDataArticle[]> {
   const params = new URLSearchParams({
-    tag: 'world/ghana',
+    apikey: NEWSDATA_API_KEY,
+    language: 'en',
+    country: COUNTRIES,
     q,
-    'show-fields': FIELDS,
-    'page-size': String(pageSize),
-    'order-by': 'newest',
-    'api-key': GUARDIAN_API_KEY,
   });
   const res = await fetch(`${BASE}?${params}`);
-  if (!res.ok) throw new Error(`Guardian ${res.status}`);
-  const data: GuardianResponse = await res.json();
-  return data.response.results;
+  const data: NewsDataResponse = await res.json();
+  if (!res.ok || data.status !== 'success') {
+    throw new Error(data.results_message ?? `NewsData.io ${res.status}`);
+  }
+  return data.results ?? [];
 }
 
-// Real-time search against the Guardian API, scoped to agriculture + Ghana
-export async function searchGuardianNews(query: string): Promise<NewsItem[]> {
-  const params = new URLSearchParams({
-    q: `${query} agriculture ghana`,
-    'show-fields': 'thumbnail,trailText,byline',
-    'page-size': '20',
-    'order-by': 'relevance',
-    'api-key': GUARDIAN_API_KEY,
-  });
-  const res = await fetch(`${BASE}?${params}`);
-  if (!res.ok) throw new Error(`Guardian ${res.status}`);
-  const data: GuardianResponse = await res.json();
-  return data.response.results.map(toNewsItem);
+// Real-time search against NewsData.io, scoped to agriculture + Ghana region
+export async function searchNews(query: string): Promise<NewsItem[]> {
+  const results = await newsDataFetch(`${query} agriculture`);
+  return results.filter((a) => a.title && a.link).map(toNewsItem);
 }
 
-// Four parallel queries to maximise variety and volume
+// Single broad query covering all agric topics — cheaper on the free-tier
+// rate limit than one request per category, since topic chips filter
+// client-side over this one result set instead of re-fetching per tap.
 export async function fetchGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const [crops, fertilizers, livestock, markets] = await Promise.all([
-    guardianFetch(
-      'farming OR maize OR cassava OR rice OR yam OR groundnut OR sorghum OR ' +
-      'plantain OR tomato OR pepper OR onion OR shea OR rubber OR agriculture OR ' +
-      'food OR smallholder OR seeds OR plantation OR crop',
-      50,
-    ),
-    guardianFetch(
-      'fertiliser OR fertilizer OR NPK OR urea OR manure OR compost OR ' +
-      'soil OR irrigation OR pesticide OR herbicide OR agro-chemical OR ' +
-      '"soil health" OR "soil fertility" OR "planting materials"',
-      50,
-    ),
-    guardianFetch(
-      'livestock OR poultry OR cattle OR sheep OR goat OR chicken OR ' +
-      'dairy OR fishing OR aquaculture OR "animal husbandry" OR veterinary',
-      50,
-    ),
-    guardianFetch(
-      'cocoa OR COCOBOD OR "food security" OR harvest OR agribusiness OR ' +
-      '"market price" OR "farm gate" OR export OR commodity',
-      50,
-    ),
-  ]);
+  const results = await newsDataFetch(
+    'agriculture OR farming OR cocoa OR maize OR rice OR cassava OR yam OR ' +
+    'groundnut OR livestock OR poultry OR cattle OR fertilizer OR fertiliser OR ' +
+    'irrigation OR tractor OR harvester OR equipment OR harvest OR "market price"'
+  );
 
   const seen = new Set<string>();
   const merged: NewsItem[] = [];
 
-  for (const a of [...crops, ...fertilizers, ...livestock, ...markets]) {
-    if (seen.has(a.id)) continue;
-    seen.add(a.id);
-    if (isAgricHeadline(a.webTitle)) {
+  for (const a of results) {
+    if (!a.title || !a.link) continue;
+    const key = a.article_id ?? a.link;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (isAgricHeadline(a.title)) {
       merged.push(toNewsItem(a));
     }
   }
 
-  // Sort merged results newest-first
   merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   return merged;
