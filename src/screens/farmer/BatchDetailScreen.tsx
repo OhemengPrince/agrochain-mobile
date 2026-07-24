@@ -359,34 +359,36 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
       <Modal visible={priceModalVisible} transparent animationType="fade" onRequestClose={() => setPriceModalVisible(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.priceModalOverlay}
+          style={{ flex: 1 }}
         >
-          <View style={styles.priceModalSheet}>
-            <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
-            <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
-            <TextInput
-              style={styles.priceModalInput}
-              value={priceInput}
-              onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
-              placeholder="0.00"
-              placeholderTextColor={colors.secondaryText}
-              keyboardType="numeric"
-              autoFocus
-            />
-            {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
-            <View style={styles.qrButtonsRow}>
-              <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
-                <Text style={styles.outlineButtonText}>Cancel</Text>
-              </AnimatedPressable>
-              <AnimatedPressable
-                style={[styles.outlineButton, styles.filledButton]}
-                onPress={handleConfirmPrice}
-                disabled={actionLoading}
-              >
-                <Text style={styles.filledButtonText}>Confirm</Text>
-              </AnimatedPressable>
-            </View>
-          </View>
+          <Pressable style={styles.priceModalOverlay} onPress={() => setPriceModalVisible(false)}>
+            <Pressable style={styles.priceModalSheet} onPress={() => {}}>
+              <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
+              <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
+              <TextInput
+                style={styles.priceModalInput}
+                value={priceInput}
+                onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
+                placeholder="0.00"
+                placeholderTextColor={colors.secondaryText}
+                keyboardType="numeric"
+                autoFocus
+              />
+              {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
+              <View style={styles.qrButtonsRow}>
+                <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
+                  <Text style={styles.outlineButtonText}>Cancel</Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  style={[styles.outlineButton, styles.filledButton]}
+                  onPress={handleConfirmPrice}
+                  disabled={actionLoading}
+                >
+                  <Text style={styles.filledButtonText}>Confirm</Text>
+                </AnimatedPressable>
+              </View>
+            </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
