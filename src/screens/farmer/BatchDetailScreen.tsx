@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image, Modal, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image, Modal, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -94,21 +94,6 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const [priceModalVisible, setPriceModalVisible] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  // Tracked manually rather than via KeyboardAvoidingView, which centered
-  // inside a transparent Modal was pushing the sheet up under the header and
-  // clipping its buttons under the keyboard instead of reliably resizing.
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const loadBatch = async () => {
     setError(null);
@@ -372,35 +357,48 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
       </ScrollView>
 
       <Modal visible={priceModalVisible} transparent animationType="slide" onRequestClose={() => setPriceModalVisible(false)}>
-        <View style={styles.priceModalOverlay}>
-          <Pressable style={{ flex: 1 }} onPress={() => setPriceModalVisible(false)} />
-          <View style={[styles.priceModalSheet, { paddingBottom: keyboardHeight + 20 }]}>
-            <View style={styles.priceModalHandle} />
-            <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
-            <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
-            <TextInput
-              style={styles.priceModalInput}
-              value={priceInput}
-              onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
-              placeholder="0.00"
-              placeholderTextColor={colors.secondaryText}
-              keyboardType="numeric"
-              autoFocus
-            />
-            {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
-            <View style={styles.qrButtonsRow}>
-              <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
-                <Text style={styles.outlineButtonText}>Cancel</Text>
-              </AnimatedPressable>
-              <AnimatedPressable
-                style={[styles.outlineButton, styles.filledButton]}
-                onPress={handleConfirmPrice}
-                disabled={actionLoading}
-              >
-                <Text style={styles.filledButtonText}>Post</Text>
-              </AnimatedPressable>
-            </View>
-          </View>
+        <View style={{ flex: 1 }}>
+          {/* Full-screen backdrop, independent of keyboard-avoidance below —
+              tapping it always closes the sheet, including once the keyboard
+              is up, since the keyboard itself isn't part of this view tree
+              and never intercepts these touches. */}
+          <Pressable
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+            onPress={() => setPriceModalVisible(false)}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.priceModalOverlay}
+            pointerEvents="box-none"
+          >
+            <Pressable style={styles.priceModalSheet} onPress={() => {}}>
+              <View style={styles.priceModalHandle} />
+              <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
+              <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
+              <TextInput
+                style={styles.priceModalInput}
+                value={priceInput}
+                onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
+                placeholder="0.00"
+                placeholderTextColor={colors.secondaryText}
+                keyboardType="numeric"
+                autoFocus
+              />
+              {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
+              <View style={styles.qrButtonsRow}>
+                <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
+                  <Text style={styles.outlineButtonText}>Cancel</Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  style={[styles.outlineButton, styles.filledButton]}
+                  onPress={handleConfirmPrice}
+                  disabled={actionLoading}
+                >
+                  <Text style={styles.filledButtonText}>Post</Text>
+                </AnimatedPressable>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -639,7 +637,6 @@ function createStyles(colors: ThemeColors) {
     },
     priceModalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.6)',
       justifyContent: 'flex-end',
     },
     priceModalSheet: {
