@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { FarmerStackParamList, ProduceBatch, BatchStatus } from '../../types';
-import { getMyBatches } from '../../api/produceApi';
+import { getMyBatches, deleteBatch } from '../../api/produceApi';
 import { formatDate } from '../../utils/formatters';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -96,12 +96,14 @@ function usePressAnimation() {
 function BatchListCard({
   batch,
   onPress,
+  onLongPress,
   onViewQr,
   styles,
   colors,
 }: {
   batch: ProduceBatch;
   onPress: () => void;
+  onLongPress: () => void;
   onViewQr: () => void;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -113,7 +115,16 @@ function BatchListCard({
 
   return (
     <Animated.View style={{ transform: [{ scale }], opacity }}>
-      <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
+      <Pressable
+        style={styles.card}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={400}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      >
         <View style={styles.cardTopRow}>
           <View style={[styles.cropCircle, { backgroundColor: `${cropMeta.color}26` }]}>
             <Text style={styles.cropEmoji}>{cropMeta.emoji}</Text>
@@ -251,6 +262,24 @@ export default function MyBatchesScreen({ navigation }: Props) {
     try { await loadBatches(); } finally { setRefreshing(false); }
   };
 
+  const handleDelete = useCallback((batch: ProduceBatch) => {
+    Alert.alert('Delete Batch', `Are you sure you want to delete "${batch.cropName}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteBatch(batch.id);
+            setBatches((prev) => prev.filter((b) => b.id !== batch.id));
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message ?? 'Failed to delete batch.');
+          }
+        },
+      },
+    ]);
+  }, []);
+
   const stats = useMemo(
     () => ({
       total: batches.length,
@@ -344,6 +373,7 @@ export default function MyBatchesScreen({ navigation }: Props) {
           <BatchListCard
             batch={item}
             onPress={() => navigation.navigate('BatchDetail', { batchId: item.id })}
+            onLongPress={() => handleDelete(item)}
             onViewQr={() => setQrBatch(item)}
             styles={styles}
             colors={colors}

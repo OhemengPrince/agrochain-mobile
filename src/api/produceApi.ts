@@ -61,6 +61,16 @@ export async function getMyBatches(): Promise<ProduceBatch[]> {
   return result;
 }
 
+export async function deleteBatch(batchId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    const index = MOCK_BATCHES.findIndex((b) => b.id === batchId);
+    if (index !== -1) MOCK_BATCHES.splice(index, 1);
+    await mockDelay(undefined);
+    return;
+  }
+  await apiClient.delete(`/produce/batches/${batchId}`);
+}
+
 export async function getBatchById(batchId: string): Promise<ProduceBatch> {
   if (USE_MOCK_DATA) {
     const found = MOCK_BATCHES.find((b) => b.id === batchId);
