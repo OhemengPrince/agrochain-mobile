@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image, Modal, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -91,6 +91,9 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const [showAddStage, setShowAddStage] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [priceModalVisible, setPriceModalVisible] = useState(false);
+  const [priceInput, setPriceInput] = useState('');
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const loadBatch = async () => {
     setError(null);
@@ -132,18 +135,42 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleUpdateStatus = async (status: BatchStatus) => {
+  const handleUpdateStatus = async (status: BatchStatus, pricePerKg?: number) => {
     if (!batch || batch.status === status) return;
     setError(null);
     setActionLoading(true);
     try {
-      const updated = await updateBatchStatus(batchId, status);
+      const updated = await updateBatchStatus(batchId, status, pricePerKg);
       setBatch(updated);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to update status.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // READY_FOR_SALE needs a price before it can go out — collect it via a
+  // modal (Alert.prompt only exists on iOS, so a plain input dialog is
+  // needed for this to work on Android too) instead of updating right away.
+  const handleStatusChipPress = (status: BatchStatus) => {
+    if (status === 'READY_FOR_SALE') {
+      setPriceError(null);
+      setPriceInput(batch?.pricePerKg?.toString() ?? '');
+      setPriceModalVisible(true);
+      return;
+    }
+    handleUpdateStatus(status);
+  };
+
+  const handleConfirmPrice = async () => {
+    const price = Number(priceInput);
+    if (!priceInput.trim() || Number.isNaN(price) || price <= 0) {
+      setPriceError('Please enter a valid price.');
+      return;
+    }
+    setPriceModalVisible(false);
+    await handleUpdateStatus('READY_FOR_SALE', price);
+    Alert.alert('Success', `Batch marked as Ready for Sale at GHS ${price}/kg!`);
   };
 
   const handleShareQr = async () => {
@@ -316,7 +343,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
                 <AnimatedPressable
                   key={status}
                   style={[styles.statusChip, active && styles.statusChipActive]}
-                  onPress={() => handleUpdateStatus(status)}
+                  onPress={() => handleStatusChipPress(status)}
                   disabled={actionLoading}
                 >
                   <Text style={[styles.statusChipText, active && styles.statusChipTextActive]}>
@@ -328,6 +355,40 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
           </View>
         </View>
       </ScrollView>
+
+      <Modal visible={priceModalVisible} transparent animationType="fade" onRequestClose={() => setPriceModalVisible(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.priceModalOverlay}
+        >
+          <View style={styles.priceModalSheet}>
+            <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
+            <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
+            <TextInput
+              style={styles.priceModalInput}
+              value={priceInput}
+              onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
+              placeholder="0.00"
+              placeholderTextColor={colors.secondaryText}
+              keyboardType="numeric"
+              autoFocus
+            />
+            {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
+            <View style={styles.qrButtonsRow}>
+              <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
+                <Text style={styles.outlineButtonText}>Cancel</Text>
+              </AnimatedPressable>
+              <AnimatedPressable
+                style={[styles.outlineButton, styles.filledButton]}
+                onPress={handleConfirmPrice}
+                disabled={actionLoading}
+              >
+                <Text style={styles.filledButtonText}>Confirm</Text>
+              </AnimatedPressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -561,6 +622,46 @@ function createStyles(colors: ThemeColors) {
     textArea: {
       height: 80,
       paddingTop: 10,
+    },
+    priceModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 32,
+    },
+    priceModalSheet: {
+      width: '100%',
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 20,
+    },
+    priceModalTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    priceModalSubtitle: {
+      fontSize: 13,
+      color: colors.secondaryText,
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    priceModalInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      height: 50,
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.text,
+      backgroundColor: colors.inputBackground,
+    },
+    priceModalError: {
+      fontSize: 12,
+      color: colors.errorRed,
+      marginTop: 8,
     },
     statusChipsRow: {
       flexDirection: 'row',

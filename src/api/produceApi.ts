@@ -106,17 +106,22 @@ export async function addProcessingStage(
 
 export async function updateBatchStatus(
   batchId: string,
-  status: BatchStatus
+  status: BatchStatus,
+  pricePerKg?: number
 ): Promise<ProduceBatch> {
   if (USE_MOCK_DATA) {
     const index = MOCK_BATCHES.findIndex((b) => b.id === batchId);
     if (index === -1) throw new Error('Produce batch not found');
-    MOCK_BATCHES[index] = { ...MOCK_BATCHES[index], status };
+    MOCK_BATCHES[index] = {
+      ...MOCK_BATCHES[index],
+      status,
+      ...(pricePerKg != null ? { pricePerKg } : {}),
+    };
     return mockDelay(MOCK_BATCHES[index]);
   }
   const { data } = await apiClient.patch<ProduceBatch>(
     `/produce/batches/${batchId}/status`,
-    { status }
+    { status, pricePerKg }
   );
   return normalizeBatch(data);
 }
