@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -94,6 +94,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const [showPriceInput, setShowPriceInput] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [priceError, setPriceError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const loadBatch = async () => {
     setError(null);
@@ -158,6 +159,10 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
       setPriceError(null);
       setPriceInput(batch?.pricePerKg?.toString() ?? '');
       setShowPriceInput(true);
+      // Wait for the box (and the keyboard, from TextInput's autoFocus) to
+      // actually mount/open before scrolling, or there's nothing yet to
+      // scroll to.
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
       return;
     }
     handleUpdateStatus(status);
@@ -216,7 +221,12 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
         <Text style={styles.headerRef}>REF #{shortRef}</Text>
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.scroll}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.content}>
         <ErrorMessage message={error} />
 
         <View style={styles.card}>
@@ -385,6 +395,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
