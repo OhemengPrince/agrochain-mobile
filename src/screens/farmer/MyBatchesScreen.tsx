@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { FarmerStackParamList, ProduceBatch, BatchStatus } from '../../types';
@@ -254,12 +255,23 @@ export default function MyBatchesScreen({ navigation }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try { await loadBatches(); } finally { setLoading(false); }
-    })();
-  }, [loadBatches]);
+  // Refetch every time this screen regains focus — not just on mount — so a
+  // stage change made on BatchDetailScreen (or a batch just created) shows up
+  // immediately on returning here instead of requiring a manual pull-to-refresh.
+  const hasLoadedOnceRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        if (!hasLoadedOnceRef.current) setLoading(true);
+        try {
+          await loadBatches();
+        } finally {
+          setLoading(false);
+          hasLoadedOnceRef.current = true;
+        }
+      })();
+    }, [loadBatches])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
