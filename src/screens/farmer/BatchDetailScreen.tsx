@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -91,7 +91,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const [showAddStage, setShowAddStage] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [priceModalVisible, setPriceModalVisible] = useState(false);
+  const [showPriceInput, setShowPriceInput] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [priceError, setPriceError] = useState<string | null>(null);
 
@@ -149,26 +149,27 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  // READY_FOR_SALE needs a price before it can go out — collect it via a
-  // modal (Alert.prompt only exists on iOS, so a plain input dialog is
-  // needed for this to work on Android too) instead of updating right away.
+  // READY_FOR_SALE needs a price before it can go out — collect it inline,
+  // right under the status chips, rather than updating right away. (A modal
+  // here fought with the keyboard too unreliably; an inline box behaves
+  // exactly like the existing "Add Stage" box, which already works fine.)
   const handleStatusChipPress = (status: BatchStatus) => {
     if (status === 'READY_FOR_SALE') {
       setPriceError(null);
       setPriceInput(batch?.pricePerKg?.toString() ?? '');
-      setPriceModalVisible(true);
+      setShowPriceInput(true);
       return;
     }
     handleUpdateStatus(status);
   };
 
-  const handleConfirmPrice = async () => {
+  const handlePostPrice = async () => {
     const price = Number(priceInput);
     if (!priceInput.trim() || Number.isNaN(price) || price <= 0) {
       setPriceError('Please enter a valid price.');
       return;
     }
-    setPriceModalVisible(false);
+    setShowPriceInput(false);
     await handleUpdateStatus('READY_FOR_SALE', price);
     Alert.alert('Success', `Batch marked as Ready for Sale at GHS ${price}/kg!`);
   };
@@ -354,53 +355,36 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
             })}
           </View>
         </View>
-      </ScrollView>
 
-      <Modal visible={priceModalVisible} transparent animationType="slide" onRequestClose={() => setPriceModalVisible(false)}>
-        <View style={{ flex: 1 }}>
-          {/* Full-screen backdrop, independent of keyboard-avoidance below —
-              tapping it always closes the sheet, including once the keyboard
-              is up, since the keyboard itself isn't part of this view tree
-              and never intercepts these touches. */}
-          <Pressable
-            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-            onPress={() => setPriceModalVisible(false)}
-          />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.priceModalOverlay}
-            pointerEvents="box-none"
-          >
-            <Pressable style={styles.priceModalSheet} onPress={() => {}}>
-              <View style={styles.priceModalHandle} />
-              <Text style={styles.priceModalTitle}>Set Price Per KG</Text>
-              <Text style={styles.priceModalSubtitle}>Enter your selling price per kilogram (GHS)</Text>
-              <TextInput
-                style={styles.priceModalInput}
-                value={priceInput}
-                onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
-                placeholder="0.00"
-                placeholderTextColor={colors.secondaryText}
-                keyboardType="numeric"
-                autoFocus
-              />
-              {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
-              <View style={styles.qrButtonsRow}>
-                <AnimatedPressable style={styles.outlineButton} onPress={() => setPriceModalVisible(false)}>
-                  <Text style={styles.outlineButtonText}>Cancel</Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  style={[styles.outlineButton, styles.filledButton]}
-                  onPress={handleConfirmPrice}
-                  disabled={actionLoading}
-                >
-                  <Text style={styles.filledButtonText}>Post</Text>
-                </AnimatedPressable>
-              </View>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+        {showPriceInput && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Set Price Per KG</Text>
+            <Text style={styles.priceBoxSubtitle}>Enter your selling price per kilogram (GHS)</Text>
+            <TextInput
+              style={styles.priceBoxInput}
+              value={priceInput}
+              onChangeText={(v) => { setPriceInput(v); setPriceError(null); }}
+              placeholder="0.00"
+              placeholderTextColor={colors.secondaryText}
+              keyboardType="numeric"
+              autoFocus
+            />
+            {priceError ? <Text style={styles.priceModalError}>{priceError}</Text> : null}
+            <View style={styles.qrButtonsRow}>
+              <AnimatedPressable style={styles.outlineButton} onPress={() => setShowPriceInput(false)}>
+                <Text style={styles.outlineButtonText}>Cancel</Text>
+              </AnimatedPressable>
+              <AnimatedPressable
+                style={[styles.outlineButton, styles.filledButton]}
+                onPress={handlePostPrice}
+                disabled={actionLoading}
+              >
+                <Text style={styles.filledButtonText}>Post</Text>
+              </AnimatedPressable>
+            </View>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -635,37 +619,13 @@ function createStyles(colors: ThemeColors) {
       height: 80,
       paddingTop: 10,
     },
-    priceModalOverlay: {
-      flex: 1,
-      justifyContent: 'flex-end',
-    },
-    priceModalSheet: {
-      width: '100%',
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 20,
-    },
-    priceModalHandle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.border,
-      alignSelf: 'center',
-      marginBottom: 16,
-    },
-    priceModalTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.text,
-    },
-    priceModalSubtitle: {
+    priceBoxSubtitle: {
       fontSize: 13,
       color: colors.secondaryText,
       marginTop: 4,
       marginBottom: 16,
     },
-    priceModalInput: {
+    priceBoxInput: {
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 12,
