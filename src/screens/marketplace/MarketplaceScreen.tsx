@@ -193,7 +193,7 @@ function ListingCard({
               />
             </View>
             <TouchableOpacity style={styles.contactButton} onPress={onContact}>
-              <Text style={styles.contactButtonText}>Contact</Text>
+              <Text style={styles.contactButtonText}>Message</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -436,7 +436,7 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
             onPressIn={contactButton.onPressIn}
             onPressOut={contactButton.onPressOut}
           >
-            <Text style={styles.offerButtonText}>Contact Seller</Text>
+            <Text style={styles.offerButtonText}>Message Seller</Text>
           </Pressable>
         </Animated.View>
 

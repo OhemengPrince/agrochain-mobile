@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { getNotifications } from '../../api/notificationApi';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, Animated, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -95,7 +95,11 @@ function FeaturedBatchCard({
     <Animated.View style={[styles.featuredCardWrap, { transform: [{ scale }], opacity }]}>
       <Pressable style={styles.featuredCard} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.featuredEmojiWrap}>
-          <Text style={styles.featuredEmoji}>{getCropEmoji(batch.cropName)}</Text>
+          {batch.photoUrl ? (
+            <Image source={{ uri: batch.photoUrl }} style={styles.featuredPhoto} resizeMode="cover" />
+          ) : (
+            <Text style={styles.featuredEmoji}>{getCropEmoji(batch.cropName)}</Text>
+          )}
         </View>
         {isReady && (
           <View style={styles.readyBadge}>
@@ -694,6 +698,11 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 10,
+      overflow: 'hidden',
+    },
+    featuredPhoto: {
+      width: '100%',
+      height: '100%',
     },
     featuredEmoji: {
       fontSize: 22,

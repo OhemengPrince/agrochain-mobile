@@ -44,6 +44,9 @@ import RateAppModal from '../../components/RateAppModal';
 import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
+import ExportPreferencesModal from '../../components/ExportPreferencesModal';
+import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
@@ -95,6 +98,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [exportPreferencesVisible, setExportPreferencesVisible] = useState(false);
   const [marketplacePurchases, setMarketplacePurchases] = useState<MarketplacePurchase[]>([]);
   const [producePurchases, setProducePurchases] = useState<ProducePurchase[]>([]);
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -135,8 +139,25 @@ export default function BuyerProfileScreen({ navigation }: Props) {
     })();
   }, [loadData]);
 
-  const showComingSoon = (feature: string) => {
-    Alert.alert(feature, `${feature} is coming soon.`);
+  const handleGeneratePdfReport = async () => {
+    setDropdownVisible(false);
+    const prefs = await getExportPreferences();
+    const mp = filterByDateRange(marketplacePurchases, (p) => p.createdAt, prefs.dateRange);
+    const pp = filterByDateRange(producePurchases, (p) => p.createdAt, prefs.dateRange);
+
+    const toRow = (label: string, dateStr: string, amount: number) => ({
+      label: prefs.includeDates ? `${label} (${formatDate(dateStr)})` : label,
+      value: prefs.includePrices ? formatCurrency(amount) : '—',
+    });
+
+    await exportReportPdf(
+      'Purchase History Report',
+      `${user!.fullName} — ${mp.length + pp.length} order(s)`,
+      [
+        { title: 'Marketplace Purchases', rows: mp.map((p) => toRow(p.listingName, p.createdAt, p.totalAmount)) },
+        { title: 'Produce Purchases', rows: pp.map((p) => toRow(p.cropName, p.createdAt, p.totalAmount)) },
+      ]
+    );
   };
 
   const handlePickAvatar = async () => {
@@ -481,8 +502,8 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
-          { icon: 'document-outline', label: 'My PDF Reports', onPress: () => showComingSoon('My PDF Reports') },
-          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => showComingSoon('Export Preferences') },
+          { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
+          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
           { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
@@ -492,6 +513,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}

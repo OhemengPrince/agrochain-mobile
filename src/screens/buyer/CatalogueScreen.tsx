@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -99,7 +99,11 @@ function CatalogueBatchCard({
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
         <View style={styles.cardTopRow}>
           <View style={styles.emojiWrap}>
-            <Text style={styles.emoji}>{getCropEmoji(batch.cropName)}</Text>
+            {batch.photoUrl ? (
+              <Image source={{ uri: batch.photoUrl }} style={styles.photo} resizeMode="cover" />
+            ) : (
+              <Text style={styles.emoji}>{getCropEmoji(batch.cropName)}</Text>
+            )}
           </View>
           <View style={styles.cardBody}>
             <View style={styles.cardHeaderRow}>
@@ -379,6 +383,11 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
+      overflow: 'hidden',
+    },
+    photo: {
+      width: '100%',
+      height: '100%',
     },
     emoji: {
       fontSize: 24,

@@ -47,6 +47,9 @@ import RateAppModal from '../../components/RateAppModal';
 import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
+import ExportPreferencesModal from '../../components/ExportPreferencesModal';
+import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
@@ -136,6 +139,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [exportPreferencesVisible, setExportPreferencesVisible] = useState(false);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -171,6 +175,33 @@ export default function OwnerProfileScreen({ navigation }: Props) {
 
   const showComingSoon = (feature: string) => {
     Alert.alert(feature, `${feature} is coming soon.`);
+  };
+
+  const handleGeneratePdfReport = async () => {
+    setDropdownVisible(false);
+    const prefs = await getExportPreferences();
+    const filtered = filterByDateRange(bookings, (b) => b.createdAt, prefs.dateRange);
+    await exportReportPdf(
+      'Bookings & Earnings Report',
+      `${user!.fullName} — ${filtered.length} booking(s)`,
+      [
+        {
+          title: 'Incoming Bookings',
+          rows: filtered.map((b) => ({
+            label: prefs.includeDates ? `${b.equipmentName} — ${b.farmerName} (${formatDate(b.createdAt)})` : `${b.equipmentName} — ${b.farmerName}`,
+            value: prefs.includePrices ? formatCurrency(b.totalCost) : b.status.replace(/_/g, ' '),
+          })),
+        },
+        {
+          title: 'Earnings Summary',
+          rows: [
+            { label: 'Total Earned', value: formatCurrency(earnings?.totalEarned ?? 0) },
+            { label: 'Available Balance', value: formatCurrency(earnings?.availableBalance ?? 0) },
+            { label: 'Pending Balance', value: formatCurrency(earnings?.pendingBalance ?? 0) },
+          ],
+        },
+      ]
+    );
   };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
@@ -542,6 +573,8 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         loggingOut={loggingOut}
         extraItems={[
           { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
+          { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
+          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
           { icon: 'bar-chart-outline', label: 'Earnings Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
@@ -551,6 +584,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}

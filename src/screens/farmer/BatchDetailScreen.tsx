@@ -12,6 +12,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import { exportReportPdf, buildBatchReportSections } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'BatchDetail'>;
 
@@ -192,6 +194,16 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
     Alert.alert('Download', 'Coming soon.');
   };
 
+  const handleDownloadPdfReport = async () => {
+    if (!batch) return;
+    const prefs = await getExportPreferences();
+    await exportReportPdf(
+      `${batch.cropName} Traceability Report`,
+      `REF #${String(batch.id).slice(-6).toUpperCase()}`,
+      buildBatchReportSections(batch, prefs)
+    );
+  };
+
   if (loading) {
     return <LoadingOverlay message="Loading batch..." />;
   }
@@ -365,6 +377,11 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
             })}
           </View>
         </View>
+
+        <AnimatedPressable style={styles.outlineButtonFull} onPress={handleDownloadPdfReport}>
+          <Ionicons name="document-text-outline" size={16} color={colors.primaryGreen} />
+          <Text style={styles.outlineButtonText}>Download PDF Report</Text>
+        </AnimatedPressable>
 
         {showPriceInput && (
           <View style={styles.card}>

@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GeneralStackParamList, MarketplaceListing, UserReview } from '../../types';
 import { getMyMarketplaceListings } from '../../api/produceApi';
+import { getMyMarketplacePurchases, getMyProducePurchases } from '../../api/purchaseApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
@@ -44,6 +45,9 @@ import RateAppModal from '../../components/RateAppModal';
 import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
+import ExportPreferencesModal from '../../components/ExportPreferencesModal';
+import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
@@ -95,6 +99,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [exportPreferencesVisible, setExportPreferencesVisible] = useState(false);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -129,6 +134,31 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
   const showComingSoon = (feature: string) => {
     Alert.alert(feature, `${feature} is coming soon.`);
+  };
+
+  const handleGeneratePdfReport = async () => {
+    setDropdownVisible(false);
+    const [prefs, mpPurchases, producePurchases] = await Promise.all([
+      getExportPreferences(),
+      getMyMarketplacePurchases().catch(() => []),
+      getMyProducePurchases().catch(() => []),
+    ]);
+    const mp = filterByDateRange(mpPurchases, (p) => p.createdAt, prefs.dateRange);
+    const pp = filterByDateRange(producePurchases, (p) => p.createdAt, prefs.dateRange);
+
+    const toRow = (label: string, dateStr: string, amount: number) => ({
+      label: prefs.includeDates ? `${label} (${formatDate(dateStr)})` : label,
+      value: prefs.includePrices ? formatCurrency(amount) : '—',
+    });
+
+    await exportReportPdf(
+      'Order History Report',
+      `${user!.fullName} — ${mp.length + pp.length} order(s)`,
+      [
+        { title: 'Marketplace Orders', rows: mp.map((p) => toRow(p.listingName, p.createdAt, p.totalAmount)) },
+        { title: 'Produce Orders', rows: pp.map((p) => toRow(p.cropName, p.createdAt, p.totalAmount)) },
+      ]
+    );
   };
 
   const goToMyListings = () => {
@@ -474,6 +504,8 @@ export default function GeneralProfileScreen({ navigation }: Props) {
             onPress: goToMyListings,
           },
           { icon: 'bar-chart-outline', label: 'Order History', onPress: () => showComingSoon('Order History') },
+          { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
+          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
           { icon: 'stats-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
@@ -483,6 +515,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}

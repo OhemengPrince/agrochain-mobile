@@ -20,6 +20,21 @@ const CHAT_WALLPAPER_KEY = '@agrochain/chat_wallpaper';
 const CHAT_BUBBLE_THEME_KEY = '@agrochain/chat_bubble_theme';
 const CERTIFICATIONS_KEY = '@agrochain/certifications';
 const APP_RATING_KEY = '@agrochain/app_rating';
+const EXPORT_PREFERENCES_KEY = '@agrochain/export_preferences';
+
+export type ExportDateRange = 'ALL' | '30D' | '90D';
+
+export interface ExportPreferences {
+  includePrices: boolean;
+  includeDates: boolean;
+  dateRange: ExportDateRange;
+}
+
+export const DEFAULT_EXPORT_PREFERENCES: ExportPreferences = {
+  includePrices: true,
+  includeDates: true,
+  dateRange: 'ALL',
+};
 
 // Mock mode never touches the native AsyncStorage module — it keeps
 // everything in a plain in-memory object for the lifetime of the app.
@@ -366,6 +381,27 @@ export async function setChatBubbleTheme(themeKey: string): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(CHAT_BUBBLE_THEME_KEY, themeKey);
+}
+
+export async function getExportPreferences(): Promise<ExportPreferences> {
+  const raw = USE_MOCK_DATA
+    ? memoryStore[EXPORT_PREFERENCES_KEY]
+    : await AsyncStorage.getItem(EXPORT_PREFERENCES_KEY);
+  if (!raw) return DEFAULT_EXPORT_PREFERENCES;
+  try {
+    return { ...DEFAULT_EXPORT_PREFERENCES, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_EXPORT_PREFERENCES;
+  }
+}
+
+export async function setExportPreferences(prefs: ExportPreferences): Promise<void> {
+  const json = JSON.stringify(prefs);
+  if (USE_MOCK_DATA) {
+    memoryStore[EXPORT_PREFERENCES_KEY] = json;
+    return;
+  }
+  await AsyncStorage.setItem(EXPORT_PREFERENCES_KEY, json);
 }
 
 // ── Certifications — device-local; no backend endpoint exists for these ──

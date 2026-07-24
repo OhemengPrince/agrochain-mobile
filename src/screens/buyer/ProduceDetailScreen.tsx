@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,8 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
 import FollowButton from '../../components/FollowButton';
+import { exportReportPdf, buildBatchReportSections } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
@@ -66,8 +68,14 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
     navigation.navigate('Chat', { name: batch.farmerName, role: 'Farmer', otherUserId: batch.farmerId });
   };
 
-  const handleDownloadReport = () => {
-    Alert.alert('Download PDF Report', 'PDF report generation is coming soon. This is a placeholder action.');
+  const handleDownloadReport = async () => {
+    if (!batch) return;
+    const prefs = await getExportPreferences();
+    await exportReportPdf(
+      `${batch.cropName} Traceability Report`,
+      `REF #${String(batch.id).slice(-6).toUpperCase()}`,
+      buildBatchReportSections(batch, prefs)
+    );
   };
 
   if (loading) {
@@ -141,7 +149,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
               onPressOut={contactPress.onPressOut}
             >
               <Ionicons name="chatbubble-ellipses" size={15} color={colors.white} />
-              <Text style={styles.contactButtonSmallText}>Contact</Text>
+              <Text style={styles.contactButtonSmallText}>Message</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -270,7 +278,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
               style={styles.actionButton}
             />
           )}
-          <AppButton title="Contact Farmer" onPress={handleContact} style={styles.actionButton} />
+          <AppButton title="Message Farmer" onPress={handleContact} style={styles.actionButton} />
           <AppButton
             title="Download PDF Report"
             onPress={handleDownloadReport}

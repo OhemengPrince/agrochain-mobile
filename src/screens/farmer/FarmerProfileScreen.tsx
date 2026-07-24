@@ -46,6 +46,9 @@ import RateAppModal from '../../components/RateAppModal';
 import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
+import ExportPreferencesModal from '../../components/ExportPreferencesModal';
+import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { getExportPreferences } from '../../utils/storage';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -125,6 +128,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const [contactSupportVisible, setContactSupportVisible] = useState(false);
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
+  const [exportPreferencesVisible, setExportPreferencesVisible] = useState(false);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -160,8 +164,23 @@ export default function FarmerProfileScreen({ navigation }: Props) {
     })();
   }, [loadData]);
 
-  const showComingSoon = (feature: string) => {
-    Alert.alert(feature, `${feature} is coming soon.`);
+  const handleGeneratePdfReport = async () => {
+    setDropdownVisible(false);
+    const prefs = await getExportPreferences();
+    const filtered = filterByDateRange(batches, (b) => b.createdAt, prefs.dateRange);
+    await exportReportPdf(
+      'Harvest History Report',
+      `${user!.fullName} — ${filtered.length} batch(es)`,
+      [
+        {
+          title: 'Produce Batches',
+          rows: filtered.map((b) => ({
+            label: prefs.includeDates ? `${b.cropName} (${formatDate(b.createdAt)})` : `${b.cropName} — ${b.status.replace(/_/g, ' ')}`,
+            value: prefs.includePrices && b.pricePerKg != null ? `${b.quantityKg}kg @ ${formatCurrency(b.pricePerKg)}/kg` : `${b.quantityKg}kg`,
+          })),
+        },
+      ]
+    );
   };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
@@ -503,6 +522,8 @@ export default function FarmerProfileScreen({ navigation }: Props) {
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
+          { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
+          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
           { icon: 'bar-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
         ]}
@@ -512,6 +533,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
+      <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}
