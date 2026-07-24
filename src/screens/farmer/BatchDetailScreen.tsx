@@ -80,27 +80,6 @@ function AnimatedPressable({
   );
 }
 
-function AmberPulseDot({ styles }: { styles: ReturnType<typeof createStyles> }) {
-  const pulse = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.5, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-
-  return (
-    <View style={styles.timelineDotWrap}>
-      <Animated.View style={[styles.timelineDot, styles.timelineDotAmber, { transform: [{ scale: pulse }] }]} />
-    </View>
-  );
-}
-
 export default function BatchDetailScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
@@ -195,9 +174,6 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
   const cropMeta = getCropMeta(batch.cropName);
   const shortRef = String(batch.id).slice(-6).toUpperCase();
   const qrValue = batch.qrCodeValue || String(batch.id ?? '') || 'AGROCHAIN-UNKNOWN';
-  const showPendingStage =
-    (batch.status === 'PROCESSING' || batch.status === 'GROWING' || batch.status === 'HARVESTED') &&
-    batch.processingStages.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -272,11 +248,11 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Processing Timeline</Text>
-          {batch.processingStages.length === 0 && !showPendingStage ? (
+          {batch.processingStages.length === 0 ? (
             <Text style={styles.emptyText}>No processing stages recorded yet.</Text>
           ) : (
             batch.processingStages.map((stage, index) => {
-              const isLast = index === batch.processingStages.length - 1 && !showPendingStage;
+              const isLast = index === batch.processingStages.length - 1;
               return (
                 <View key={stage.id} style={styles.timelineRow}>
                   <View style={styles.timelineDotWrap}>
@@ -291,15 +267,6 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
                 </View>
               );
             })
-          )}
-          {showPendingStage && (
-            <View style={styles.timelineRow}>
-              <AmberPulseDot styles={styles} />
-              <View style={styles.timelineBody}>
-                <Text style={styles.timelineStage}>In Progress</Text>
-                <Text style={styles.timelineDate}>Pending update</Text>
-              </View>
-            </View>
           )}
 
           {showAddStage ? (
