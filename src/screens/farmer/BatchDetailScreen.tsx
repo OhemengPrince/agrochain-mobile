@@ -358,7 +358,7 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
 
       <Modal visible={priceModalVisible} transparent animationType="fade" onRequestClose={() => setPriceModalVisible(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
           <Pressable style={styles.priceModalOverlay} onPress={() => setPriceModalVisible(false)}>
