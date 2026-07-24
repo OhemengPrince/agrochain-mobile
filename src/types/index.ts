@@ -218,6 +218,7 @@ export interface ProduceBatch {
   plantedDate?: string;
   harvestedDate?: string;
   pricePerKg?: number;
+  photoUrl?: string;
   createdAt: string;
 }
 
@@ -228,6 +229,7 @@ export interface CreateBatchPayload {
   region: string;
   district: string;
   plantedDate?: string;
+  photoUrl?: string;
   inputs?: InputItem[];
 }
 

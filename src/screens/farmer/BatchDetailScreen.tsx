@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated, Share, Alert, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -236,7 +236,11 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
         <View style={styles.card}>
           <View style={styles.cropInfoRow}>
             <View style={[styles.cropCircle, { backgroundColor: `${cropMeta.color}26` }]}>
-              <Text style={styles.cropEmoji}>{cropMeta.emoji}</Text>
+              {batch.photoUrl ? (
+                <Image source={{ uri: batch.photoUrl }} style={styles.cropPhoto} resizeMode="cover" />
+              ) : (
+                <Text style={styles.cropEmoji}>{cropMeta.emoji}</Text>
+              )}
             </View>
             <View style={styles.cropInfoBody}>
               <Text style={styles.cropName}>{batch.cropName}</Text>
@@ -481,9 +485,14 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,
+      overflow: 'hidden',
     },
     cropEmoji: {
       fontSize: 26,
+    },
+    cropPhoto: {
+      width: '100%',
+      height: '100%',
     },
     cropInfoBody: {
       flex: 1,

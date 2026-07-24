@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { ProduceBatch } from '../types';
@@ -40,7 +40,11 @@ export default function BatchCard({ batch, onPress, showCertification = false }:
         style={styles.card}
       >
         <View style={styles.emojiWrap}>
-          <Text style={styles.emoji}>{getCropEmoji(batch.cropName)}</Text>
+          {batch.photoUrl ? (
+            <Image source={{ uri: batch.photoUrl }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <Text style={styles.emoji}>{getCropEmoji(batch.cropName)}</Text>
+          )}
         </View>
 
         <View style={styles.body}>
@@ -97,9 +101,14 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
+      overflow: 'hidden',
     },
     emoji: {
       fontSize: 24,
+    },
+    photo: {
+      width: '100%',
+      height: '100%',
     },
     body: {
       flex: 1,

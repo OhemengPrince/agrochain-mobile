@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { FarmerStackParamList, InputItem } from '../../types';
 import { createBatch } from '../../api/produceApi';
+import { uploadImage } from '../../api/fileApi';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -235,7 +236,8 @@ export default function CreateBatchScreen({ navigation }: Props) {
     const quantity = parseFloat(quantityKg);
     setLoading(true);
     try {
-      await createBatch({ cropName, variety, quantityKg: quantity, region, district, plantedDate, inputs });
+      const photoUrl = imageUri ? await uploadImage(imageUri) : undefined;
+      await createBatch({ cropName, variety, quantityKg: quantity, region, district, plantedDate, photoUrl, inputs });
       navigation.navigate('FarmerBatchesList');
     } catch (err: any) {
       setError(getApiErrorMessage(err, 'Failed to create batch.'));
