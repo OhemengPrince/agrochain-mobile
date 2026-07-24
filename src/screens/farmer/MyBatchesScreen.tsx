@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Text, RefreshControl, Pressable, Animated, Platform, Modal, Share, TouchableOpacity, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -127,7 +127,11 @@ function BatchListCard({
       >
         <View style={styles.cardTopRow}>
           <View style={[styles.cropCircle, { backgroundColor: `${cropMeta.color}26` }]}>
-            <Text style={styles.cropEmoji}>{cropMeta.emoji}</Text>
+            {batch.photoUrl ? (
+              <Image source={{ uri: batch.photoUrl }} style={styles.cropPhoto} resizeMode="cover" />
+            ) : (
+              <Text style={styles.cropEmoji}>{cropMeta.emoji}</Text>
+            )}
           </View>
 
           <View style={styles.cardBody}>
@@ -495,6 +499,11 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,
+      overflow: 'hidden',
+    },
+    cropPhoto: {
+      width: '100%',
+      height: '100%',
     },
     cropEmoji: {
       fontSize: 26,
