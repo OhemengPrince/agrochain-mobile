@@ -53,7 +53,14 @@ apiClient.interceptors.response.use(
     // forced logout so the error surfaces normally on screen instead.
     const message = (error.response?.data as any)?.message;
     const isRoleRestriction = typeof message === 'string' && /^only\b.*\bcan\b/i.test(message.trim());
-    if (status === 401 && !isRoleRestriction) {
+    // A 401 from an auth endpoint itself (wrong password, invalid/expired
+    // OTP, bad Google token, etc.) means the credentials were rejected — not
+    // that a previously-valid session died. Treating it as the latter was
+    // clearing storage and firing the auth-failure redirect on every failed
+    // login attempt, which looped straight back to Onboarding instead of
+    // just showing "Invalid email or password" on the login screen.
+    const isAuthEndpoint = (url ?? '').includes('/auth/');
+    if (status === 401 && !isRoleRestriction && !isAuthEndpoint) {
       console.log('[axios] clearing session due to auth failure');
       await clearAll();
       _onAuthFailure?.();
