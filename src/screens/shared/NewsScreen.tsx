@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { fetchGhanaAgricultureNews, searchNews as searchNewsApi, NewsItem, NewsTopicChip } from '../../services/newsService';
@@ -254,9 +255,18 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                     onError={() => markImageBroken(item.id)}
                   />
                 ) : (
-                  <View style={styles.cardLogoPlaceholder}>
-                    <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
-                  </View>
+                  <LinearGradient
+                    colors={[colors.lightGreen, colors.primaryGreenLight]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardLogoPlaceholder}
+                  >
+                    <View style={styles.glassBadge}>
+                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
+                        <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
+                      </BlurView>
+                    </View>
+                  </LinearGradient>
                 )}
 
                 <View style={styles.cardBody}>
@@ -324,9 +334,18 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                   onError={() => markImageBroken(item.id)}
                 />
               ) : (
-                <View style={styles.cardLogoPlaceholder}>
-                  <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
-                </View>
+                <LinearGradient
+                  colors={[colors.lightGreen, colors.primaryGreenLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.cardLogoPlaceholder}
+                >
+                  <View style={styles.glassBadge}>
+                    <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
+                      <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
+                    </BlurView>
+                  </View>
+                </LinearGradient>
               )}
 
               <View style={styles.cardBody}>
@@ -494,9 +513,23 @@ function createStyles(colors: ThemeColors) {
       height: 150,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.lightGreen,
     },
-    cardLogoImage: { width: 72, height: 72, opacity: 0.9 },
+    glassBadge: {
+      width: 84,
+      height: 84,
+      borderRadius: 42,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.55)',
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    glassBadgeBlur: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    cardLogoImage: { width: 48, height: 48 },
     cardBody: { padding: 16 },
     topicPill: {
       flexDirection: 'row',

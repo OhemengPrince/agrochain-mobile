@@ -4,6 +4,8 @@ import {
   Linking, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { fetchGhanaAgricultureNews, NewsItem } from '../services/newsService';
@@ -109,9 +111,18 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 
                     onError={() => markImageBroken(item.id)}
                   />
                 ) : (
-                  <View style={styles.newsImagePlaceholder}>
-                    <Image source={Logo} style={styles.newsLogoImage} resizeMode="contain" />
-                  </View>
+                  <LinearGradient
+                    colors={[colors.lightGreen, colors.primaryGreenLight]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.newsImagePlaceholder}
+                  >
+                    <View style={styles.glassBadge}>
+                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
+                        <Image source={Logo} style={styles.newsLogoImage} resizeMode="contain" />
+                      </BlurView>
+                    </View>
+                  </LinearGradient>
                 )}
                 <View style={styles.newsBody}>
                   <Text style={styles.newsHeadline} numberOfLines={3}>{item.headline}</Text>
@@ -174,9 +185,23 @@ function createStyles(colors: ThemeColors) {
     newsImage: { width: '100%', height: 180 },
     newsImagePlaceholder: {
       width: '100%', height: 130, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.lightGreen,
     },
-    newsLogoImage: { width: 64, height: 64, opacity: 0.9 },
+    glassBadge: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.55)',
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    glassBadgeBlur: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    newsLogoImage: { width: 42, height: 42 },
     newsBody: { padding: 14 },
     newsHeadline: { fontSize: 14, fontWeight: '700', color: colors.text, lineHeight: 20 },
     newsSummary: { fontSize: 12, color: colors.secondaryText, lineHeight: 17, marginTop: 6 },
