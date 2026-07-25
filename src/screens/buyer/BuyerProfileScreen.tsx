@@ -192,6 +192,12 @@ export default function BuyerProfileScreen({ navigation }: Props) {
     setPersonalInfoVisible(true);
   };
 
+  const goToMyListings = () => {
+    setDropdownVisible(false);
+    const parent = navigation.getParent() as any;
+    parent?.navigate('BuyerMarket', { screen: 'MyMarketplaceListings' });
+  };
+
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -502,6 +508,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
+          { icon: 'pricetags-outline', label: 'My Listings', onPress: goToMyListings },
           { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
           { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },

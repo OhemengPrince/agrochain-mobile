@@ -265,6 +265,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   };
 
   const handleManageEquipment = () => {
+    setDropdownVisible(false);
     const parent = navigation.getParent() as any;
     parent?.navigate('OwnerEquipment', { screen: 'OwnerEquipmentList' });
   };
@@ -572,6 +573,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
+          { icon: 'pricetags-outline', label: 'My Listings', onPress: handleManageEquipment },
           { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
           { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
           { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
