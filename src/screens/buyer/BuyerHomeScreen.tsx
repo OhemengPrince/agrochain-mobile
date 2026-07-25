@@ -94,26 +94,36 @@ function FeaturedBatchCard({
   return (
     <Animated.View style={[styles.featuredCardWrap, { transform: [{ scale }], opacity }]}>
       <Pressable style={styles.featuredCard} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <View style={styles.featuredEmojiWrap}>
+        <View style={styles.featuredImgWrap}>
           {batch.photoUrl ? (
-            <Image source={{ uri: batch.photoUrl }} style={styles.featuredPhoto} resizeMode="cover" />
+            <Image source={{ uri: batch.photoUrl }} style={styles.featuredImg} resizeMode="cover" />
           ) : (
-            <Text style={styles.featuredEmoji}>{getCropEmoji(batch.cropName)}</Text>
+            <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.featuredImg} />
+          )}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.62)']}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View style={styles.featuredImgLabel} pointerEvents="none">
+            <Text style={styles.featuredImgEmoji}>{getCropEmoji(batch.cropName)}</Text>
+            <Text style={styles.featuredImgCropName} numberOfLines={1}>{batch.cropName}</Text>
+          </View>
+          {isReady && (
+            <View style={styles.readyBadge}>
+              <Text style={styles.readyBadgeText}>READY</Text>
+            </View>
           )}
         </View>
-        {isReady && (
-          <View style={styles.readyBadge}>
-            <Text style={styles.readyBadgeText}>READY</Text>
-          </View>
-        )}
-        <Text style={styles.featuredCropName} numberOfLines={1}>{batch.cropName}</Text>
-        <Text style={styles.featuredFarmer} numberOfLines={1}>{batch.farmerName}</Text>
-        <Text style={styles.featuredMeta} numberOfLines={1}>
-          {batch.quantityKg} kg • {batch.district}
-        </Text>
-        {batch.pricePerKg !== undefined && (
-          <Text style={styles.featuredPrice}>{formatCurrency(batch.pricePerKg)}/kg</Text>
-        )}
+        <View style={styles.featuredInfo}>
+          <Text style={styles.featuredFarmer} numberOfLines={1}>{batch.farmerName}</Text>
+          <Text style={styles.featuredMeta} numberOfLines={1}>
+            {batch.quantityKg} kg • {batch.district}
+          </Text>
+          {batch.pricePerKg !== undefined && (
+            <Text style={styles.featuredPrice}>{formatCurrency(batch.pricePerKg)}/kg</Text>
+          )}
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -687,61 +697,69 @@ function createStyles(colors: ThemeColors) {
     featuredCard: {
       backgroundColor: colors.card,
       borderRadius: 16,
-      padding: 14,
+      overflow: 'hidden',
       ...cardShadow,
     },
-    featuredEmojiWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      backgroundColor: colors.lightGreen,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 10,
-      overflow: 'hidden',
+    featuredImgWrap: {
+      position: 'relative',
+      width: '100%',
+      height: 106,
     },
-    featuredPhoto: {
+    featuredImg: {
       width: '100%',
       height: '100%',
     },
-    featuredEmoji: {
-      fontSize: 22,
+    featuredImgLabel: {
+      position: 'absolute',
+      bottom: 8,
+      left: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    featuredImgEmoji: {
+      fontSize: 16,
+    },
+    featuredImgCropName: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: 0.2,
     },
     readyBadge: {
       position: 'absolute',
-      top: 12,
-      right: 12,
-      backgroundColor: colors.lightGreen,
-      borderRadius: 8,
+      top: 8,
+      right: 8,
+      backgroundColor: '#16A34A',
+      borderRadius: 20,
       paddingHorizontal: 8,
       paddingVertical: 3,
     },
     readyBadgeText: {
       fontSize: 9,
       fontWeight: '800',
-      color: colors.primaryGreen,
+      color: '#FFFFFF',
       letterSpacing: 0.3,
     },
-    featuredCropName: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
+    featuredInfo: {
+      padding: 10,
+      paddingTop: 8,
     },
     featuredFarmer: {
       fontSize: 12,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    featuredMeta: {
+      fontSize: 11,
       color: colors.secondaryText,
       marginTop: 2,
     },
-    featuredMeta: {
-      fontSize: 12,
-      color: colors.text,
-      marginTop: 6,
-    },
     featuredPrice: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '800',
       color: colors.primaryGreen,
-      marginTop: 6,
+      marginTop: 4,
     },
   });
 }
