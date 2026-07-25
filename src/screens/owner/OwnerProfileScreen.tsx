@@ -270,6 +270,12 @@ export default function OwnerProfileScreen({ navigation }: Props) {
     parent?.navigate('OwnerEquipment', { screen: 'OwnerEquipmentList' });
   };
 
+  const goToMyListings = () => {
+    setDropdownVisible(false);
+    const parent = navigation.getParent() as any;
+    parent?.navigate('OwnerMarket', { screen: 'MyMarketplaceListings' });
+  };
+
   const handleEditEquipment = (equipmentId: string) => {
     const parent = navigation.getParent() as any;
     parent?.navigate('OwnerEquipment', { screen: 'EditEquipment', params: { equipmentId } });
@@ -573,7 +579,7 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         onLogout={handleLogout}
         loggingOut={loggingOut}
         extraItems={[
-          { icon: 'pricetags-outline', label: 'My Listings', onPress: handleManageEquipment },
+          { icon: 'pricetags-outline', label: 'My Listings', onPress: goToMyListings },
           { icon: 'business-outline', label: 'Bank Details', onPress: () => showComingSoon('Bank Details') },
           { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
           { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
