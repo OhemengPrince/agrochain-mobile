@@ -14,9 +14,11 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import AppButton from '../../components/AppButton';
 import FollowButton from '../../components/FollowButton';
-import { exportReportPdf, buildBatchReportSections } from '../../utils/pdfReport';
+import { buildBatchReportSections } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 import { getFollowStatus } from '../../api/followApi';
+import { useReportPreview } from '../../hooks/useReportPreview';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
@@ -77,10 +79,12 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
     navigation.navigate('Chat', { name: batch.farmerName, role: 'Farmer', otherUserId: batch.farmerId });
   };
 
+  const reportPreview = useReportPreview();
+
   const handleDownloadReport = async () => {
     if (!batch) return;
     const prefs = await getExportPreferences();
-    await exportReportPdf(
+    reportPreview.showReportPreview(
       `${batch.cropName} Traceability Report`,
       `REF #${String(batch.id).slice(-6).toUpperCase()}`,
       buildBatchReportSections(batch, prefs)
@@ -296,6 +300,12 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
           />
         </View>
       </ScrollView>
+      <ReportPreviewModal
+        report={reportPreview.report}
+        downloading={reportPreview.downloading}
+        onClose={reportPreview.closeReportPreview}
+        onDownload={reportPreview.confirmDownload}
+      />
     </SafeAreaView>
   );
 }

@@ -47,8 +47,10 @@ import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 import ExportPreferencesModal from '../../components/ExportPreferencesModal';
-import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
+import { useReportPreview } from '../../hooks/useReportPreview';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -164,11 +166,13 @@ export default function FarmerProfileScreen({ navigation }: Props) {
     })();
   }, [loadData]);
 
+  const reportPreview = useReportPreview();
+
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);
     const prefs = await getExportPreferences();
     const filtered = filterByDateRange(batches, (b) => b.createdAt, prefs.dateRange);
-    await exportReportPdf(
+    reportPreview.showReportPreview(
       'Harvest History Report',
       `${user!.fullName} — ${filtered.length} batch(es)`,
       [
@@ -541,6 +545,12 @@ export default function FarmerProfileScreen({ navigation }: Props) {
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
       <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
+      <ReportPreviewModal
+        report={reportPreview.report}
+        downloading={reportPreview.downloading}
+        onClose={reportPreview.closeReportPreview}
+        onDownload={reportPreview.confirmDownload}
+      />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}

@@ -48,8 +48,10 @@ import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 import ExportPreferencesModal from '../../components/ExportPreferencesModal';
-import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
+import { useReportPreview } from '../../hooks/useReportPreview';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
@@ -177,11 +179,13 @@ export default function OwnerProfileScreen({ navigation }: Props) {
     Alert.alert(feature, `${feature} is coming soon.`);
   };
 
+  const reportPreview = useReportPreview();
+
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);
     const prefs = await getExportPreferences();
     const filtered = filterByDateRange(bookings, (b) => b.createdAt, prefs.dateRange);
-    await exportReportPdf(
+    reportPreview.showReportPreview(
       'Bookings & Earnings Report',
       `${user!.fullName} — ${filtered.length} booking(s)`,
       [
@@ -593,6 +597,12 @@ export default function OwnerProfileScreen({ navigation }: Props) {
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
       <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
+      <ReportPreviewModal
+        report={reportPreview.report}
+        downloading={reportPreview.downloading}
+        onClose={reportPreview.closeReportPreview}
+        onDownload={reportPreview.confirmDownload}
+      />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}

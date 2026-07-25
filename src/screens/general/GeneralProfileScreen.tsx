@@ -47,8 +47,10 @@ import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 import ExportPreferencesModal from '../../components/ExportPreferencesModal';
 import OrderHistoryModal from '../../components/OrderHistoryModal';
-import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
+import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
+import { useReportPreview } from '../../hooks/useReportPreview';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
@@ -146,6 +148,8 @@ export default function GeneralProfileScreen({ navigation }: Props) {
     Alert.alert(feature, `${feature} is coming soon.`);
   };
 
+  const reportPreview = useReportPreview();
+
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);
     const prefs = await getExportPreferences();
@@ -157,7 +161,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       value: prefs.includePrices ? formatCurrency(amount) : '—',
     });
 
-    await exportReportPdf(
+    reportPreview.showReportPreview(
       'Order History Report',
       `${user!.fullName} — ${mp.length + pp.length} order(s)`,
       [
@@ -522,6 +526,12 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
       <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
+      <ReportPreviewModal
+        report={reportPreview.report}
+        downloading={reportPreview.downloading}
+        onClose={reportPreview.closeReportPreview}
+        onDownload={reportPreview.confirmDownload}
+      />
       <OrderHistoryModal
         visible={orderHistoryVisible}
         onClose={() => setOrderHistoryVisible(false)}

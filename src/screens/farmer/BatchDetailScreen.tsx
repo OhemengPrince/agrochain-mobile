@@ -12,8 +12,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
-import { exportReportPdf, buildBatchReportSections } from '../../utils/pdfReport';
+import { buildBatchReportSections } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
+import { useReportPreview } from '../../hooks/useReportPreview';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'BatchDetail'>;
 
@@ -194,10 +196,12 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
     Alert.alert('Download', 'Coming soon.');
   };
 
+  const reportPreview = useReportPreview();
+
   const handleDownloadPdfReport = async () => {
     if (!batch) return;
     const prefs = await getExportPreferences();
-    await exportReportPdf(
+    reportPreview.showReportPreview(
       `${batch.cropName} Traceability Report`,
       `REF #${String(batch.id).slice(-6).toUpperCase()}`,
       buildBatchReportSections(batch, prefs)
@@ -413,6 +417,12 @@ export default function BatchDetailScreen({ route, navigation }: Props) {
         )}
       </ScrollView>
       </KeyboardAvoidingView>
+      <ReportPreviewModal
+        report={reportPreview.report}
+        downloading={reportPreview.downloading}
+        onClose={reportPreview.closeReportPreview}
+        onDownload={reportPreview.confirmDownload}
+      />
     </SafeAreaView>
   );
 }
