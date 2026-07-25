@@ -262,9 +262,8 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                     style={styles.cardLogoPlaceholder}
                   >
                     <View style={styles.glassBadge}>
-                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
-                        <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
-                      </BlurView>
+                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur} />
+                      <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
                     </View>
                   </LinearGradient>
                 )}
@@ -341,9 +340,8 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                   style={styles.cardLogoPlaceholder}
                 >
                   <View style={styles.glassBadge}>
-                    <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
-                      <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
-                    </BlurView>
+                    <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur} />
+                    <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
                   </View>
                 </LinearGradient>
               )}
@@ -517,10 +515,17 @@ function createStyles(colors: ThemeColors) {
     glassBadge: {
       width: 84,
       height: 84,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    glassBadgeBlur: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
       borderRadius: 42,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.55)',
+      borderColor: 'rgba(255,255,255,0.6)',
       backgroundColor: 'rgba(255,255,255,0.18)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
@@ -528,8 +533,15 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 10,
       elevation: 4,
     },
-    glassBadgeBlur: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-    cardLogoImage: { width: 48, height: 48 },
+    cardLogoImage: {
+      width: 62,
+      height: 62,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 8,
+    },
     cardBody: { padding: 16 },
     topicPill: {
       flexDirection: 'row',

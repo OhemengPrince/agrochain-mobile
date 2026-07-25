@@ -118,9 +118,8 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 
                     style={styles.newsImagePlaceholder}
                   >
                     <View style={styles.glassBadge}>
-                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur}>
-                        <Image source={Logo} style={styles.newsLogoImage} resizeMode="contain" />
-                      </BlurView>
+                      <BlurView intensity={45} tint="light" style={styles.glassBadgeBlur} />
+                      <Image source={Logo} style={styles.newsLogoImage} resizeMode="contain" />
                     </View>
                   </LinearGradient>
                 )}
@@ -189,10 +188,17 @@ function createStyles(colors: ThemeColors) {
     glassBadge: {
       width: 76,
       height: 76,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    glassBadgeBlur: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
       borderRadius: 38,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.55)',
+      borderColor: 'rgba(255,255,255,0.6)',
       backgroundColor: 'rgba(255,255,255,0.18)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
@@ -200,8 +206,15 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 10,
       elevation: 4,
     },
-    glassBadgeBlur: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-    newsLogoImage: { width: 42, height: 42 },
+    newsLogoImage: {
+      width: 54,
+      height: 54,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 8,
+    },
     newsBody: { padding: 14 },
     newsHeadline: { fontSize: 14, fontWeight: '700', color: colors.text, lineHeight: 20 },
     newsSummary: { fontSize: 12, color: colors.secondaryText, lineHeight: 17, marginTop: 6 },
