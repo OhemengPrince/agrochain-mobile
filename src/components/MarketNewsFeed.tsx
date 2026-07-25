@@ -4,7 +4,6 @@ import {
   Linking, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { fetchGhanaAgricultureNews, NewsItem } from '../services/newsService';
@@ -15,7 +14,7 @@ const FALLBACK_NEWS: NewsItem[] = [
   { id: '3', headline: 'New agricultural equipment scheme launched for Northern Region', source: 'Graphic Online', time: '1 day ago', url: '' },
 ];
 
-const PLACEHOLDER_ICONS = ['🌾', '🍫', '🌽', '🍅', '🥬', '🚜', '🌱', '🍠'];
+const Logo = require('../assets/images/agrochain_logo.png');
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -110,17 +109,9 @@ export default function MarketNewsFeed({ maxItems = 3, onSeeAll, refreshKey = 0 
                     onError={() => markImageBroken(item.id)}
                   />
                 ) : (
-                  <LinearGradient
-                    colors={['#14532d', '#16a34a', '#4ade80']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.newsImagePlaceholder}
-                  >
-                    <Text style={styles.placeholderEmoji}>
-                      {PLACEHOLDER_ICONS[index % PLACEHOLDER_ICONS.length]}
-                    </Text>
-                    <Text style={styles.placeholderLabel}>Agriculture News</Text>
-                  </LinearGradient>
+                  <View style={styles.newsImagePlaceholder}>
+                    <Image source={Logo} style={styles.newsLogoImage} resizeMode="contain" />
+                  </View>
                 )}
                 <View style={styles.newsBody}>
                   <Text style={styles.newsHeadline} numberOfLines={3}>{item.headline}</Text>
@@ -181,9 +172,11 @@ function createStyles(colors: ThemeColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3,
     },
     newsImage: { width: '100%', height: 180 },
-    newsImagePlaceholder: { width: '100%', height: 130, alignItems: 'center', justifyContent: 'center', gap: 6 },
-    placeholderEmoji: { fontSize: 36 },
-    placeholderLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.5 },
+    newsImagePlaceholder: {
+      width: '100%', height: 130, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.lightGreen,
+    },
+    newsLogoImage: { width: 64, height: 64, opacity: 0.9 },
     newsBody: { padding: 14 },
     newsHeadline: { fontSize: 14, fontWeight: '700', color: colors.text, lineHeight: 20 },
     newsSummary: { fontSize: 12, color: colors.secondaryText, lineHeight: 17, marginTop: 6 },

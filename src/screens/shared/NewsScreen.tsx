@@ -29,7 +29,7 @@ const TOPIC_CHIPS: NewsTopicChip[] = [
   'All', 'Cocoa', 'Maize', 'Rice', 'Livestock', 'Fertilizer', 'Equipment', 'Market Prices',
 ];
 
-const FALLBACK_EMOJIS = ['🌾', '🌽', '🍠', '🍅', '🐄', '🚜', '🌱', '🥬', '🥜', '🍚', '🧪', '🌿'];
+const Logo = require('../../../assets/images/agrochain_logo.png');
 
 export default function NewsScreen({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
@@ -254,16 +254,9 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                     onError={() => markImageBroken(item.id)}
                   />
                 ) : (
-                  <LinearGradient
-                    colors={['#14532d', '#16a34a', '#4ade80']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.cardImagePlaceholder}
-                  >
-                    <Text style={styles.placeholderEmojiLarge}>
-                      {FALLBACK_EMOJIS[index % FALLBACK_EMOJIS.length]}
-                    </Text>
-                  </LinearGradient>
+                  <View style={styles.cardLogoPlaceholder}>
+                    <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
+                  </View>
                 )}
 
                 <View style={styles.cardBody}>
@@ -323,19 +316,17 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
               onPress={() => openArticle(item.url, item.headline)}
               activeOpacity={item.url ? 0.75 : 1}
             >
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+              {item.imageUrl && !brokenImages.has(item.id) ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                  onError={() => markImageBroken(item.id)}
+                />
               ) : (
-                <LinearGradient
-                  colors={['#14532d', '#16a34a', '#4ade80']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardImagePlaceholder}
-                >
-                  <Text style={styles.placeholderEmojiLarge}>
-                    {FALLBACK_EMOJIS[index % FALLBACK_EMOJIS.length]}
-                  </Text>
-                </LinearGradient>
+                <View style={styles.cardLogoPlaceholder}>
+                  <Image source={Logo} style={styles.cardLogoImage} resizeMode="contain" />
+                </View>
               )}
 
               <View style={styles.cardBody}>
@@ -479,7 +470,6 @@ function createStyles(colors: ThemeColors) {
     loadingSubText: { fontSize: 12, color: colors.secondaryText, opacity: 0.7 },
     errorText: { fontSize: 14, color: colors.secondaryText, textAlign: 'center' },
     placeholderEmoji: { fontSize: 48 },
-    placeholderEmojiLarge: { fontSize: 52 },
     resetBtn: {
       marginTop: 4,
       paddingHorizontal: 20,
@@ -499,12 +489,14 @@ function createStyles(colors: ThemeColors) {
       elevation: 3,
     },
     cardImage: { width: '100%', height: 200 },
-    cardImagePlaceholder: {
+    cardLogoPlaceholder: {
       width: '100%',
       height: 150,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: colors.lightGreen,
     },
+    cardLogoImage: { width: 72, height: 72, opacity: 0.9 },
     cardBody: { padding: 16 },
     topicPill: {
       flexDirection: 'row',
