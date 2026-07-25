@@ -21,6 +21,8 @@ import {
 
 const MAX_PINNED = 3;
 
+type RoomFilter = 'all' | 'unread' | 'favorites';
+
 function formatTime(iso: string): string {
   const date = new Date(iso);
   const now = new Date();
@@ -107,6 +109,7 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
   const [error, setError] = useState<string | null>(null);
   const [roomSearch, setRoomSearch] = useState('');
   const [actionMenuRoomId, setActionMenuRoomId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<RoomFilter>('all');
 
   const loadRooms = useCallback(async () => {
     try {
@@ -173,14 +176,30 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
     [orderedRooms, user]
   );
 
+  const unreadRoomCount = useMemo(
+    () => visibleRooms.filter((room) => room.unreadCount > 0).length,
+    [visibleRooms]
+  );
+
   const filteredRooms = useMemo(() => {
-    if (!roomSearch.trim()) return orderedRooms;
-    const q = roomSearch.toLowerCase();
-    return orderedRooms.filter((room) => {
-      const other = getOtherParticipant(room);
-      return (other.fullName ?? other.email ?? '').toLowerCase().includes(q);
-    });
-  }, [orderedRooms, roomSearch, user]);
+    let result = orderedRooms;
+
+    if (activeFilter === 'unread') {
+      result = result.filter((room) => room.unreadCount > 0);
+    } else if (activeFilter === 'favorites') {
+      result = result.filter((room) => pinnedIds.has(String(room.id)));
+    }
+
+    if (roomSearch.trim()) {
+      const q = roomSearch.toLowerCase();
+      result = result.filter((room) => {
+        const other = getOtherParticipant(room);
+        return (other.fullName ?? other.email ?? '').toLowerCase().includes(q);
+      });
+    }
+
+    return result;
+  }, [orderedRooms, roomSearch, activeFilter, pinnedIds, user]);
 
   const handleTogglePin = useCallback((roomId: string) => {
     setPinnedIds((prev) => {
@@ -313,6 +332,42 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
             barHeight={44}
           />
         </View>
+
+        <View style={s.filterRow}>
+          {(
+            [
+              { key: 'all' as RoomFilter, label: 'All' },
+              { key: 'unread' as RoomFilter, label: 'Unread', count: unreadRoomCount },
+              { key: 'favorites' as RoomFilter, label: 'Favorites' },
+            ]
+          ).map((chip) => {
+            const active = activeFilter === chip.key;
+            return (
+              <Pressable
+                key={chip.key}
+                onPress={() => setActiveFilter(chip.key)}
+                style={[s.filterChip, active && s.filterChipActive]}
+              >
+                {!active && (
+                  <GlassBlur
+                    intensity={35}
+                    tint="dark"
+                    style={RNStyleSheet.absoluteFillObject}
+                    androidFallbackColor="rgba(255,255,255,0.14)"
+                  />
+                )}
+                <Text style={[s.filterChipText, active && s.filterChipTextActive]}>{chip.label}</Text>
+                {!!chip.count && chip.count > 0 && (
+                  <View style={[s.filterChipBadge, active && s.filterChipBadgeActive]}>
+                    <Text style={[s.filterChipBadgeText, active && s.filterChipBadgeTextActive]}>
+                      {chip.count > 99 ? '99+' : chip.count}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
       </LinearGradient>
 
       <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
@@ -333,6 +388,25 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
             <Ionicons name="chatbubbles-outline" size={48} color={colors.secondaryText} />
             <Text style={s.emptyTitle}>No conversations yet</Text>
             <Text style={s.emptySubtitle}>Start a chat from any equipment, booking, or listing page.</Text>
+          </View>
+        ) : filteredRooms.length === 0 && !roomSearch.trim() ? (
+          <View style={s.center}>
+            <Ionicons
+              name={activeFilter === 'unread' ? 'checkmark-done-outline' : 'heart-outline'}
+              size={48}
+              color={colors.secondaryText}
+            />
+            <Text style={s.emptyTitle}>
+              {activeFilter === 'unread' ? 'No unread chats' : 'No favorite chats'}
+            </Text>
+            <Text style={s.emptySubtitle}>
+              {activeFilter === 'unread'
+                ? "You're all caught up."
+                : 'Pin a conversation to see it here.'}
+            </Text>
+            <TouchableOpacity onPress={() => setActiveFilter('all')} style={s.retryBtn}>
+              <Text style={s.retryText}>Show all chats</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList
@@ -387,6 +461,38 @@ function createStyles(colors: any, isDarkMode: boolean) {
       paddingHorizontal: 12,
       zIndex: 100,
     },
+    filterRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 12,
+      marginTop: 12,
+    },
+    filterChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+    },
+    filterChipActive: {
+      backgroundColor: colors.lightGreen,
+      borderColor: colors.lightGreen,
+    },
+    filterChipText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+    filterChipTextActive: { color: colors.primaryGreen },
+    filterChipBadge: {
+      minWidth: 18, height: 18, borderRadius: 9,
+      backgroundColor: 'rgba(255,255,255,0.3)',
+      alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    filterChipBadgeActive: { backgroundColor: colors.primaryGreen },
+    filterChipBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    filterChipBadgeTextActive: { color: '#fff' },
     list: { paddingVertical: 4 },
     row: {
       flexDirection: 'row',
