@@ -332,43 +332,35 @@ export default function ChatRoomsScreen({ navigation }: { navigation: any }) {
             barHeight={44}
           />
         </View>
-
-        <View style={s.filterRow}>
-          {(
-            [
-              { key: 'all' as RoomFilter, label: 'All' },
-              { key: 'unread' as RoomFilter, label: 'Unread', count: unreadRoomCount },
-              { key: 'favorites' as RoomFilter, label: 'Favorites' },
-            ]
-          ).map((chip) => {
-            const active = activeFilter === chip.key;
-            return (
-              <Pressable
-                key={chip.key}
-                onPress={() => setActiveFilter(chip.key)}
-                style={[s.filterChip, active && s.filterChipActive]}
-              >
-                {!active && (
-                  <GlassBlur
-                    intensity={35}
-                    tint="dark"
-                    style={RNStyleSheet.absoluteFillObject}
-                    androidFallbackColor="rgba(255,255,255,0.14)"
-                  />
-                )}
-                <Text style={[s.filterChipText, active && s.filterChipTextActive]}>{chip.label}</Text>
-                {!!chip.count && chip.count > 0 && (
-                  <View style={[s.filterChipBadge, active && s.filterChipBadgeActive]}>
-                    <Text style={[s.filterChipBadgeText, active && s.filterChipBadgeTextActive]}>
-                      {chip.count > 99 ? '99+' : chip.count}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
       </LinearGradient>
+
+      <View style={s.filterRow}>
+        {(
+          [
+            { key: 'all' as RoomFilter, label: 'All' },
+            { key: 'unread' as RoomFilter, label: 'Unread', count: unreadRoomCount },
+            { key: 'favorites' as RoomFilter, label: 'Favorites' },
+          ]
+        ).map((chip) => {
+          const active = activeFilter === chip.key;
+          return (
+            <Pressable
+              key={chip.key}
+              onPress={() => setActiveFilter(chip.key)}
+              style={[s.filterChip, active && s.filterChipActive]}
+            >
+              <Text style={[s.filterChipText, active && s.filterChipTextActive]}>{chip.label}</Text>
+              {!!chip.count && chip.count > 0 && (
+                <View style={[s.filterChipBadge, active && s.filterChipBadgeActive]}>
+                  <Text style={[s.filterChipBadgeText, active && s.filterChipBadgeTextActive]}>
+                    {chip.count > 99 ? '99+' : chip.count}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
 
       <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
         {loading ? (
@@ -465,7 +457,9 @@ function createStyles(colors: any, isDarkMode: boolean) {
       flexDirection: 'row',
       gap: 8,
       paddingHorizontal: 12,
-      marginTop: 12,
+      paddingTop: 12,
+      paddingBottom: 4,
+      backgroundColor: colors.background,
     },
     filterChip: {
       flexDirection: 'row',
@@ -474,24 +468,24 @@ function createStyles(colors: any, isDarkMode: boolean) {
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 20,
-      overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.35)',
+      borderColor: colors.border,
+      backgroundColor: colors.cardBackground ?? colors.card,
     },
     filterChipActive: {
       backgroundColor: colors.lightGreen,
       borderColor: colors.lightGreen,
     },
-    filterChipText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+    filterChipText: { fontSize: 13, fontWeight: '600', color: colors.secondaryText },
     filterChipTextActive: { color: colors.primaryGreen },
     filterChipBadge: {
       minWidth: 18, height: 18, borderRadius: 9,
-      backgroundColor: 'rgba(255,255,255,0.3)',
+      backgroundColor: colors.border,
       alignItems: 'center', justifyContent: 'center',
       paddingHorizontal: 4,
     },
     filterChipBadgeActive: { backgroundColor: colors.primaryGreen },
-    filterChipBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    filterChipBadgeText: { fontSize: 11, fontWeight: '700', color: colors.text },
     filterChipBadgeTextActive: { color: '#fff' },
     list: { paddingVertical: 4 },
     row: {
