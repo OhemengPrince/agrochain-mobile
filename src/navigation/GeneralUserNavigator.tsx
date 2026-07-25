@@ -53,6 +53,7 @@ function MarketStack() {
       <Stack.Screen name="MarketplaceList" component={MarketplaceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplacePayment" component={MarketplacePaymentScreen as any} options={{ headerShown: false }} />
+      <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MyMarketplaceListings" component={MarketplaceMyListingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Map" component={MapScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />

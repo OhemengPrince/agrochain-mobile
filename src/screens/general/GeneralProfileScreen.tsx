@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GeneralStackParamList, MarketplaceListing, UserReview } from '../../types';
+import { GeneralStackParamList, MarketplaceListing, MarketplacePurchase, ProducePurchase, UserReview } from '../../types';
 import { getMyMarketplaceListings } from '../../api/produceApi';
 import { getMyMarketplacePurchases, getMyProducePurchases } from '../../api/purchaseApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -46,6 +46,7 @@ import ContactSupportModal from '../../components/ContactSupportModal';
 import MyCertificationsModal from '../../components/MyCertificationsModal';
 import SeasonReportModal, { ReportStat } from '../../components/SeasonReportModal';
 import ExportPreferencesModal from '../../components/ExportPreferencesModal';
+import OrderHistoryModal from '../../components/OrderHistoryModal';
 import { exportReportPdf, filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 
@@ -100,6 +101,9 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const [certificationsVisible, setCertificationsVisible] = useState(false);
   const [seasonReportVisible, setSeasonReportVisible] = useState(false);
   const [exportPreferencesVisible, setExportPreferencesVisible] = useState(false);
+  const [orderHistoryVisible, setOrderHistoryVisible] = useState(false);
+  const [marketplacePurchases, setMarketplacePurchases] = useState<MarketplacePurchase[]>([]);
+  const [producePurchases, setProducePurchases] = useState<ProducePurchase[]>([]);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -120,8 +124,14 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   );
 
   const loadData = useCallback(async () => {
-    const data = await getMyMarketplaceListings();
+    const [data, mpPurchases, producePurchasesData] = await Promise.all([
+      getMyMarketplaceListings(),
+      getMyMarketplacePurchases().catch(() => []),
+      getMyProducePurchases().catch(() => []),
+    ]);
     setListings(data);
+    setMarketplacePurchases(mpPurchases);
+    setProducePurchases(producePurchasesData);
   }, []);
 
   useEffect(() => {
@@ -138,12 +148,8 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);
-    const [prefs, mpPurchases, producePurchases] = await Promise.all([
-      getExportPreferences(),
-      getMyMarketplacePurchases().catch(() => []),
-      getMyProducePurchases().catch(() => []),
-    ]);
-    const mp = filterByDateRange(mpPurchases, (p) => p.createdAt, prefs.dateRange);
+    const prefs = await getExportPreferences();
+    const mp = filterByDateRange(marketplacePurchases, (p) => p.createdAt, prefs.dateRange);
     const pp = filterByDateRange(producePurchases, (p) => p.createdAt, prefs.dateRange);
 
     const toRow = (label: string, dateStr: string, amount: number) => ({
@@ -503,7 +509,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
             label: 'My Listings',
             onPress: goToMyListings,
           },
-          { icon: 'bar-chart-outline', label: 'Order History', onPress: () => showComingSoon('Order History') },
+          { icon: 'bar-chart-outline', label: 'Order History', onPress: () => { setDropdownVisible(false); setOrderHistoryVisible(true); } },
           { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
           { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
           { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
@@ -516,6 +522,12 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       <ContactSupportModal visible={contactSupportVisible} onClose={() => setContactSupportVisible(false)} />
       <MyCertificationsModal visible={certificationsVisible} onClose={() => setCertificationsVisible(false)} />
       <ExportPreferencesModal visible={exportPreferencesVisible} onClose={() => setExportPreferencesVisible(false)} />
+      <OrderHistoryModal
+        visible={orderHistoryVisible}
+        onClose={() => setOrderHistoryVisible(false)}
+        marketplacePurchases={marketplacePurchases}
+        producePurchases={producePurchases}
+      />
       <SeasonReportModal
         visible={seasonReportVisible}
         onClose={() => setSeasonReportVisible(false)}
