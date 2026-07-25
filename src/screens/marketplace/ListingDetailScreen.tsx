@@ -24,6 +24,7 @@ import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
+import { getFollowStatus } from '../../api/followApi';
 import GlassBlur from '../../components/GlassBlur';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -260,6 +261,7 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFollowingSeller, setIsFollowingSeller] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -268,6 +270,9 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
       try {
         const data = await getMarketplaceListingById(listingId);
         setListing(data);
+        await getFollowStatus(data.sellerId)
+          .then((res) => setIsFollowingSeller(res.data.following ?? false))
+          .catch(() => {});
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load listing.');
       } finally {
@@ -365,7 +370,7 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
           </View>
 
           <View style={{ alignItems: 'flex-start', marginBottom: 12 }}>
-            <FollowButton userId={listing.sellerId} />
+            <FollowButton userId={listing.sellerId} initialIsFollowing={isFollowingSeller} />
           </View>
 
           <View style={styles.priceRow}>

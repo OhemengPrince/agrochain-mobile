@@ -16,6 +16,7 @@ import AppButton from '../../components/AppButton';
 import FollowButton from '../../components/FollowButton';
 import { exportReportPdf, buildBatchReportSections } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
+import { getFollowStatus } from '../../api/followApi';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'ProduceDetail'>;
 
@@ -45,6 +46,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
   const [batch, setBatch] = useState<ProduceBatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFollowingFarmer, setIsFollowingFarmer] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,6 +55,13 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
       try {
         const data = await getBatchById(batchId);
         setBatch(data);
+        // Awaited (not fire-and-forget) — FollowButton only reads
+        // initialIsFollowing once, on mount, so this must resolve before the
+        // loading gate below clears and the button gets rendered for the
+        // first time, or it'll seed itself from the stale default.
+        await getFollowStatus(data.farmerId)
+          .then((res) => setIsFollowingFarmer(res.data.following ?? false))
+          .catch(() => {});
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load produce details.');
       } finally {
@@ -139,7 +148,7 @@ export default function ProduceDetailScreen({ navigation, route }: Props) {
             </View>
           </View>
           <View style={{ alignItems: 'flex-start', marginTop: 8, marginBottom: 8 }}>
-            <FollowButton userId={batch.farmerId} />
+            <FollowButton userId={batch.farmerId} initialIsFollowing={isFollowingFarmer} />
           </View>
           <Animated.View style={{ transform: [{ scale: contactPress.scale }], opacity: contactPress.opacity }}>
             <Pressable

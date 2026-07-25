@@ -17,6 +17,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
 import FollowButton from '../../components/FollowButton';
+import { getFollowStatus } from '../../api/followApi';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'EquipmentDetail'>;
 
@@ -241,6 +242,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFollowingOwner, setIsFollowingOwner] = useState(false);
 
   // Dates — now proper state so user can change them
   const [startDate, setStartDate] = useState(todayPlusDays(1));
@@ -257,6 +259,9 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
       try {
         const data = await getEquipmentById(equipmentId);
         setEquipment(data);
+        await getFollowStatus(data.ownerId)
+          .then((res) => setIsFollowingOwner(res.data.following ?? false))
+          .catch(() => {});
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load equipment.');
       } finally {
@@ -379,7 +384,7 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
 
           {/* Follow strip */}
           <View style={styles.followStrip}>
-            <FollowButton userId={equipment.ownerId} initialIsFollowing={(equipment as any).isFollowing} />
+            <FollowButton userId={equipment.ownerId} initialIsFollowing={isFollowingOwner} />
             <Text style={styles.followHint}>Follow to get notified of new listings</Text>
           </View>
 

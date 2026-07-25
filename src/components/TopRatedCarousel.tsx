@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { getTopRatedUsers, getRecentUsers, enrichUsersWithPhotos, TopRatedUser } from '../api/userApi';
+import { getFollowStatus } from '../api/followApi';
 import FollowButton from './FollowButton';
 
 const CARD_WIDTH = 140;
@@ -66,7 +67,17 @@ const sk = StyleSheet.create({
 
 // ── Seller card ────────────────────────────────────────────────────────────────
 
-function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: ThemeColors; onPress: () => void }) {
+function SellerCard({
+  user,
+  colors,
+  onPress,
+  isFollowing,
+}: {
+  user: TopRatedUser;
+  colors: ThemeColors;
+  onPress: () => void;
+  isFollowing: boolean;
+}) {
   const roleConf = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.GENERAL;
   const hasPhoto = isValidPhotoUrl(user.profilePhotoUrl);
   const imgOpacity = useRef(new Animated.Value(0)).current;
@@ -139,7 +150,7 @@ function SellerCard({ user, colors, onPress }: { user: TopRatedUser; colors: The
       )}
 
       <View style={{ marginTop: 8 }}>
-        <FollowButton userId={user.id} initialIsFollowing={(user as any).isFollowing} />
+        <FollowButton userId={user.id} initialIsFollowing={isFollowing} />
       </View>
     </TouchableOpacity>
   );
@@ -205,6 +216,7 @@ interface Props {
 export default function TopRatedCarousel({ navigation }: Props) {
   const { colors } = useTheme();
   const [users, setUsers] = useState<TopRatedUser[]>([]);
+  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList<TopRatedUser>>(null);
@@ -235,6 +247,18 @@ export default function TopRatedCarousel({ navigation }: Props) {
         }
         data = await enrichUsersWithPhotos(data);
         console.log(`[TopRated] showing ${data.length} users`);
+
+        // Batch-fetched and awaited before setUsers/setLoading, since
+        // FollowButton only reads initialIsFollowing once on mount — if the
+        // cards rendered first and this filled in afterward, every button
+        // would already be stuck showing "Follow" regardless of real status.
+        const statuses = await Promise.all(
+          data.map((u) => getFollowStatus(u.id).then((res) => res.data.following ?? false).catch(() => false))
+        );
+        const map: Record<string, boolean> = {};
+        data.forEach((u, i) => { map[u.id] = statuses[i]; });
+        setFollowingMap(map);
+
         setUsers(data);
       } catch {
         setUsers([]);
@@ -323,6 +347,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
               user={item}
               colors={colors}
               onPress={() => navigateForRole(navigation, item)}
+              isFollowing={followingMap[item.id] ?? false}
             />
           )}
         />
