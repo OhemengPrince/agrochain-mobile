@@ -13,10 +13,13 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList, UserRole } from '../../types';
 import { register } from '../../api/authApi';
@@ -112,21 +115,69 @@ export default function CreateAccountScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const fullNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const regionRef = useRef<View>(null);
+  const districtRef = useRef<TextInput>(null);
+
+  const clearFieldError = (field: string) => {
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: '' } : prev));
+  };
+
+  const scrollToField = (ref: React.RefObject<any>) => {
+    requestAnimationFrame(() => {
+      ref.current?.measure?.((_x: number, _y: number, _w: number, _h: number, _pageX: number, pageY: number) => {
+        scrollViewRef.current?.scrollTo({ y: Math.max(pageY - 150, 0), animated: true });
+      });
+    });
+  };
+
+  const captureLocation = async () => {
+    try {
+      setLocationLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please allow location access to use this feature');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({});
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+
+      const detectedRegion = address?.region ?? '';
+      const detectedDistrict = address?.city ?? address?.district ?? '';
+
+      if (detectedRegion) {
+        setRegion(detectedRegion);
+        clearFieldError('region');
+      }
+      if (detectedDistrict) {
+        setDistrict(detectedDistrict);
+        clearFieldError('district');
+      }
+
+      Alert.alert(
+        'Location Detected',
+        `Region: ${detectedRegion || 'Unknown'}\nDistrict: ${detectedDistrict || 'Unknown'}`
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Could not detect location. Please select manually.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   const handleCreateAccount = async () => {
     setError(null);
-    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (!agreedToTerms) {
-      setError('Please agree to the Terms of Service and Privacy Policy.');
-      return;
-    }
     setLoading(true);
     try {
       await register({ fullName, email, phoneNumber, password, role, region, district });
@@ -138,16 +189,56 @@ export default function CreateAccountScreen({ navigation }: Props) {
     }
   };
 
+  const validateAndSubmit = () => {
+    setError(null);
+    const newErrors: Record<string, string> = {};
+
+    if (!fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!email.trim()) newErrors.email = 'Email is required';
+    if (!phoneNumber.trim()) newErrors.phone = 'Phone number is required';
+    if (!password) newErrors.password = 'Password is required';
+    if (!confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
+    else if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!region) newErrors.region = 'Please select your region';
+    if (!district.trim()) newErrors.district = 'District/Town is required';
+    if (!agreedToTerms) newErrors.terms = 'Please agree to the Terms of Service and Privacy Policy';
+
+    setErrors(newErrors);
+
+    const order: { key: string; ref: React.RefObject<any> }[] = [
+      { key: 'fullName', ref: fullNameRef },
+      { key: 'email', ref: emailRef },
+      { key: 'phone', ref: phoneRef },
+      { key: 'password', ref: passwordRef },
+      { key: 'confirmPassword', ref: confirmPasswordRef },
+      { key: 'region', ref: regionRef },
+      { key: 'district', ref: districtRef },
+    ];
+
+    const firstInvalid = order.find((field) => newErrors[field.key]);
+    if (firstInvalid) {
+      firstInvalid.ref.current?.focus?.();
+      scrollToField(firstInvalid.ref);
+      return;
+    }
+    if (newErrors.terms) {
+      return;
+    }
+
+    handleCreateAccount();
+  };
+
   const inputWrapStyle = (field: string) => [
     styles.inputWrap,
     focusedField === field && styles.inputWrapFocused,
+    errors[field] && styles.inputError,
   ];
 
   const confirmHasValue = confirmPassword.length > 0;
   const passwordsMatch = confirmHasValue && password === confirmPassword;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -178,6 +269,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
       </LinearGradient>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.card}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -194,23 +286,32 @@ export default function CreateAccountScreen({ navigation }: Props) {
           {focusedField === 'fullName' && <View style={styles.accentBar} />}
           <Ionicons name="person-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
           <TextInput
+            ref={fullNameRef}
             style={styles.input}
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              clearFieldError('fullName');
+            }}
             placeholder="e.g. Kwame Asante"
             placeholderTextColor={PLACEHOLDER_COLOR}
             onFocus={() => setFocusedField('fullName')}
             onBlur={() => setFocusedField(null)}
           />
         </View>
+        {errors.fullName ? <Text style={styles.fieldError}>{errors.fullName}</Text> : null}
 
         <View style={inputWrapStyle('email')}>
           {focusedField === 'email' && <View style={styles.accentBar} />}
           <Ionicons name="mail-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
           <TextInput
+            ref={emailRef}
             style={styles.input}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              clearFieldError('email');
+            }}
             placeholder="e.g. kwame@gmail.com"
             placeholderTextColor={PLACEHOLDER_COLOR}
             autoCapitalize="none"
@@ -219,6 +320,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             onBlur={() => setFocusedField(null)}
           />
         </View>
+        {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
 
         <View style={inputWrapStyle('phone')}>
           {focusedField === 'phone' && <View style={styles.accentBar} />}
@@ -227,9 +329,13 @@ export default function CreateAccountScreen({ navigation }: Props) {
             <Text style={styles.phonePrefixText}>+233</Text>
           </View>
           <TextInput
+            ref={phoneRef}
             style={[styles.input, styles.phoneInput]}
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => {
+              setPhoneNumber(text);
+              clearFieldError('phone');
+            }}
             placeholder="e.g. 0244000001"
             placeholderTextColor={PLACEHOLDER_COLOR}
             keyboardType="phone-pad"
@@ -237,14 +343,19 @@ export default function CreateAccountScreen({ navigation }: Props) {
             onBlur={() => setFocusedField(null)}
           />
         </View>
+        {errors.phone ? <Text style={styles.fieldError}>{errors.phone}</Text> : null}
 
         <View style={inputWrapStyle('password')}>
           {focusedField === 'password' && <View style={styles.accentBar} />}
           <Ionicons name="lock-closed-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
           <TextInput
+            ref={passwordRef}
             style={styles.input}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              clearFieldError('password');
+            }}
             placeholder="Enter your password"
             placeholderTextColor={PLACEHOLDER_COLOR}
             secureTextEntry={!showPassword}
@@ -263,14 +374,19 @@ export default function CreateAccountScreen({ navigation }: Props) {
             />
           </Pressable>
         </View>
+        {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
 
         <View style={inputWrapStyle('confirmPassword')}>
           {focusedField === 'confirmPassword' && <View style={styles.accentBar} />}
           <Ionicons name="shield-checkmark-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
           <TextInput
+            ref={confirmPasswordRef}
             style={styles.input}
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              clearFieldError('confirmPassword');
+            }}
             placeholder="Confirm your password"
             placeholderTextColor={PLACEHOLDER_COLOR}
             secureTextEntry={!showPassword}
@@ -285,42 +401,69 @@ export default function CreateAccountScreen({ navigation }: Props) {
             />
           )}
         </View>
+        {errors.confirmPassword ? <Text style={styles.fieldError}>{errors.confirmPassword}</Text> : null}
 
         <View style={styles.sectionLabelWrap}>
           <Text style={styles.sectionLabelText}>Location</Text>
           <View style={styles.sectionLabelLine} />
         </View>
 
+        <Pressable
+          onPress={captureLocation}
+          disabled={locationLoading}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={({ pressed }) => [styles.locationButton, pressed && { opacity: 0.8 }]}
+        >
+          {locationLoading ? (
+            <ActivityIndicator size="small" color={colors.primaryGreen} />
+          ) : (
+            <>
+              <Ionicons name="location-outline" size={18} color={colors.primaryGreen} />
+              <Text style={styles.locationButtonText}>Use My Location</Text>
+            </>
+          )}
+        </Pressable>
+
         <View style={styles.row}>
-          <Pressable
-            onPress={() => setShowRegionPicker(true)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={({ pressed }) => [
-              inputWrapStyle('region'),
-              styles.half,
-              styles.inputWrapShort,
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            {focusedField === 'region' && <View style={styles.accentBar} />}
-            <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
-            <Text style={[styles.input, { color: region ? colors.text : PLACEHOLDER_COLOR }]} numberOfLines={1}>
-              {region || 'Select your region'}
-            </Text>
-            <Ionicons name="chevron-down-outline" size={18} color={colors.secondaryText} />
-          </Pressable>
-          <View style={[inputWrapStyle('district'), styles.half, styles.inputWrapShort]}>
-            {focusedField === 'district' && <View style={styles.accentBar} />}
-            <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={district}
-              onChangeText={setDistrict}
-              placeholder="e.g. Kumasi"
-              placeholderTextColor={PLACEHOLDER_COLOR}
-              onFocus={() => setFocusedField('district')}
-              onBlur={() => setFocusedField(null)}
-            />
+          <View style={styles.half}>
+            <Pressable
+              ref={regionRef}
+              onPress={() => setShowRegionPicker(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={({ pressed }) => [
+                inputWrapStyle('region'),
+                styles.inputWrapShort,
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              {focusedField === 'region' && <View style={styles.accentBar} />}
+              <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
+              <Text style={[styles.input, { color: region ? colors.text : PLACEHOLDER_COLOR }]} numberOfLines={1}>
+                {region || 'Select your region'}
+              </Text>
+              <Ionicons name="chevron-down-outline" size={18} color={colors.secondaryText} />
+            </Pressable>
+            {errors.region ? <Text style={styles.fieldError}>{errors.region}</Text> : null}
+          </View>
+          <View style={styles.half}>
+            <View style={[inputWrapStyle('district'), styles.inputWrapShort]}>
+              {focusedField === 'district' && <View style={styles.accentBar} />}
+              <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
+              <TextInput
+                ref={districtRef}
+                style={styles.input}
+                value={district}
+                onChangeText={(text) => {
+                  setDistrict(text);
+                  clearFieldError('district');
+                }}
+                placeholder="e.g. Kumasi"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                onFocus={() => setFocusedField('district')}
+                onBlur={() => setFocusedField(null)}
+              />
+            </View>
+            {errors.district ? <Text style={styles.fieldError}>{errors.district}</Text> : null}
           </View>
         </View>
 
@@ -335,6 +478,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
                   <Pressable
                     onPress={() => {
                       setRegion(item);
+                      clearFieldError('region');
                       setShowRegionPicker(false);
                     }}
                     style={({ pressed }) => [styles.regionItem, pressed && { opacity: 0.7 }]}
@@ -367,7 +511,10 @@ export default function CreateAccountScreen({ navigation }: Props) {
 
         <Pressable
           style={({ pressed }) => [styles.termsRow, pressed && { opacity: 0.8 }]}
-          onPress={() => setAgreedToTerms((prev) => !prev)}
+          onPress={() => {
+            setAgreedToTerms((prev) => !prev);
+            clearFieldError('terms');
+          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
@@ -378,8 +525,9 @@ export default function CreateAccountScreen({ navigation }: Props) {
             <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
         </Pressable>
+        {errors.terms ? <Text style={styles.fieldError}>{errors.terms}</Text> : null}
 
-        <CreateAccountButton loading={loading} onPress={handleCreateAccount} styles={styles} colors={colors} />
+        <CreateAccountButton loading={loading} onPress={validateAndSubmit} styles={styles} colors={colors} />
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
@@ -407,12 +555,12 @@ function createStyles(colors: ThemeColors) {
       height: SCREEN_HEIGHT * 0.28,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingTop: 28,
+      paddingTop: 20,
       paddingBottom: 40,
     },
     backButton: {
       position: 'absolute',
-      top: 56,
+      top: 16,
       left: 20,
       width: 40,
       height: 40,
@@ -428,6 +576,7 @@ function createStyles(colors: ThemeColors) {
     },
     heroContent: {
       alignItems: 'center',
+      marginTop: 12,
     },
     logoBadge: {
       width: 84,
@@ -526,6 +675,32 @@ function createStyles(colors: ThemeColors) {
     },
     inputWrapShort: {
       height: 48,
+    },
+    inputError: {
+      borderColor: colors.errorRed,
+    },
+    fieldError: {
+      color: colors.errorRed,
+      fontSize: 12,
+      marginTop: 4,
+      marginBottom: 8,
+    },
+    locationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'flex-end',
+      backgroundColor: colors.lightGreen,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      marginBottom: 14,
+    },
+    locationButtonText: {
+      color: colors.primaryGreen,
+      fontSize: 13,
+      fontWeight: '600',
+      marginLeft: 4,
     },
     accentBar: {
       position: 'absolute',
