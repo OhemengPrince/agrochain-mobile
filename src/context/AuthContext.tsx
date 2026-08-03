@@ -5,6 +5,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { saveToken, saveUser, getToken, getUser, clearAll } from '../utils/storage';
 import { registerAuthFailureHandler } from '../api/axios';
@@ -29,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
+        // Force clear all storage for fresh start
+        await AsyncStorage.clear();
         const [storedToken, storedUser] = await Promise.all([getToken(), getUser()]);
         console.log('[Auth] startup — profilePhotoUrl in storage:', storedUser?.profilePhotoUrl);
         if (storedToken && storedUser) {
