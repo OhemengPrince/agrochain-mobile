@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { ReportSection } from '../utils/pdfReport';
-import FullScreenSheet from './FullScreenSheet';
+import FullScreenSheet, { SheetSectionLabel } from './FullScreenSheet';
 
 export interface ReportPreviewData {
   title: string;
@@ -29,6 +29,8 @@ export default function ReportPreviewModal({ report, downloading, onClose, onDow
       onClose={onClose}
       title={report?.title ?? 'PDF Preview'}
       subtitle={report?.subtitle}
+      icon="document-text-outline"
+      description="This is what your PDF will look like once downloaded. Check the details below, then tap Download PDF to save it to your device."
       footer={
         <View style={styles.footerRow}>
           <Pressable style={styles.cancelBtn} onPress={onClose} disabled={downloading}>
@@ -47,10 +49,9 @@ export default function ReportPreviewModal({ report, downloading, onClose, onDow
         </View>
       }
     >
-      <Text style={styles.previewLabel}>PDF PREVIEW</Text>
       {report?.sections.map((section) => (
         <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <SheetSectionLabel text={section.title} />
           {section.rows.length === 0 ? (
             <Text style={styles.emptyText}>No records.</Text>
           ) : (
@@ -69,9 +70,7 @@ export default function ReportPreviewModal({ report, downloading, onClose, onDow
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    previewLabel: { fontSize: 10, fontWeight: '800', color: colors.primaryGreen, letterSpacing: 1, marginBottom: 12 },
     section: { marginBottom: 16 },
-    sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.primaryGreen, marginBottom: 8 },
     emptyText: { fontSize: 12, color: colors.secondaryText, fontStyle: 'italic' },
     row: {
       flexDirection: 'row', justifyContent: 'space-between', gap: 12,

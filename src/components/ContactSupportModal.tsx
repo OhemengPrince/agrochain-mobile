@@ -28,10 +28,13 @@ export default function ContactSupportModal({ visible, onClose }: Props) {
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title="Contact Support">
-      <Ionicons name="headset-outline" size={36} color={colors.primaryGreen} style={{ alignSelf: 'center' }} />
-      <Text style={styles.subtitle}>Have a question or ran into a problem? Reach out and we'll get back to you.</Text>
-
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title="Contact Support"
+      icon="headset-outline"
+      description="Stuck on something, or found a problem in the app? Send our support team an email describing what happened and we'll get back to you as soon as we can."
+    >
       <Pressable style={styles.optionRow} onPress={openEmail}>
         <View style={styles.optionIcon}>
           <Ionicons name="mail-outline" size={20} color={colors.primaryGreen} />
@@ -48,9 +51,8 @@ export default function ContactSupportModal({ visible, onClose }: Props) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    subtitle: { fontSize: 13, color: colors.secondaryText, textAlign: 'center', marginTop: 10, lineHeight: 18 },
     optionRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
       backgroundColor: colors.inputBackground, borderRadius: 14, padding: 14,
     },
     optionIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' },

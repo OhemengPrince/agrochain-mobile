@@ -9,7 +9,7 @@ import {
   getExportPreferences,
   setExportPreferences,
 } from '../utils/storage';
-import FullScreenSheet from './FullScreenSheet';
+import FullScreenSheet, { SheetSectionLabel } from './FullScreenSheet';
 
 interface Props {
   visible: boolean;
@@ -38,11 +38,18 @@ export default function ExportPreferencesModal({ visible, onClose }: Props) {
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title="Export Preferences">
-      <Text style={styles.subtitle}>These apply whenever you generate a PDF report.</Text>
-
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title="Export Preferences"
+      icon="options-outline"
+      description="Control what shows up when you download a PDF report. These settings apply every time you generate a new report, until you change them again."
+    >
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>Include prices</Text>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.rowLabel}>Include prices</Text>
+          <Text style={styles.rowHelper}>Show GH₵ amounts in the report.</Text>
+        </View>
         <Switch
           value={prefs.includePrices}
           onValueChange={(v) => update({ includePrices: v })}
@@ -50,7 +57,10 @@ export default function ExportPreferencesModal({ visible, onClose }: Props) {
         />
       </View>
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>Include dates</Text>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.rowLabel}>Include dates</Text>
+          <Text style={styles.rowHelper}>Show the date of each entry in the report.</Text>
+        </View>
         <Switch
           value={prefs.includeDates}
           onValueChange={(v) => update({ includeDates: v })}
@@ -58,7 +68,8 @@ export default function ExportPreferencesModal({ visible, onClose }: Props) {
         />
       </View>
 
-      <Text style={styles.sectionLabel}>Date range</Text>
+      <SheetSectionLabel text="Date range" />
+      <Text style={styles.rangeHelper}>Choose how far back a report should look when you generate one.</Text>
       <View style={styles.chipsRow}>
         {DATE_RANGE_OPTIONS.map((option) => {
           const active = prefs.dateRange === option.value;
@@ -79,13 +90,13 @@ export default function ExportPreferencesModal({ visible, onClose }: Props) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    subtitle: { fontSize: 12, color: colors.secondaryText, marginBottom: 16 },
     row: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider,
+      paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.divider,
     },
     rowLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-    sectionLabel: { fontSize: 12, fontWeight: '700', color: colors.secondaryText, marginTop: 16, marginBottom: 10 },
+    rowHelper: { fontSize: 12, color: colors.secondaryText, marginTop: 2 },
+    rangeHelper: { fontSize: 12, color: colors.secondaryText, marginBottom: 10 },
     chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
       paddingHorizontal: 14, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',

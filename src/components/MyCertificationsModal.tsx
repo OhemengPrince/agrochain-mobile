@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { getCertifications, addCertification, removeCertification, StoredCertification } from '../utils/storage';
-import FullScreenSheet from './FullScreenSheet';
+import FullScreenSheet, { SheetSectionLabel } from './FullScreenSheet';
 
 interface Props {
   visible: boolean;
@@ -35,7 +35,7 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
 
   const handleAdd = async () => {
     if (!name.trim()) {
-      Alert.alert('Name required', 'Enter the certification name.');
+      Alert.alert('Name required', 'Enter the name written on your certificate — for example "Organic Farming Certificate".');
       return;
     }
     const created = await addCertification({ name: name.trim(), issuer: issuer.trim() || undefined, photoUri: photoUri ?? undefined });
@@ -47,7 +47,7 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
   };
 
   const handleRemove = (id: string) => {
-    Alert.alert('Remove Certification', 'Are you sure you want to remove this?', [
+    Alert.alert('Remove Certification', 'Are you sure you want to remove this? This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',
@@ -60,13 +60,26 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title="My Certifications">
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title="My Certifications"
+      icon="ribbon-outline"
+      description="Certifications and licenses — like an Organic Farming Certificate or a Good Agricultural Practice (GAP) certificate — show up on your public profile. They help buyers and other users trust you and your listings."
+    >
+      <SheetSectionLabel text={certs.length > 0 ? `Your Certifications (${certs.length})` : 'Your Certifications'} />
+
       <FlatList
         data={certs}
         keyExtractor={(c) => c.id}
         scrollEnabled={false}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No certifications added yet.</Text>
+          <View style={styles.emptyBox}>
+            <Ionicons name="ribbon-outline" size={28} color={colors.primaryGreen} style={{ opacity: 0.5 }} />
+            <Text style={styles.emptyText}>
+              You haven't added any certifications yet. Tap "Add Certification" below to add your first one.
+            </Text>
+          </View>
         }
         renderItem={({ item }) => (
           <View style={styles.certRow}>
@@ -79,9 +92,9 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
             )}
             <View style={{ flex: 1 }}>
               <Text style={styles.certName}>{item.name}</Text>
-              {item.issuer ? <Text style={styles.certIssuer}>{item.issuer}</Text> : null}
+              {item.issuer ? <Text style={styles.certIssuer}>Issued by {item.issuer}</Text> : null}
             </View>
-            <Pressable onPress={() => handleRemove(item.id)} hitSlop={8}>
+            <Pressable onPress={() => handleRemove(item.id)} hitSlop={8} style={styles.removeBtn}>
               <Ionicons name="trash-outline" size={18} color="#EF4444" />
             </Pressable>
           </View>
@@ -90,18 +103,55 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
 
       {adding ? (
         <View style={styles.addForm}>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Certification name" placeholderTextColor={colors.secondaryText} />
-          <TextInput style={styles.input} value={issuer} onChangeText={setIssuer} placeholder="Issued by (optional)" placeholderTextColor={colors.secondaryText} />
+          <SheetSectionLabel text="Add a New Certification" />
+
+          <Text style={styles.fieldLabel}>Certification Name</Text>
+          <Text style={styles.fieldHelper}>
+            The name written on the certificate itself — e.g. "Organic Farming Certificate" or "Good Agricultural Practice (GAP) Certificate".
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Organic Farming Certificate"
+            placeholderTextColor={colors.secondaryText}
+          />
+
+          <Text style={styles.fieldLabel}>Issued By (optional)</Text>
+          <Text style={styles.fieldHelper}>
+            The organization or body that gave you this certificate — e.g. "Ghana Standards Authority".
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={issuer}
+            onChangeText={setIssuer}
+            placeholder="e.g. Ghana Standards Authority"
+            placeholderTextColor={colors.secondaryText}
+          />
+
+          <Text style={styles.fieldLabel}>Certificate Photo (optional)</Text>
+          <Text style={styles.fieldHelper}>
+            Add a clear photo of the certificate so others can see it's genuine.
+          </Text>
           <Pressable style={styles.photoPickBtn} onPress={pickPhoto}>
-            <Ionicons name="camera-outline" size={16} color={colors.primaryGreen} />
-            <Text style={styles.photoPickText}>{photoUri ? 'Photo selected' : 'Add photo (optional)'}</Text>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            ) : (
+              <View style={styles.photoPickIcon}>
+                <Ionicons name="camera-outline" size={20} color={colors.primaryGreen} />
+              </View>
+            )}
+            <Text style={styles.photoPickText}>
+              {photoUri ? 'Photo selected — tap to change' : 'Tap to choose a photo from your gallery'}
+            </Text>
           </Pressable>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
             <Pressable style={styles.cancelBtn} onPress={() => { setAdding(false); setName(''); setIssuer(''); setPhotoUri(null); }}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </Pressable>
             <Pressable style={styles.saveBtn} onPress={handleAdd}>
-              <Text style={styles.saveBtnText}>Save</Text>
+              <Text style={styles.saveBtnText}>Save Certification</Text>
             </Pressable>
           </View>
         </View>
@@ -117,21 +167,33 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    emptyText: { fontSize: 13, color: colors.secondaryText, textAlign: 'center', paddingVertical: 24 },
-    certRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.divider },
-    certPhoto: { width: 40, height: 40, borderRadius: 10 },
-    certPhotoPlaceholder: { width: 40, height: 40, borderRadius: 10, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' },
+    emptyBox: { alignItems: 'center', gap: 10, paddingVertical: 28, paddingHorizontal: 12 },
+    emptyText: { fontSize: 13, color: colors.secondaryText, textAlign: 'center', lineHeight: 19 },
+    certRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
+      paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.inputBackground, marginBottom: 10,
+    },
+    certPhoto: { width: 44, height: 44, borderRadius: 10 },
+    certPhotoPlaceholder: { width: 44, height: 44, borderRadius: 10, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' },
     certName: { fontSize: 14, fontWeight: '700', color: colors.text },
     certIssuer: { fontSize: 12, color: colors.secondaryText, marginTop: 2 },
-    addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primaryGreen, borderStyle: 'dashed' },
+    removeBtn: { padding: 4 },
+    addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primaryGreen, borderStyle: 'dashed' },
     addBtnText: { fontSize: 14, fontWeight: '700', color: colors.primaryGreen },
-    addForm: { marginTop: 16, gap: 10 },
-    input: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBackground, paddingHorizontal: 14, fontSize: 14, color: colors.text },
-    photoPickBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 4 },
-    photoPickText: { fontSize: 12, color: colors.primaryGreen, fontWeight: '600' },
-    cancelBtn: { flex: 1, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inputBackground },
+    addForm: { marginTop: 8 },
+    fieldLabel: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 16 },
+    fieldHelper: { fontSize: 12, color: colors.secondaryText, marginTop: 2, marginBottom: 8, lineHeight: 17 },
+    input: { height: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBackground, paddingHorizontal: 14, fontSize: 14, color: colors.text },
+    photoPickBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12,
+      borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBackground,
+    },
+    photoPickIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' },
+    photoPreview: { width: 40, height: 40, borderRadius: 10 },
+    photoPickText: { flex: 1, fontSize: 12, color: colors.primaryGreen, fontWeight: '600' },
+    cancelBtn: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inputBackground },
     cancelBtnText: { fontSize: 14, fontWeight: '700', color: colors.secondaryText },
-    saveBtn: { flex: 1, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryGreen },
+    saveBtn: { flex: 2, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryGreen },
     saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   });
 }

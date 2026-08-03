@@ -63,7 +63,13 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={handleClose} title="Change Password">
+    <FullScreenSheet
+      visible={visible}
+      onClose={handleClose}
+      title="Change Password"
+      icon="lock-closed-outline"
+      description="Choose a new password to keep your account secure. You'll need to enter your current password first to confirm it's really you, then a new one with at least 6 characters."
+    >
       {error && (
         <View style={styles.errorBox}>
           <Ionicons name="alert-circle" size={14} color="#EF4444" />
@@ -72,6 +78,7 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
       )}
 
       <Text style={styles.label}>Current Password</Text>
+      <Text style={styles.helper}>The password you use today to log in.</Text>
       <TextInput
         style={styles.input}
         value={current}
@@ -82,6 +89,7 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
       />
 
       <Text style={styles.label}>New Password</Text>
+      <Text style={styles.helper}>Pick something only you would know — at least 6 characters.</Text>
       <TextInput
         style={styles.input}
         value={next}
@@ -92,6 +100,7 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
       />
 
       <Text style={styles.label}>Confirm New Password</Text>
+      <Text style={styles.helper}>Type the same new password again, so we know it's correct.</Text>
       <TextInput
         style={styles.input}
         value={confirm}
@@ -119,7 +128,8 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     errorBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEE2E2', borderRadius: 10, padding: 10, marginBottom: 14 },
     errorText: { flex: 1, fontSize: 12, color: '#B91C1C', fontWeight: '600' },
-    label: { fontSize: 12, fontWeight: '700', color: colors.secondaryText, marginBottom: 6, marginTop: 12 },
+    label: { fontSize: 12, fontWeight: '700', color: colors.secondaryText, marginTop: 12 },
+    helper: { fontSize: 11, color: colors.secondaryText, opacity: 0.8, marginTop: 2, marginBottom: 6 },
     input: {
       height: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
       backgroundColor: colors.inputBackground, paddingHorizontal: 14, fontSize: 14, color: colors.text,

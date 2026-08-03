@@ -29,7 +29,14 @@ export default function SeasonReportModal({ visible, onClose, title, periodLabel
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title={title} subtitle={periodLabel}>
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title={title}
+      subtitle={periodLabel}
+      icon="bar-chart-outline"
+      description="A quick summary of your activity for this period. Tap Share Report below to send it to someone else — for example over SMS or WhatsApp."
+    >
       {stats.map((stat) => (
         <View key={stat.label} style={styles.statRow}>
           <View style={styles.statIcon}>

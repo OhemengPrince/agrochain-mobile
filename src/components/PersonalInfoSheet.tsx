@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
-import FullScreenSheet from './FullScreenSheet';
+import FullScreenSheet, { SheetSectionLabel } from './FullScreenSheet';
 
 export interface PersonalInfoExtraRow {
   icon: keyof typeof Ionicons.glyphMap;
@@ -66,7 +66,14 @@ export default function PersonalInfoSheet({
   const styles = createStyles(colors);
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title="Personal Information">
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title="Personal Information"
+      icon="person-circle-outline"
+      description="This is the information your AgroChain account is built on, and what other users see when they look you up. If anything below is wrong, tap Edit Profile at the bottom to fix it."
+    >
+      <SheetSectionLabel text="Account Details" />
       <View style={styles.card}>
         <InfoRow icon="mail-outline" label="Email" value={email} styles={styles} />
         <InfoRow icon="call-outline" label="Phone" value={phone} styles={styles} />

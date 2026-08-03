@@ -46,7 +46,13 @@ export default function RateAppModal({ visible, onClose }: Props) {
   };
 
   return (
-    <FullScreenSheet visible={visible} onClose={onClose} title="Rate AgroChain">
+    <FullScreenSheet
+      visible={visible}
+      onClose={onClose}
+      title="Rate AgroChain"
+      icon="star-outline"
+      description="Tell us how AgroChain is working for you. Your feedback helps us fix problems and build the features that matter most to farmers, buyers and equipment owners."
+    >
       <Text style={styles.subtitle}>How's your experience with the app so far?</Text>
 
       <View style={styles.starsRow}>

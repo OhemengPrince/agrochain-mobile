@@ -51,7 +51,7 @@ import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
-import FullScreenSheet from '../../components/FullScreenSheet';
+import FullScreenSheet, { SheetSectionLabel } from '../../components/FullScreenSheet';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
@@ -615,7 +615,10 @@ export default function OwnerProfileScreen({ navigation }: Props) {
         visible={personalInfoVisible}
         onClose={() => setPersonalInfoVisible(false)}
         title="Personal Information"
+        icon="person-circle-outline"
+        description="This is the information your AgroChain account is built on, and what other users see when they look you up."
       >
+        <SheetSectionLabel text="Account Details" />
         <View style={styles.infoModalCard}>
           {[
             { label: 'Email', value: user.email },
