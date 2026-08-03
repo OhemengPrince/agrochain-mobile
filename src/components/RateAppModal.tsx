@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { getAppRating, setAppRating } from '../utils/storage';
+import FullScreenSheet from './FullScreenSheet';
 
 interface Props {
   visible: boolean;
@@ -45,54 +46,46 @@ export default function RateAppModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Rate AgroChain</Text>
-          <Text style={styles.subtitle}>How's your experience with the app so far?</Text>
+    <FullScreenSheet visible={visible} onClose={onClose} title="Rate AgroChain">
+      <Text style={styles.subtitle}>How's your experience with the app so far?</Text>
 
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-                <Ionicons
-                  name={n <= stars ? 'star' : 'star-outline'}
-                  size={36}
-                  color={n <= stars ? '#F59E0B' : colors.secondaryText}
-                  style={{ marginHorizontal: 4 }}
-                />
-              </Pressable>
-            ))}
-          </View>
-
-          <TextInput
-            style={styles.feedbackInput}
-            value={feedback}
-            onChangeText={setFeedback}
-            placeholder="Tell us what you think (optional)"
-            placeholderTextColor={colors.secondaryText}
-            multiline
-          />
-
-          <Pressable onPress={handleSubmit} disabled={submitting}>
-            <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={[styles.submitButton, submitting && { opacity: 0.7 }]}>
-              <Text style={styles.submitButtonText}>Submit Rating</Text>
-            </LinearGradient>
+      <View style={styles.starsRow}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
+            <Ionicons
+              name={n <= stars ? 'star' : 'star-outline'}
+              size={36}
+              color={n <= stars ? '#F59E0B' : colors.secondaryText}
+              style={{ marginHorizontal: 4 }}
+            />
           </Pressable>
-          <Pressable onPress={onClose} style={{ marginTop: 10, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: colors.secondaryText, fontWeight: '600' }}>Not now</Text>
-          </Pressable>
-        </Pressable>
+        ))}
+      </View>
+
+      <TextInput
+        style={styles.feedbackInput}
+        value={feedback}
+        onChangeText={setFeedback}
+        placeholder="Tell us what you think (optional)"
+        placeholderTextColor={colors.secondaryText}
+        multiline
+      />
+
+      <Pressable onPress={handleSubmit} disabled={submitting}>
+        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={[styles.submitButton, submitting && { opacity: 0.7 }]}>
+          <Text style={styles.submitButtonText}>Submit Rating</Text>
+        </LinearGradient>
       </Pressable>
-    </Modal>
+      <Pressable onPress={onClose} style={{ marginTop: 10, alignItems: 'center' }}>
+        <Text style={{ fontSize: 13, color: colors.secondaryText, fontWeight: '600' }}>Not now</Text>
+      </Pressable>
+    </FullScreenSheet>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-    card: { width: '100%', maxWidth: 360, backgroundColor: colors.card, borderRadius: 24, padding: 24 },
-    title: { fontSize: 18, fontWeight: '800', color: colors.text, textAlign: 'center' },
-    subtitle: { fontSize: 13, color: colors.secondaryText, textAlign: 'center', marginTop: 6 },
+    subtitle: { fontSize: 13, color: colors.secondaryText, textAlign: 'center' },
     starsRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20, marginBottom: 16 },
     feedbackInput: {
       minHeight: 70, borderRadius: 12, borderWidth: 1, borderColor: colors.border,

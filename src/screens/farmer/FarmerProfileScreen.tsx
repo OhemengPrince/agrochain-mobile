@@ -11,7 +11,6 @@ import {
   Pressable,
   Animated,
   Platform,
-  Modal,
   TextInput,
   KeyboardAvoidingView,
 } from 'react-native';
@@ -51,6 +50,7 @@ import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
+import FullScreenSheet from '../../components/FullScreenSheet';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
@@ -561,36 +561,28 @@ export default function FarmerProfileScreen({ navigation }: Props) {
 
       <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />
 
-      <Modal
+      <FullScreenSheet
         visible={personalInfoVisible}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => setPersonalInfoVisible(false)}
+        onClose={() => setPersonalInfoVisible(false)}
+        title="Personal Information"
       >
-        <View style={styles.infoModalOverlay}>
-          <View style={styles.infoModalCard}>
-            <View style={styles.infoModalHandle} />
-            <Text style={styles.infoModalTitle}>Personal Information</Text>
-
-            {[
-              { label: 'Email', value: user.email },
-              { label: 'Phone', value: user.phoneNumber },
-              { label: 'Location', value: locationLabel },
-              { label: 'Member Since', value: memberSince },
-            ].map((item) => (
-              <View key={item.label} style={styles.infoModalRow}>
-                <Text style={styles.infoModalLabel}>{item.label}</Text>
-                <Text style={styles.infoModalValue}>{item.value}</Text>
-              </View>
-            ))}
-
-            <Pressable style={styles.infoModalCloseButton} onPress={() => setPersonalInfoVisible(false)}>
-              <Text style={styles.infoModalCloseButtonText}>Close</Text>
-            </Pressable>
-          </View>
+        <View style={styles.infoModalCard}>
+          {[
+            { label: 'Email', value: user.email },
+            { label: 'Phone', value: user.phoneNumber },
+            { label: 'Location', value: locationLabel },
+            { label: 'Member Since', value: memberSince },
+          ].map((item, idx, arr) => (
+            <View
+              key={item.label}
+              style={[styles.infoModalRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}
+            >
+              <Text style={styles.infoModalLabel}>{item.label}</Text>
+              <Text style={styles.infoModalValue}>{item.value}</Text>
+            </View>
+          ))}
         </View>
-      </Modal>
+      </FullScreenSheet>
 
     </SafeAreaView>
   );
@@ -1107,31 +1099,12 @@ function createStyles(colors: ThemeColors) {
       marginTop: 6,
       lineHeight: 18,
     },
-    infoModalOverlay: {
-      flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
     infoModalCard: {
       backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 24,
-      paddingBottom: 48,
-    },
-    infoModalHandle: {
-      width: 40,
-      height: 4,
-      backgroundColor: '#E0E0E0',
-      borderRadius: 2,
-      alignSelf: 'center',
-      marginBottom: 16,
-    },
-    infoModalTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: 20,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: colors.divider,
     },
     infoModalRow: {
       paddingVertical: 14,
@@ -1147,19 +1120,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 15,
       fontWeight: '600',
       color: colors.text,
-    },
-    infoModalCloseButton: {
-      marginTop: 24,
-      backgroundColor: '#1A6B2E',
-      borderRadius: 16,
-      height: 52,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    infoModalCloseButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '700',
     },
     aboutTextInput: {
       backgroundColor: colors.inputBackground,

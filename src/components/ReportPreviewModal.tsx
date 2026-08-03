@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { ReportSection } from '../utils/pdfReport';
+import FullScreenSheet from './FullScreenSheet';
 
 export interface ReportPreviewData {
   title: string;
@@ -23,73 +24,52 @@ export default function ReportPreviewModal({ report, downloading, onClose, onDow
   const styles = createStyles(colors);
 
   return (
-    <Modal visible={!!report} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.titleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.previewLabel}>PDF Preview</Text>
-              <Text style={styles.title}>{report?.title}</Text>
-              <Text style={styles.subtitle}>{report?.subtitle}</Text>
-            </View>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.secondaryText} />
-            </Pressable>
-          </View>
-
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {report?.sections.map((section) => (
-              <View key={section.title} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                {section.rows.length === 0 ? (
-                  <Text style={styles.emptyText}>No records.</Text>
-                ) : (
-                  section.rows.map((row, i) => (
-                    <View key={i} style={styles.row}>
-                      <Text style={styles.rowLabel} numberOfLines={1}>{row.label}</Text>
-                      <Text style={styles.rowValue} numberOfLines={1}>{row.value}</Text>
-                    </View>
-                  ))
-                )}
+    <FullScreenSheet
+      visible={!!report}
+      onClose={onClose}
+      title={report?.title ?? 'PDF Preview'}
+      subtitle={report?.subtitle}
+      footer={
+        <View style={styles.footerRow}>
+          <Pressable style={styles.cancelBtn} onPress={onClose} disabled={downloading}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </Pressable>
+          <Pressable style={styles.downloadBtn} onPress={onDownload} disabled={downloading}>
+            {downloading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.downloadBtnText}>Download PDF</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      }
+    >
+      <Text style={styles.previewLabel}>PDF PREVIEW</Text>
+      {report?.sections.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          {section.rows.length === 0 ? (
+            <Text style={styles.emptyText}>No records.</Text>
+          ) : (
+            section.rows.map((row, i) => (
+              <View key={i} style={styles.row}>
+                <Text style={styles.rowLabel} numberOfLines={1}>{row.label}</Text>
+                <Text style={styles.rowValue} numberOfLines={1}>{row.value}</Text>
               </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.footerRow}>
-            <Pressable style={styles.cancelBtn} onPress={onClose} disabled={downloading}>
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.downloadBtn} onPress={onDownload} disabled={downloading}>
-              {downloading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.downloadBtnText}>Download PDF</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+            ))
+          )}
+        </View>
+      ))}
+    </FullScreenSheet>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: {
-      backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-      padding: 24, paddingBottom: 36, maxHeight: '80%',
-    },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 },
-    titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
-    previewLabel: { fontSize: 10, fontWeight: '800', color: colors.primaryGreen, letterSpacing: 1, textTransform: 'uppercase' },
-    title: { fontSize: 17, fontWeight: '800', color: colors.text, marginTop: 4 },
-    subtitle: { fontSize: 12, color: colors.secondaryText, marginTop: 2 },
-    body: { flexGrow: 0, flexShrink: 1 },
+    previewLabel: { fontSize: 10, fontWeight: '800', color: colors.primaryGreen, letterSpacing: 1, marginBottom: 12 },
     section: { marginBottom: 16 },
     sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.primaryGreen, marginBottom: 8 },
     emptyText: { fontSize: 12, color: colors.secondaryText, fontStyle: 'italic' },
@@ -99,7 +79,7 @@ function createStyles(colors: ThemeColors) {
     },
     rowLabel: { flex: 1, fontSize: 12, color: colors.secondaryText },
     rowValue: { fontSize: 12, fontWeight: '700', color: colors.text },
-    footerRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    footerRow: { flexDirection: 'row', gap: 10 },
     cancelBtn: {
       flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
       borderWidth: 1.5, borderColor: colors.border,

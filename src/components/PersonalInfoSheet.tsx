@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
+import FullScreenSheet from './FullScreenSheet';
 
 export interface PersonalInfoExtraRow {
   icon: keyof typeof Ionicons.glyphMap;
@@ -63,41 +64,10 @@ export default function PersonalInfoSheet({
 }: PersonalInfoSheetProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const anim = useRef(new Animated.Value(0)).current;
-  const [rendered, setRendered] = React.useState(visible);
-
-  useEffect(() => {
-    if (visible) {
-      setRendered(true);
-      Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 18, mass: 0.9 }).start();
-    } else if (rendered) {
-      Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        setRendered(false);
-      });
-    }
-  }, [visible]);
-
-  if (!rendered) return null;
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.backdrop, { opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      </Animated.View>
-      <Animated.View
-        style={[
-          styles.sheet,
-          { transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [420, 0] }) }] },
-        ]}
-      >
-        <View style={styles.handle} />
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Personal Information</Text>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={22} color="#6B7280" />
-          </Pressable>
-        </View>
-
+    <FullScreenSheet visible={visible} onClose={onClose} title="Personal Information">
+      <View style={styles.card}>
         <InfoRow icon="mail-outline" label="Email" value={email} styles={styles} />
         <InfoRow icon="call-outline" label="Phone" value={phone} styles={styles} />
         <InfoRow icon="location-outline" label="Location" value={location} styles={styles} />
@@ -118,60 +88,31 @@ export default function PersonalInfoSheet({
             styles={styles}
           />
         ))}
+      </View>
 
-        <Pressable
-          onPress={() => {
-            onClose();
-            onEdit();
-          }}
-        >
-          <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </LinearGradient>
-        </Pressable>
-      </Animated.View>
-    </Modal>
+      <Pressable
+        onPress={() => {
+          onClose();
+          onEdit();
+        }}
+      >
+        <LinearGradient colors={[colors.primaryGreen, colors.primaryGreenLight]} style={styles.editButton}>
+          <Text style={styles.editButtonText}>Edit Profile</Text>
+        </LinearGradient>
+      </Pressable>
+    </FullScreenSheet>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    backdrop: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
+    card: {
       backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 24,
-    },
-    handle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.border,
-      alignSelf: 'center',
-      marginBottom: 16,
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: colors.text,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      marginBottom: 20,
     },
     infoRow: {
       flexDirection: 'row',
@@ -209,7 +150,6 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 20,
     },
     editButtonText: {
       fontSize: 16,

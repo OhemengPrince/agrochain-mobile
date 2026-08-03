@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, TextInput, FlatList, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, FlatList, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import { getCertifications, addCertification, removeCertification, StoredCertification } from '../utils/storage';
+import FullScreenSheet from './FullScreenSheet';
 
 interface Props {
   visible: boolean;
@@ -59,80 +60,63 @@ export default function MyCertificationsModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>My Certifications</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.secondaryText} />
-            </Pressable>
-          </View>
-
-          <FlatList
-            data={certs}
-            keyExtractor={(c) => c.id}
-            style={{ maxHeight: 280 }}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No certifications added yet.</Text>
-            }
-            renderItem={({ item }) => (
-              <View style={styles.certRow}>
-                {item.photoUri ? (
-                  <Image source={{ uri: item.photoUri }} style={styles.certPhoto} />
-                ) : (
-                  <View style={styles.certPhotoPlaceholder}>
-                    <Ionicons name="ribbon-outline" size={20} color={colors.primaryGreen} />
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.certName}>{item.name}</Text>
-                  {item.issuer ? <Text style={styles.certIssuer}>{item.issuer}</Text> : null}
-                </View>
-                <Pressable onPress={() => handleRemove(item.id)} hitSlop={8}>
-                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                </Pressable>
+    <FullScreenSheet visible={visible} onClose={onClose} title="My Certifications">
+      <FlatList
+        data={certs}
+        keyExtractor={(c) => c.id}
+        scrollEnabled={false}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No certifications added yet.</Text>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.certRow}>
+            {item.photoUri ? (
+              <Image source={{ uri: item.photoUri }} style={styles.certPhoto} />
+            ) : (
+              <View style={styles.certPhotoPlaceholder}>
+                <Ionicons name="ribbon-outline" size={20} color={colors.primaryGreen} />
               </View>
             )}
-          />
-
-          {adding ? (
-            <View style={styles.addForm}>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Certification name" placeholderTextColor={colors.secondaryText} />
-              <TextInput style={styles.input} value={issuer} onChangeText={setIssuer} placeholder="Issued by (optional)" placeholderTextColor={colors.secondaryText} />
-              <Pressable style={styles.photoPickBtn} onPress={pickPhoto}>
-                <Ionicons name="camera-outline" size={16} color={colors.primaryGreen} />
-                <Text style={styles.photoPickText}>{photoUri ? 'Photo selected' : 'Add photo (optional)'}</Text>
-              </Pressable>
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                <Pressable style={styles.cancelBtn} onPress={() => { setAdding(false); setName(''); setIssuer(''); setPhotoUri(null); }}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </Pressable>
-                <Pressable style={styles.saveBtn} onPress={handleAdd}>
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </Pressable>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.certName}>{item.name}</Text>
+              {item.issuer ? <Text style={styles.certIssuer}>{item.issuer}</Text> : null}
             </View>
-          ) : (
-            <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
-              <Ionicons name="add-circle" size={20} color={colors.primaryGreen} />
-              <Text style={styles.addBtnText}>Add Certification</Text>
+            <Pressable onPress={() => handleRemove(item.id)} hitSlop={8}>
+              <Ionicons name="trash-outline" size={18} color="#EF4444" />
             </Pressable>
-          )}
+          </View>
+        )}
+      />
+
+      {adding ? (
+        <View style={styles.addForm}>
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Certification name" placeholderTextColor={colors.secondaryText} />
+          <TextInput style={styles.input} value={issuer} onChangeText={setIssuer} placeholder="Issued by (optional)" placeholderTextColor={colors.secondaryText} />
+          <Pressable style={styles.photoPickBtn} onPress={pickPhoto}>
+            <Ionicons name="camera-outline" size={16} color={colors.primaryGreen} />
+            <Text style={styles.photoPickText}>{photoUri ? 'Photo selected' : 'Add photo (optional)'}</Text>
+          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <Pressable style={styles.cancelBtn} onPress={() => { setAdding(false); setName(''); setIssuer(''); setPhotoUri(null); }}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.saveBtn} onPress={handleAdd}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
+          <Ionicons name="add-circle" size={20} color={colors.primaryGreen} />
+          <Text style={styles.addBtnText}>Add Certification</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+      )}
+    </FullScreenSheet>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 },
-    titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-    title: { fontSize: 18, fontWeight: '800', color: colors.text },
     emptyText: { fontSize: 13, color: colors.secondaryText, textAlign: 'center', paddingVertical: 24 },
     certRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.divider },
     certPhoto: { width: 40, height: 40, borderRadius: 10 },

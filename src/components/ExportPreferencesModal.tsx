@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Switch } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Pressable, Switch } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
 import {
@@ -10,6 +9,7 @@ import {
   getExportPreferences,
   setExportPreferences,
 } from '../utils/storage';
+import FullScreenSheet from './FullScreenSheet';
 
 interface Props {
   visible: boolean;
@@ -38,67 +38,48 @@ export default function ExportPreferencesModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Export Preferences</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.secondaryText} />
+    <FullScreenSheet visible={visible} onClose={onClose} title="Export Preferences">
+      <Text style={styles.subtitle}>These apply whenever you generate a PDF report.</Text>
+
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Include prices</Text>
+        <Switch
+          value={prefs.includePrices}
+          onValueChange={(v) => update({ includePrices: v })}
+          trackColor={{ true: colors.primaryGreen }}
+        />
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Include dates</Text>
+        <Switch
+          value={prefs.includeDates}
+          onValueChange={(v) => update({ includeDates: v })}
+          trackColor={{ true: colors.primaryGreen }}
+        />
+      </View>
+
+      <Text style={styles.sectionLabel}>Date range</Text>
+      <View style={styles.chipsRow}>
+        {DATE_RANGE_OPTIONS.map((option) => {
+          const active = prefs.dateRange === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => update({ dateRange: option.value })}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text>
             </Pressable>
-          </View>
-          <Text style={styles.subtitle}>These apply whenever you generate a PDF report.</Text>
-
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Include prices</Text>
-            <Switch
-              value={prefs.includePrices}
-              onValueChange={(v) => update({ includePrices: v })}
-              trackColor={{ true: colors.primaryGreen }}
-            />
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Include dates</Text>
-            <Switch
-              value={prefs.includeDates}
-              onValueChange={(v) => update({ includeDates: v })}
-              trackColor={{ true: colors.primaryGreen }}
-            />
-          </View>
-
-          <Text style={styles.sectionLabel}>Date range</Text>
-          <View style={styles.chipsRow}>
-            {DATE_RANGE_OPTIONS.map((option) => {
-              const active = prefs.dateRange === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => update({ dateRange: option.value })}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          );
+        })}
+      </View>
+    </FullScreenSheet>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: {
-      backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-      padding: 24, paddingBottom: 36,
-    },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 },
-    titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-    title: { fontSize: 18, fontWeight: '800', color: colors.text },
-    subtitle: { fontSize: 12, color: colors.secondaryText, marginTop: 4, marginBottom: 16 },
+    subtitle: { fontSize: 12, color: colors.secondaryText, marginBottom: 16 },
     row: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider,

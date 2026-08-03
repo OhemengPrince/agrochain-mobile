@@ -192,7 +192,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 
   // Panel visibility
   const [optionsVisible, setOptionsVisible] = useState(false);
-  const [callOptionsVisible, setCallOptionsVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
 
   // Search state
@@ -463,31 +462,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
     setSearchQuery('');
     setMatchCursor(0);
   }, []);
-
-  // ── Profile picture picker ────────────────────────────────
-  const handleUpdateProfilePicture = async () => {
-    Alert.alert('Update Contact Photo', 'Choose a photo source.', [
-      {
-        text: 'Camera',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access.'); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.85 });
-          if (!result.canceled) setProfileImageUri(result.assets[0].uri);
-        },
-      },
-      {
-        text: 'Photo Library',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access.'); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85 });
-          if (!result.canceled) setProfileImageUri(result.assets[0].uri);
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
 
   // ── Wallpaper + theme screen ───────────────────────────────
   const handleChangeWallpaper = () => {
@@ -815,7 +789,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         isDarkMode={isDarkMode}
         onBack={() => navigation.goBack()}
         onContactPress={() => setOptionsVisible(true)}
-        onDotsPress={() => setCallOptionsVisible(true)}
         colors={colors} s={s}
         statusLabel={otherUserId && !socketConnected ? 'Connecting…' : undefined}
         isBlocked={isBlocked}
@@ -939,9 +912,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
             </View>
           ) : (
             <View style={s.inputBar}>
-              <TouchableOpacity style={s.attachBtn} activeOpacity={0.7}>
-                <Ionicons name="attach" size={22} color={isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B7280'} />
-              </TouchableOpacity>
               <View style={s.inputWrap}>
                 <TextInput
                   style={[s.input, { color: isDarkMode ? '#fff' : '#111827' }]}
@@ -976,7 +946,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         muted={muted}
         hasCustomWallpaper={wallpaperUri !== null}
         colors={colors} isDarkMode={isDarkMode}
-        onUpdatePhoto={handleUpdateProfilePicture}
         onViewProfile={() => { setOptionsVisible(false); setProfileVisible(true); }}
         onSearchInChat={openSearch}
         onMuteToggle={() => setMuted((p) => !p)}
@@ -988,13 +957,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         onReport={handleReport}
       />
 
-      {/* ── LAYER 6: Call options panel ── */}
-      <CallOptionsPanel
-        visible={callOptionsVisible}
-        onClose={() => setCallOptionsVisible(false)}
-        name={name} colors={colors} isDarkMode={isDarkMode}
-      />
-
       {/* ── LAYER 7: Contact profile modal ── */}
       <ContactProfileModal
         visible={profileVisible}
@@ -1002,7 +964,6 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
         name={name} role={role} initial={initial}
         profileImageUri={profileImageUri}
         wallpaperUri={wallpaperUri}
-        onUpdatePhoto={handleUpdateProfilePicture}
         colors={colors} isDarkMode={isDarkMode}
       />
 
@@ -1025,10 +986,10 @@ export default function ChatScreen({ route, navigation }: { route: { params: Cha
 // ChatHeader
 // ─────────────────────────────────────────────────────────────
 
-function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, onDotsPress, colors, s, statusLabel, isBlocked, onUnblockPress }: {
+function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, onContactPress, colors, s, statusLabel, isBlocked, onUnblockPress }: {
   name: string; role: string; initial: string; profileImageUri: string | null;
   isDarkMode: boolean; onBack: () => void;
-  onContactPress: () => void; onDotsPress: () => void;
+  onContactPress: () => void;
   colors: ThemeColors; s: any; statusLabel?: string;
   isBlocked?: boolean; onUnblockPress?: () => void;
 }) {
@@ -1070,7 +1031,7 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.iconBtn} onPress={onDotsPress} activeOpacity={0.75}>
+          <TouchableOpacity style={s.iconBtn} onPress={onContactPress} activeOpacity={0.75}>
             <View style={s.headerIconCircle}>
               <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
             </View>
@@ -1089,11 +1050,11 @@ function ChatHeader({ name, role, initial, profileImageUri, isDarkMode, onBack, 
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, wallpaperUri, onUpdatePhoto, colors, isDarkMode }: {
+function ContactProfileModal({ visible, onClose, name, role, initial, profileImageUri, wallpaperUri, colors, isDarkMode }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
   wallpaperUri: string | null;
-  onUpdatePhoto: () => void; colors: ThemeColors; isDarkMode: boolean;
+  colors: ThemeColors; isDarkMode: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const blurTint = isDarkMode ? 'dark' : 'light';
@@ -1161,11 +1122,7 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
             <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center', letterSpacing: 0.2 }}>
               Profile
             </Text>
-            <TouchableOpacity onPress={onUpdatePhoto} style={{ padding: 10 }} activeOpacity={0.75}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="camera-outline" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
+            <View style={{ width: 56, height: 36 }} />
           </View>
         </View>
 
@@ -1176,18 +1133,13 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
         >
           {/* Avatar + name */}
           <View style={{ alignItems: 'center', marginBottom: 24 }}>
-            <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
-              <View style={{ width: 108, height: 108, borderRadius: 54, backgroundColor: colors.primaryGreen, borderWidth: 4, borderColor: 'rgba(255,255,255,0.45)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {profileImageUri ? (
-                  <Image source={{ uri: profileImageUri }} style={{ width: 108, height: 108 }} />
-                ) : (
-                  <Text style={{ fontSize: 44, fontWeight: '800', color: '#fff' }}>{initial}</Text>
-                )}
-              </View>
-              <View style={{ position: 'absolute', bottom: 2, right: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: '#0B6E36', borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.60)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="camera" size={15} color="#fff" />
-              </View>
-            </TouchableOpacity>
+            <View style={{ width: 108, height: 108, borderRadius: 54, backgroundColor: colors.primaryGreen, borderWidth: 4, borderColor: 'rgba(255,255,255,0.45)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={{ width: 108, height: 108 }} />
+              ) : (
+                <Text style={{ fontSize: 44, fontWeight: '800', color: '#fff' }}>{initial}</Text>
+              )}
+            </View>
 
             <Text style={{ fontSize: 24, fontWeight: '800', color: '#fff', marginTop: 16, letterSpacing: 0.2, textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
               {name}
@@ -1204,8 +1156,6 @@ function ContactProfileModal({ visible, onClose, name, role, initial, profileIma
             <View style={{ flexDirection: 'row', paddingVertical: 20, paddingHorizontal: 12 }}>
               {[
                 { icon: 'chatbubble-ellipses', label: 'Message', onPress: onClose },
-                { icon: 'call', label: 'Voice Call', onPress: () => Alert.alert('Voice Call', 'Coming soon.') },
-                { icon: 'videocam', label: 'Video', onPress: () => Alert.alert('Video Call', 'Coming soon.') },
               ].map((btn) => (
                 <TouchableOpacity key={btn.label} onPress={btn.onPress} activeOpacity={0.8}
                   style={{ flex: 1, alignItems: 'center' }}>
@@ -1376,68 +1326,6 @@ function WallpaperPickerModal({
 }
 
 // ─────────────────────────────────────────────────────────────
-// CallOptionsPanel — audio / video call
-// ─────────────────────────────────────────────────────────────
-
-function CallOptionsPanel({ visible, onClose, name, colors, isDarkMode }: {
-  visible: boolean; onClose: () => void;
-  name: string; colors: ThemeColors; isDarkMode: boolean;
-}) {
-  const sheetBg = isDarkMode ? '#1A1A1E' : '#FFFFFF';
-  const labelColor = isDarkMode ? '#FFFFFF' : '#111827';
-  const subColor = isDarkMode ? 'rgba(255,255,255,0.45)' : '#6B7280';
-  const divider = isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.50)' }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32 }}>
-        <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 16 }}>
-          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
-        </View>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: subColor, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 12 }}>
-          Call {name}
-        </Text>
-
-        <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
-          onPress={() => { onClose(); Alert.alert('Voice Call', 'Voice calling is coming soon.'); }}
-          activeOpacity={0.7}
-        >
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#0B6E36', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="call" size={24} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: labelColor }}>Voice Call</Text>
-            <Text style={{ fontSize: 13, color: subColor, marginTop: 2 }}>Start an audio call</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={subColor} />
-        </TouchableOpacity>
-
-        <View style={{ height: 1, backgroundColor: divider, marginLeft: 88 }} />
-
-        <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 16 }}
-          onPress={() => { onClose(); Alert.alert('Video Call', 'Video calling is coming soon.'); }}
-          activeOpacity={0.7}
-        >
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#1B8B50', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="videocam" size={24} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: labelColor }}>Video Call</Text>
-            <Text style={{ fontSize: 13, color: subColor, marginTop: 2 }}>Start a video call</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={subColor} />
-        </TouchableOpacity>
-
-        <SafeAreaView edges={['bottom']} />
-      </View>
-    </Modal>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // ChatOptionsPanel — WhatsApp-style bottom sheet
 // ─────────────────────────────────────────────────────────────
 
@@ -1446,13 +1334,13 @@ type OptionItem = { icon: string; label: string; sublabel?: string; color?: stri
 function ChatOptionsPanel({
   visible, onClose, name, role, initial, profileImageUri,
   muted, hasCustomWallpaper, colors, isDarkMode,
-  onUpdatePhoto, onViewProfile, onSearchInChat,
+  onViewProfile, onSearchInChat,
   onMuteToggle, onChangeWallpaper, onRestoreWallpaper, onClearChat, onBlock, isBlocked, onReport,
 }: {
   visible: boolean; onClose: () => void;
   name: string; role: string; initial: string; profileImageUri: string | null;
   muted: boolean; hasCustomWallpaper: boolean; colors: ThemeColors; isDarkMode: boolean;
-  onUpdatePhoto: () => void; onViewProfile: () => void; onSearchInChat: () => void;
+  onViewProfile: () => void; onSearchInChat: () => void;
   onMuteToggle: () => void; onChangeWallpaper: () => void; onRestoreWallpaper: () => void;
   onClearChat: () => void; onBlock: () => void; isBlocked: boolean; onReport: () => void;
 }) {
@@ -1516,20 +1404,15 @@ function ChatOptionsPanel({
           <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.20)' : '#D1D5DB' }} />
         </View>
 
-        {/* Contact header — tap avatar to update photo */}
+        {/* Contact header */}
         <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
-          <TouchableOpacity onPress={onUpdatePhoto} activeOpacity={0.85}>
-            <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primaryGreen, borderWidth: 3, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 12 }}>
-              {profileImageUri ? (
-                <Image source={{ uri: profileImageUri }} style={{ width: 84, height: 84, borderRadius: 42 }} />
-              ) : (
-                <Text style={{ fontSize: 34, fontWeight: '800', color: '#fff' }}>{initial}</Text>
-              )}
-            </View>
-            <View style={{ position: 'absolute', bottom: 14, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: '#0B6E36', borderWidth: 2, borderColor: sheetBg, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="camera" size={13} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primaryGreen, borderWidth: 3, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 12 }}>
+            {profileImageUri ? (
+              <Image source={{ uri: profileImageUri }} style={{ width: 84, height: 84, borderRadius: 42 }} />
+            ) : (
+              <Text style={{ fontSize: 34, fontWeight: '800', color: '#fff' }}>{initial}</Text>
+            )}
+          </View>
           <Text style={{ fontSize: 20, fontWeight: '800', color: labelColor, letterSpacing: 0.2 }}>{name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 }}>
             <ActiveIndicator size={7} />
@@ -1770,7 +1653,6 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean, sentBubbleColor:
     inputBarBlurOverlay: { backgroundColor: INPUT_OVERLAY },
     inputBarTopBorder: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: INPUT_BORDER },
     inputBar: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 10, paddingVertical: 10, gap: 8 },
-    attachBtn: { paddingBottom: 10 },
     inputWrap: { flex: 1, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10, maxHeight: 120, backgroundColor: INPUT_PILL_BG, borderWidth: 1, borderColor: INPUT_PILL_BRD },
     input: { fontSize: 15, lineHeight: 20 },
     sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
