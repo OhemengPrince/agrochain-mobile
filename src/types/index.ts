@@ -586,6 +586,8 @@ export type BuyerStackParamList = {
   ProduceDetail: { batchId: string };
   BuyerScanner: undefined;
   BuyerQrScanner: undefined;
+  BuyerEquipmentList: { query?: string } | undefined;
+  EquipmentDetail: { equipmentId: string };
   BuyerProfile: undefined;
   BuyerProfileMain: undefined;
   BuyerNotifications: undefined;

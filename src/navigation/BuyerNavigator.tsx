@@ -24,6 +24,7 @@ import GlobalSearchScreen from '../screens/shared/GlobalSearchScreen';
 import PublicProfileScreen from '../screens/shared/PublicProfileScreen';
 import FollowListScreen from '../screens/shared/FollowListScreen';
 import EquipmentDetailScreen from '../screens/farmer/EquipmentDetailScreen';
+import EquipmentListScreen from '../screens/farmer/EquipmentListScreen';
 import WithdrawalScreen from '../screens/shared/WithdrawalScreen';
 import TransactionHistoryScreen from '../screens/shared/TransactionHistoryScreen';
 import BookingPaymentScreen from '../screens/shared/BookingPaymentScreen';
@@ -44,7 +45,8 @@ function HomeStack() {
       <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FollowList" component={FollowListScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BuyerEquipmentList" component={EquipmentListScreen as any} options={{ headerShown: false }} />
+      <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="BookingPayment" component={BookingPaymentScreen as any} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplaceListingDetail" component={ListingDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MarketplacePayment" component={MarketplacePaymentScreen as any} options={{ headerShown: false }} />

@@ -8,7 +8,6 @@ export const ROLE_OPTIONS: { value: UserRole; label: string; icon: keyof typeof 
   { value: 'FARMER', label: 'Farmer', icon: 'leaf-outline' },
   { value: 'EQUIPMENT_OWNER', label: 'Equipment Owner', icon: 'construct-outline' },
   { value: 'BUYER', label: 'Buyer', icon: 'cart-outline' },
-  { value: 'GENERAL', label: 'General User', icon: 'people-outline' },
 ];
 
 function RoleCard({
@@ -94,7 +93,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 8,
     },
     roleCardWrap: {
-      width: '48%',
+      width: '31%',
       height: 84,
       marginBottom: 12,
     },

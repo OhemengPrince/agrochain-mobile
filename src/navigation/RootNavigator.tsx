@@ -5,7 +5,8 @@ import AuthNavigator from './AuthNavigator';
 import FarmerNavigator from './FarmerNavigator';
 import OwnerNavigator from './OwnerNavigator';
 import BuyerNavigator from './BuyerNavigator';
-import GeneralUserNavigator from './GeneralUserNavigator';
+// GeneralUserNavigator is no longer routed to — GENERAL merged into BUYER.
+// File intentionally kept (not deleted) in case it's needed again.
 
 export default function RootNavigator() {
   const { user, isLoading } = useAuth();
@@ -24,9 +25,10 @@ export default function RootNavigator() {
     case 'EQUIPMENT_OWNER':
       return <OwnerNavigator />;
     case 'BUYER':
-      return <BuyerNavigator />;
     case 'GENERAL':
-      return <GeneralUserNavigator />;
+      // GENERAL role was merged into BUYER — existing GENERAL accounts
+      // keep working by routing into the same navigator.
+      return <BuyerNavigator />;
     default:
       return <AuthNavigator />;
   }
