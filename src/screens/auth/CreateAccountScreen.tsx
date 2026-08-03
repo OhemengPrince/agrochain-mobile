@@ -618,7 +618,7 @@ function createStyles(colors: ThemeColors) {
       fontStyle: 'italic',
       color: colors.white,
       opacity: 0.8,
-      marginTop: 4,
+      marginTop: 1,
     },
     card: {
       flex: 1,
