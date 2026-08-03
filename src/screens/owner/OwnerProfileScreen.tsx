@@ -52,6 +52,7 @@ import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
 import FullScreenSheet, { SheetSectionLabel } from '../../components/FullScreenSheet';
+import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'OwnerProfileMain'>;
 
@@ -180,6 +181,18 @@ export default function OwnerProfileScreen({ navigation }: Props) {
   };
 
   const reportPreview = useReportPreview();
+
+  useHideTabBarWhen(
+    navigation,
+    personalInfoVisible ||
+      changePasswordVisible ||
+      rateAppVisible ||
+      contactSupportVisible ||
+      certificationsVisible ||
+      seasonReportVisible ||
+      exportPreferencesVisible ||
+      !!reportPreview.report
+  );
 
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);

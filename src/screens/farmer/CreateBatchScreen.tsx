@@ -15,14 +15,14 @@ import { getApiErrorMessage } from '../../utils/apiError';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'CreateBatch'>;
 
-const CROP_CHIPS: { label: string; emoji: string }[] = [
-  { label: 'Maize', emoji: '🌽' },
-  { label: 'Cassava', emoji: '🍠' },
-  { label: 'Cocoa', emoji: '🍫' },
-  { label: 'Tomato', emoji: '🍅' },
-  { label: 'Plantain', emoji: '🍌' },
-  { label: 'Pineapple', emoji: '🍍' },
-  { label: 'Other', emoji: '🌱' },
+const CROP_CHIPS: { label: string }[] = [
+  { label: 'Maize' },
+  { label: 'Cassava' },
+  { label: 'Cocoa' },
+  { label: 'Tomato' },
+  { label: 'Plantain' },
+  { label: 'Pineapple' },
+  { label: 'Other' },
 ];
 
 function usePressAnimation() {
@@ -281,7 +281,6 @@ export default function CreateBatchScreen({ navigation }: Props) {
                   style={[styles.cropChip, active && styles.cropChipActive]}
                   onPress={() => setCropName(chip.label)}
                 >
-                  <Text style={styles.cropChipEmoji}>{chip.emoji}</Text>
                   <Text style={[styles.cropChipText, active && styles.cropChipTextActive]}>{chip.label}</Text>
                 </Pressable>
               );
@@ -569,9 +568,6 @@ function createStyles(colors: ThemeColors) {
     cropChipActive: {
       backgroundColor: colors.lightGreen,
       borderColor: colors.primaryGreen,
-    },
-    cropChipEmoji: {
-      fontSize: 16,
     },
     cropChipText: {
       fontSize: 13,

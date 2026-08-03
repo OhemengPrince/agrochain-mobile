@@ -41,13 +41,13 @@ function usePressAnimation() {
   };
 }
 
-const CROP_FILTERS: { label: string; emoji: string; value: string | null }[] = [
-  { label: 'All', emoji: '', value: null },
-  { label: 'Maize', emoji: '🌽', value: 'Maize' },
-  { label: 'Cassava', emoji: '🍠', value: 'Cassava' },
-  { label: 'Cocoa', emoji: '🍫', value: 'Cocoa' },
-  { label: 'Pineapple', emoji: '🍍', value: 'Pineapple' },
-  { label: 'Tomato', emoji: '🍅', value: 'Tomato' },
+const CROP_FILTERS: { label: string; value: string | null }[] = [
+  { label: 'All', value: null },
+  { label: 'Maize', value: 'Maize' },
+  { label: 'Cassava', value: 'Cassava' },
+  { label: 'Cocoa', value: 'Cocoa' },
+  { label: 'Pineapple', value: 'Pineapple' },
+  { label: 'Tomato', value: 'Tomato' },
 ];
 
 function FilterChip({
@@ -367,7 +367,7 @@ export default function BuyerHomeScreen({ navigation }: Props) {
                   const active = item.value === cropFilter;
                   return (
                     <FilterChip
-                      label={item.emoji ? `${item.emoji} ${item.label}` : item.label}
+                      label={item.label}
                       active={active}
                       onPress={() => setCropFilter(item.value)}
                       styles={styles}

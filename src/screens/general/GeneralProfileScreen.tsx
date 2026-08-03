@@ -51,6 +51,7 @@ import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
+import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
@@ -149,6 +150,18 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   };
 
   const reportPreview = useReportPreview();
+
+  useHideTabBarWhen(
+    navigation,
+    personalInfoVisible ||
+      changePasswordVisible ||
+      rateAppVisible ||
+      contactSupportVisible ||
+      certificationsVisible ||
+      seasonReportVisible ||
+      exportPreferencesVisible ||
+      !!reportPreview.report
+  );
 
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);

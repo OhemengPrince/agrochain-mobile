@@ -24,8 +24,6 @@ const PLACEHOLDER_ICONS: Record<NewsTopicChip, string> = {
   'Market Prices': '📈',
 };
 
-const CHIP_ICONS: Record<NewsTopicChip, string> = PLACEHOLDER_ICONS;
-
 const TOPIC_CHIPS: NewsTopicChip[] = [
   'All', 'Cocoa', 'Maize', 'Rice', 'Livestock', 'Fertilizer', 'Equipment', 'Market Prices',
 ];
@@ -168,7 +166,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                   onPress={() => setSearchQuery(suggestion)}
                   style={styles.suggestionChip}
                 >
-                  <Text style={styles.suggestionChipText}>🔍 {suggestion}</Text>
+                  <Text style={styles.suggestionChipText}>{suggestion}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -192,7 +190,6 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                   onPress={() => setActiveTopic(chip)}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.chipIcon}>{CHIP_ICONS[chip]}</Text>
                   <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
                   {count > 0 && (
                     <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
@@ -467,7 +464,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: 'rgba(255,255,255,0.2)',
     },
     chipActive: { backgroundColor: colors.card },
-    chipIcon: { fontSize: 13 },
     chipText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
     chipTextActive: { color: colors.primaryGreen },
     chipBadge: {

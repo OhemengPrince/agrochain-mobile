@@ -49,6 +49,7 @@ import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
 import FullScreenSheet, { SheetSectionLabel } from '../../components/FullScreenSheet';
+import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
 
@@ -142,6 +143,18 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   }, [loadData]);
 
   const reportPreview = useReportPreview();
+
+  useHideTabBarWhen(
+    navigation,
+    personalInfoVisible ||
+      changePasswordVisible ||
+      rateAppVisible ||
+      contactSupportVisible ||
+      certificationsVisible ||
+      seasonReportVisible ||
+      exportPreferencesVisible ||
+      !!reportPreview.report
+  );
 
   const handleGeneratePdfReport = async () => {
     setDropdownVisible(false);

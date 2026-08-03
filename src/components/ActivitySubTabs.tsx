@@ -48,11 +48,11 @@ function toUnified(list: (MarketplacePurchase | ProducePurchase)[], kind: 'marke
 const GREEN = '#1A6B2E';
 
 const SUB_TABS = [
-  { key: 'Earnings', label: '💰 Earnings' },
-  { key: 'Bookings', label: '📅 Bookings' },
-  { key: 'Purchases', label: '🛒 Purchases' },
-  { key: 'Sales', label: '📦 Sales' },
-  { key: 'Transactions', label: '💳 Transactions' },
+  { key: 'Earnings', label: 'Earnings' },
+  { key: 'Bookings', label: 'Bookings' },
+  { key: 'Purchases', label: 'Purchases' },
+  { key: 'Sales', label: 'Sales' },
+  { key: 'Transactions', label: 'Transactions' },
 ];
 
 interface Props {
