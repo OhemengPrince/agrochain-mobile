@@ -583,9 +583,9 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     logoBadge: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      width: 84,
+      height: 84,
+      borderRadius: 42,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 8,
@@ -599,8 +599,8 @@ function createStyles(colors: ThemeColors) {
       elevation: 5,
     },
     logoImage: {
-      width: 48,
-      height: 48,
+      width: 78,
+      height: 78,
     },
     brandText: {
       fontSize: 22,
