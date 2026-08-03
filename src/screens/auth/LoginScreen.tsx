@@ -4,12 +4,13 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Animated,
   Pressable,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,11 +70,16 @@ function SignInButton({
   return (
     <Animated.View style={{ transform: [{ scale }], opacity }}>
       <Pressable
-        style={[styles.signInButton, loading && styles.signInButtonDisabled]}
+        style={({ pressed }) => [
+          styles.signInButton,
+          loading && styles.signInButtonDisabled,
+          pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+        ]}
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         disabled={loading}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
@@ -101,13 +107,14 @@ function DemoChip({
   return (
     <Animated.View style={{ transform: [{ scale }], opacity }}>
       <Pressable
-        style={styles.demoChip}
+        style={({ pressed }) => [styles.demoChip, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         onFocus={onFocus}
         onBlur={onBlur}
         disabled={disabled}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Text style={styles.demoChipText}>{label}</Text>
       </Pressable>
@@ -157,73 +164,90 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <View style={styles.topSection}>
-          <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
-          <Text style={styles.logoText}>AgroChain</Text>
-        </View>
-
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Welcome back</Text>
-          <Text style={styles.welcomeSubtitle}>
-            Access your farm equipment, produce tracking and buyer connections.
-          </Text>
-        </View>
-
-        <ErrorMessage message={error} />
-
-        <View style={styles.inputsWrap}>
-          <View style={styles.inputWrap}>
-            <Ionicons name="person-outline" size={18} color={PLACEHOLDER_COLOR} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email address"
-              placeholderTextColor={PLACEHOLDER_COLOR}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.topSection}>
+            <Image source={Logo} style={styles.logoImage} resizeMode="contain" />
+            <Text style={styles.logoText}>AgroChain</Text>
           </View>
 
-          <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color={PLACEHOLDER_COLOR} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor={PLACEHOLDER_COLOR}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-              <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={18}
-                color={PLACEHOLDER_COLOR}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeTitle}>Welcome back</Text>
+            <Text style={styles.welcomeSubtitle}>
+              Access your farm equipment, produce tracking and buyer connections.
+            </Text>
+          </View>
+
+          <ErrorMessage message={error} />
+
+          <View style={styles.inputsWrap}>
+            <View style={styles.inputWrap}>
+              <Ionicons name="person-outline" size={18} color={PLACEHOLDER_COLOR} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email address"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputWrap}>
+              <Ionicons name="lock-closed-outline" size={18} color={PLACEHOLDER_COLOR} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                secureTextEntry={!showPassword}
+              />
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={18}
+                  color={PLACEHOLDER_COLOR}
+                />
+              </Pressable>
+            </View>
           </View>
-        </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotLink}>
-          <Text style={styles.forgotLinkText}>Forgot password?</Text>
-        </TouchableOpacity>
+          <Pressable
+            onPress={() => navigation.navigate('ForgotPassword')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={({ pressed }) => [styles.forgotLink, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.forgotLinkText}>Forgot password?</Text>
+          </Pressable>
 
-        <SignInButton loading={loading} onPress={handleLogin} styles={styles} />
+          <SignInButton loading={loading} onPress={handleLogin} styles={styles} />
 
-        <View style={styles.bottomLinkRow}>
-          <Text style={styles.bottomLinkGray}>Don&apos;t have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CreateAccount')}>
-            <Text style={styles.bottomLinkGreen}> Create Account</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.bottomLinkRow}>
+            <Text style={styles.bottomLinkGray}>Don&apos;t have an account?</Text>
+            <Pressable
+              onPress={() => navigation.navigate('CreateAccount')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.bottomLinkGreen}> Create Account</Text>
+            </Pressable>
+          </View>
 
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -313,7 +337,7 @@ function createStyles(colors: ThemeColors) {
     },
     signInButtonText: {
       color: colors.white,
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '700',
     },
     bottomLinkRow: {

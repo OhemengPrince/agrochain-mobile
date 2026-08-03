@@ -5,11 +5,14 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Dimensions,
   Animated,
   Pressable,
   Image,
+  Modal,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +32,13 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PLACEHOLDER_COLOR = '#9CA3AF';
+
+const GHANA_REGIONS = [
+  'Ahafo', 'Ashanti', 'Bono', 'Bono East', 'Central',
+  'Eastern', 'Greater Accra', 'North East', 'Northern',
+  'Oti', 'Savannah', 'Upper East', 'Upper West',
+  'Volta', 'Western', 'Western North',
+];
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -68,7 +78,14 @@ function CreateAccountButton({
     <Animated.View
       style={[styles.registerButtonWrap, loading && styles.registerButtonDisabled, { transform: [{ scale }], opacity }]}
     >
-      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={loading}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={loading}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={({ pressed }) => [pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+      >
         <LinearGradient colors={['#2E8B4A', '#1A6B2E']} style={styles.registerButton}>
           <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
           {!loading && <Ionicons name="checkmark-circle" size={20} color={colors.white} />}
@@ -94,6 +111,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
 
   const handleCreateAccount = async () => {
     setError(null);
@@ -130,10 +148,18 @@ export default function CreateAccountScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.hero}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+        <Pressable
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={20} color={colors.primaryGreen} />
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.heroContent}>
           <View style={styles.logoBadge}>
@@ -171,7 +197,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             style={styles.input}
             value={fullName}
             onChangeText={setFullName}
-            placeholder="Kwame Mensah"
+            placeholder="e.g. Kwame Asante"
             placeholderTextColor={PLACEHOLDER_COLOR}
             onFocus={() => setFocusedField('fullName')}
             onBlur={() => setFocusedField(null)}
@@ -185,7 +211,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder="e.g. kwame@gmail.com"
             placeholderTextColor={PLACEHOLDER_COLOR}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -204,7 +230,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             style={[styles.input, styles.phoneInput]}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
-            placeholder="241234567"
+            placeholder="e.g. 0244000001"
             placeholderTextColor={PLACEHOLDER_COLOR}
             keyboardType="phone-pad"
             onFocus={() => setFocusedField('phone')}
@@ -219,19 +245,23 @@ export default function CreateAccountScreen({ navigation }: Props) {
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder="Enter your password"
             placeholderTextColor={PLACEHOLDER_COLOR}
             secureTextEntry={!showPassword}
             onFocus={() => setFocusedField('password')}
             onBlur={() => setFocusedField(null)}
           />
-          <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeButton}>
+          <Pressable
+            onPress={() => setShowPassword((prev) => !prev)}
+            style={({ pressed }) => [styles.eyeButton, pressed && { opacity: 0.6 }]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons
               name={showPassword ? 'eye-off' : 'eye'}
               size={18}
               color={colors.secondaryText}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <View style={inputWrapStyle('confirmPassword')}>
@@ -241,7 +271,7 @@ export default function CreateAccountScreen({ navigation }: Props) {
             style={styles.input}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            placeholder="••••••••"
+            placeholder="Confirm your password"
             placeholderTextColor={PLACEHOLDER_COLOR}
             secureTextEntry={!showPassword}
             onFocus={() => setFocusedField('confirmPassword')}
@@ -262,19 +292,23 @@ export default function CreateAccountScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.row}>
-          <View style={[inputWrapStyle('region'), styles.half, styles.inputWrapShort]}>
+          <Pressable
+            onPress={() => setShowRegionPicker(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={({ pressed }) => [
+              inputWrapStyle('region'),
+              styles.half,
+              styles.inputWrapShort,
+              pressed && { opacity: 0.8 },
+            ]}
+          >
             {focusedField === 'region' && <View style={styles.accentBar} />}
             <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={region}
-              onChangeText={setRegion}
-              placeholder="Ashanti"
-              placeholderTextColor={PLACEHOLDER_COLOR}
-              onFocus={() => setFocusedField('region')}
-              onBlur={() => setFocusedField(null)}
-            />
-          </View>
+            <Text style={[styles.input, { color: region ? colors.text : PLACEHOLDER_COLOR }]} numberOfLines={1}>
+              {region || 'Select your region'}
+            </Text>
+            <Ionicons name="chevron-down-outline" size={18} color={colors.secondaryText} />
+          </Pressable>
           <View style={[inputWrapStyle('district'), styles.half, styles.inputWrapShort]}>
             {focusedField === 'district' && <View style={styles.accentBar} />}
             <Ionicons name="map-outline" size={20} color={colors.primaryGreen} style={styles.inputIcon} />
@@ -282,13 +316,47 @@ export default function CreateAccountScreen({ navigation }: Props) {
               style={styles.input}
               value={district}
               onChangeText={setDistrict}
-              placeholder="Kumasi"
+              placeholder="e.g. Kumasi"
               placeholderTextColor={PLACEHOLDER_COLOR}
               onFocus={() => setFocusedField('district')}
               onBlur={() => setFocusedField(null)}
             />
           </View>
         </View>
+
+        <Modal visible={showRegionPicker} transparent animationType="slide" onRequestClose={() => setShowRegionPicker(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Region</Text>
+              <FlatList
+                data={GHANA_REGIONS}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => {
+                      setRegion(item);
+                      setShowRegionPicker(false);
+                    }}
+                    style={({ pressed }) => [styles.regionItem, pressed && { opacity: 0.7 }]}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Text style={styles.regionText}>{item}</Text>
+                    {region === item && (
+                      <Ionicons name="checkmark" size={20} color={colors.primaryGreen} />
+                    )}
+                  </Pressable>
+                )}
+              />
+              <Pressable
+                onPress={() => setShowRegionPicker(false)}
+                style={({ pressed }) => [styles.cancelButton, pressed && { opacity: 0.7 }]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={{ color: colors.errorRed, fontWeight: '600' }}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.sectionLabelWrap}>
           <Text style={styles.sectionLabelText}>I am a</Text>
@@ -297,10 +365,10 @@ export default function CreateAccountScreen({ navigation }: Props) {
 
         <RolePicker value={role} onChange={setRole} colors={colors} />
 
-        <TouchableOpacity
-          style={styles.termsRow}
+        <Pressable
+          style={({ pressed }) => [styles.termsRow, pressed && { opacity: 0.8 }]}
           onPress={() => setAgreedToTerms((prev) => !prev)}
-          activeOpacity={0.8}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
             {agreedToTerms && <Ionicons name="checkmark" size={14} color={colors.white} />}
@@ -309,17 +377,22 @@ export default function CreateAccountScreen({ navigation }: Props) {
             I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
             <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
         <CreateAccountButton loading={loading} onPress={handleCreateAccount} styles={styles} colors={colors} />
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Pressable
+            onPress={() => navigation.navigate('Login')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+          >
             <Text style={styles.loginLink}>Login</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -541,7 +614,7 @@ function createStyles(colors: ThemeColors) {
       opacity: 0.7,
     },
     registerButton: {
-      height: 58,
+      height: 56,
       borderRadius: 16,
       flexDirection: 'row',
       alignItems: 'center',
@@ -550,7 +623,7 @@ function createStyles(colors: ThemeColors) {
     },
     registerButtonText: {
       color: colors.white,
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '700',
     },
     loginRow: {
@@ -567,6 +640,44 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.primaryGreen,
       textDecorationLine: 'underline',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 32,
+      maxHeight: SCREEN_HEIGHT * 0.65,
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    regionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    regionText: {
+      fontSize: 15,
+      color: colors.text,
+    },
+    cancelButton: {
+      alignItems: 'center',
+      paddingVertical: 14,
+      marginTop: 8,
     },
   });
 }
