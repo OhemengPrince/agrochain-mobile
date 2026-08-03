@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -100,6 +100,7 @@ function CreateAccountButton({
 
 export default function CreateAccountScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -238,14 +239,18 @@ export default function CreateAccountScreen({ navigation }: Props) {
   const passwordsMatch = confirmHasValue && password === confirmPassword;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-      <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={styles.hero}>
+      <LinearGradient colors={['#1A6B2E', '#2E8B4A']} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+          style={({ pressed }) => [
+            styles.backButton,
+            { top: insets.top + 12 },
+            pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+          ]}
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -576,12 +581,11 @@ function createStyles(colors: ThemeColors) {
     },
     heroContent: {
       alignItems: 'center',
-      marginTop: 12,
     },
     logoBadge: {
-      width: 84,
-      height: 84,
-      borderRadius: 42,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 8,
@@ -595,8 +599,8 @@ function createStyles(colors: ThemeColors) {
       elevation: 5,
     },
     logoImage: {
-      width: 78,
-      height: 78,
+      width: 48,
+      height: 48,
     },
     brandText: {
       fontSize: 22,
