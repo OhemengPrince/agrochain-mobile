@@ -117,10 +117,18 @@ const MAX_QUERY_LENGTH = 100;
 
 // NewsData.io rejects ANY unrecognized query param outright (422
 // UnsupportedParameter) — do not add ad-hoc params like a cache-busting
-// timestamp here without verifying against the live API first.
+// timestamp here without verifying against the live API first. Verified
+// against the live API (this plan, /1/news endpoint):
+//   - `from_date` → 422 UnsupportedParameter ("You can't use the from_date
+//     parameter in the /1/news endpoint" — that's an /1/archive-only param
+//     on this plan). The 90-day window is enforced client-side instead,
+//     see isWithinLast90Days below.
+//   - `size` → max 10 per request; anything higher 422s as UnsupportedFilter.
+const MAX_PAGE_SIZE = 10;
+
 async function newsDataFetch(
   q: string,
-  extra?: { size?: number; page?: string; fromDate?: string },
+  extra?: { size?: number; page?: string },
 ): Promise<NewsDataResponse> {
   const params = new URLSearchParams({
     apikey: NEWSDATA_API_KEY,
@@ -128,9 +136,8 @@ async function newsDataFetch(
     language: 'en',
     q: q.slice(0, MAX_QUERY_LENGTH),
   });
-  if (extra?.size) params.set('size', String(extra.size));
+  if (extra?.size) params.set('size', String(Math.min(extra.size, MAX_PAGE_SIZE)));
   if (extra?.page) params.set('page', extra.page);
-  if (extra?.fromDate) params.set('from_date', extra.fromDate);
 
   const res = await fetch(`${BASE}?${params}`);
   const data: NewsDataResponse = await res.json();
@@ -152,10 +159,10 @@ function buildQuery(userQuery: string): string {
   return `${trimmed} Ghana agriculture`;
 }
 
-function ninetyDaysAgoIso(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 90);
-  return d.toISOString().split('T')[0];
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+
+function isWithinLast90Days(publishedAt: string): boolean {
+  return Date.now() - new Date(publishedAt).getTime() <= NINETY_DAYS_MS;
 }
 
 export interface NewsPage {
@@ -164,8 +171,11 @@ export interface NewsPage {
 }
 
 async function fetchNewsPage(query: string, page?: string): Promise<NewsPage> {
-  const data = await newsDataFetch(query, { size: 50, page, fromDate: ninetyDaysAgoIso() });
-  const items = data.results.filter((a) => a.title && a.link).map(toNewsItem);
+  const data = await newsDataFetch(query, { size: MAX_PAGE_SIZE, page });
+  const items = data.results
+    .filter((a) => a.title && a.link)
+    .map(toNewsItem)
+    .filter((item) => isWithinLast90Days(item.publishedAt));
   items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   return { items, nextPage: data.nextPage ?? null };
 }
@@ -176,6 +186,44 @@ async function fetchNewsPage(query: string, page?: string): Promise<NewsPage> {
 // load the next page (Load More).
 export async function searchNews(query: string, page?: string): Promise<NewsPage> {
   return fetchNewsPage(buildQuery(query), page);
+}
+
+const TARGET_ARTICLE_COUNT = 50;
+const MAX_INITIAL_PAGES = 5;
+
+// The API only returns up to MAX_PAGE_SIZE (10) articles per request, so
+// the initial feed load pages through a few requests to build up to
+// TARGET_ARTICLE_COUNT articles, then hands off the final `nextPage`
+// cursor to fetchMoreGhanaAgricultureNews() for the Load More button.
+async function fetchInitialFeed(): Promise<NewsPage> {
+  const query = buildQuery('');
+  const seen = new Set<string>();
+  const merged: NewsItem[] = [];
+  let page: string | undefined;
+  let nextPage: string | null = null;
+
+  for (let i = 0; i < MAX_INITIAL_PAGES && merged.length < TARGET_ARTICLE_COUNT; i++) {
+    let batch: NewsPage;
+    try {
+      batch = await fetchNewsPage(query, page);
+    } catch (err) {
+      if (i === 0) throw err; // First page failed — nothing to fall back to here.
+      break; // Later page failed — return what was already fetched.
+    }
+
+    for (const item of batch.items) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push(item);
+    }
+
+    nextPage = batch.nextPage;
+    if (!batch.nextPage) break;
+    page = batch.nextPage;
+  }
+
+  merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  return { items: merged.slice(0, TARGET_ARTICLE_COUNT), nextPage };
 }
 
 // NewsData.io's free plan allows 200 requests/day and 10/minute, and this
@@ -204,7 +252,7 @@ export async function fetchGhanaAgricultureNews(opts?: { forceRefresh?: boolean 
   }
 
   try {
-    const fresh = await fetchNewsPage(buildQuery(''));
+    const fresh = await fetchInitialFeed();
     newsCache = { data: fresh.items, nextPage: fresh.nextPage, timestamp: now };
     return fresh.items;
   } catch (err) {
