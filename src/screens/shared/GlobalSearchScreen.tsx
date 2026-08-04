@@ -14,7 +14,11 @@ import EquipmentImage from '../../components/EquipmentImage';
 import { formatCurrency, getCropEmoji } from '../../utils/formatters';
 
 const RECENT_KEY = 'global_search_recent';
-const POPULAR = ['Tractor', 'Maize', 'Cocoa', 'Harvester', 'Cassava'];
+const POPULAR = [
+  'Maize', 'Cocoa', 'Tractor', 'Cassava',
+  'Rice', 'Fertilizer', 'Irrigation', 'Livestock',
+  'Harvester', 'Seedlings',
+];
 
 export default function GlobalSearchScreen({ navigation }: { navigation: any }) {
   const { colors, isDarkMode } = useTheme();
@@ -304,17 +308,7 @@ export default function GlobalSearchScreen({ navigation }: { navigation: any }) 
             {/* No results */}
             {!hasResults && (
               <View style={s.noResults}>
-                <Ionicons name="search-outline" size={56} color={colors.border} />
-                <Text style={s.noResultsTitle}>No results for "{query}"</Text>
-                <Text style={s.noResultsSub}>
-                  Try searching for equipment, crops, farmers or marketplace items
-                </Text>
-                <Pressable
-                  style={[s.browseBtn, { backgroundColor: colors.primaryGreen }]}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Text style={s.browseBtnText}>Browse Marketplace</Text>
-                </Pressable>
+                <Text style={s.noResultsTitle}>No results found for '{query}'</Text>
               </View>
             )}
           </>
@@ -550,23 +544,6 @@ function createStyles(colors: ThemeColors, isDarkMode: boolean) {
       fontWeight: '700',
       color: colors.text,
       textAlign: 'center',
-    },
-    noResultsSub: {
-      fontSize: 13,
-      color: colors.secondaryText,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    browseBtn: {
-      marginTop: 8,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 12,
-    },
-    browseBtnText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: '#fff',
     },
   });
 }
