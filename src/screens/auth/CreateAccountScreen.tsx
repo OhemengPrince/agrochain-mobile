@@ -28,6 +28,7 @@ import { ThemeColors } from '../../context/ThemeContext';
 import ErrorMessage from '../../components/ErrorMessage';
 import GlassBlur from '../../components/GlassBlur';
 import RolePicker from '../../components/RolePicker';
+import { GHANA_REGIONS } from '../../constants/ghanaRegions';
 
 const Logo = require('../../../assets/images/agrochain_logo.png');
 
@@ -35,13 +36,6 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PLACEHOLDER_COLOR = '#9CA3AF';
-
-const GHANA_REGIONS = [
-  'Ahafo', 'Ashanti', 'Bono', 'Bono East', 'Central',
-  'Eastern', 'Greater Accra', 'North East', 'Northern',
-  'Oti', 'Savannah', 'Upper East', 'Upper West',
-  'Volta', 'Western', 'Western North',
-];
 
 function usePressAnimation() {
   const scale = useRef(new Animated.Value(1)).current;

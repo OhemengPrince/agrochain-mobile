@@ -524,6 +524,7 @@ export type FarmerStackParamList = {
   FarmerProfile: undefined;
   FarmerProfileMain: undefined;
   FarmerNotifications: undefined;
+  Settings: undefined;
   FarmerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
@@ -557,7 +558,7 @@ export type OwnerStackParamList = {
   OwnerProfile: undefined;
   OwnerProfileMain: undefined;
   OwnerNotifications: undefined;
-  OwnerSettings: undefined;
+  Settings: undefined;
   OwnerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };
@@ -591,7 +592,7 @@ export type BuyerStackParamList = {
   BuyerProfile: undefined;
   BuyerProfileMain: undefined;
   BuyerNotifications: undefined;
-  BuyerSettings: undefined;
+  Settings: undefined;
   BuyerMarket: undefined;
   MarketplaceList: undefined;
   MarketplaceListingDetail: { listingId: string };

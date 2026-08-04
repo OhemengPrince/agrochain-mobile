@@ -10,6 +10,7 @@ import CatalogueScreen from '../screens/buyer/CatalogueScreen';
 import ProduceDetailScreen from '../screens/buyer/ProduceDetailScreen';
 import QrScannerScreen from '../screens/buyer/QrScannerScreen';
 import BuyerProfileScreen from '../screens/buyer/BuyerProfileScreen';
+import SettingsScreen from '../screens/shared/SettingsScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
 import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
@@ -99,6 +100,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="BuyerProfileMain" component={BuyerProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Withdrawal" component={WithdrawalScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} options={{ headerShown: false }} />

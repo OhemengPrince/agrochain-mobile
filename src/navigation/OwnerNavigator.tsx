@@ -12,6 +12,7 @@ import EditEquipmentScreen from '../screens/owner/EditEquipmentScreen';
 import IncomingBookingsScreen from '../screens/owner/IncomingBookingsScreen';
 import BookingDetailScreen from '../screens/shared/BookingDetailScreen';
 import OwnerProfileScreen from '../screens/owner/OwnerProfileScreen';
+import SettingsScreen from '../screens/shared/SettingsScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import NewsScreen from '../screens/shared/NewsScreen';
 import NewsArticleScreen from '../screens/shared/NewsArticleScreen';
@@ -92,6 +93,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackHeaderOptions}>
       <Stack.Screen name="OwnerProfileMain" component={OwnerProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Withdrawal" component={WithdrawalScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} options={{ headerShown: false }} />

@@ -536,6 +536,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
       <ProfileDropdownMenu
         visible={dropdownVisible}
         onClose={() => setDropdownVisible(false)}
+        onOpenSettings={() => { setDropdownVisible(false); navigation.navigate('Settings'); }}
         onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
