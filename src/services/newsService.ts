@@ -1,23 +1,9 @@
 import { NEWSDATA_API_KEY } from '@env';
 
 const BASE = 'https://newsdata.io/api/1/news';
-const COUNTRIES = 'gh,ng,ci,tg,bf';
 
 export type NewsTopicChip =
   | 'All' | 'Cocoa' | 'Maize' | 'Rice' | 'Livestock' | 'Fertilizer' | 'Equipment' | 'Market Prices';
-
-// Keywords that must appear in the HEADLINE for an article to pass the agric gate
-const AGRIC_HEADLINE_KEYWORDS = [
-  'agric', 'farm', 'farmer', 'crop', 'harvest', 'food',
-  'cocoa', 'maize', 'cassava', 'rice', 'yam', 'groundnut',
-  'sorghum', 'plantain', 'tomato', 'pepper', 'onion', 'shea',
-  'rubber', 'livestock', 'poultry', 'cattle', 'irrigation',
-  'fertiliser', 'fertilizer', 'soil', 'plantation', 'seeds',
-  'COCOBOD', 'smallholder', 'rural', 'MoFA', 'GAEC',
-  'fishing', 'aquaculture', 'agroforest', 'feed', 'pest',
-  'NPK', 'urea', 'manure', 'compost', 'nutrient', 'tractor',
-  'equipment', 'machinery',
-];
 
 // Topic classification — checked in priority order (most-specific first)
 const TOPIC_RULES: { topic: NewsTopicChip; keywords: string[] }[] = [
@@ -100,11 +86,6 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function isAgricHeadline(title: string): boolean {
-  const t = title.toLowerCase();
-  return AGRIC_HEADLINE_KEYWORDS.some((kw) => t.includes(kw.toLowerCase()));
-}
-
 // NewsData.io returns "YYYY-MM-DD HH:mm:ss" (UTC, no timezone marker) —
 // normalise to ISO-8601 so Date parsing doesn't fall back to local time.
 function toIsoUtc(pubDate: string): string {
@@ -135,14 +116,14 @@ const MAX_QUERY_LENGTH = 100;
 // UnsupportedParameter) — do not add ad-hoc params like a cache-busting
 // timestamp here without verifying against the live API first.
 async function newsDataFetch(
-  qInTitle: string,
+  q: string,
   extra?: { size?: number; page?: string },
 ): Promise<NewsDataResponse> {
   const params = new URLSearchParams({
     apikey: NEWSDATA_API_KEY,
+    country: 'gh',
     language: 'en',
-    country: COUNTRIES,
-    qInTitle: qInTitle.slice(0, MAX_QUERY_LENGTH),
+    q: q.slice(0, MAX_QUERY_LENGTH),
   });
   if (extra?.size) params.set('size', String(extra.size));
   if (extra?.page) params.set('page', extra.page);
@@ -157,9 +138,20 @@ async function newsDataFetch(
   return data;
 }
 
-// Real-time search against NewsData.io, scoped to agriculture + Ghana region
+// Always anchors the query to Ghana agriculture so a bare keyword like
+// "pesticide" or "fertilizer" returns Ghana farming news instead of
+// unrelated global results — and an empty query still returns the full
+// Ghana agriculture feed instead of nothing.
+function buildQuery(userQuery: string): string {
+  const trimmed = userQuery.trim();
+  if (!trimmed) return 'Ghana agriculture farming';
+  return `${trimmed} Ghana agriculture`;
+}
+
+// Real-time search against NewsData.io, anchored to Ghana agriculture —
+// works for any farming-related keyword, not just a fixed keyword list.
 export async function searchNews(query: string): Promise<NewsItem[]> {
-  const data = await newsDataFetch(`${query} agriculture`, { size: 10 });
+  const data = await newsDataFetch(buildQuery(query), { size: 10 });
   return data.results.filter((a) => a.title && a.link).map(toNewsItem);
 }
 
@@ -167,7 +159,7 @@ const TARGET_ARTICLE_COUNT = 50;
 const MAX_PAGES = 5;
 
 async function fetchFreshGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const query = 'agriculture OR farming OR cocoa OR maize OR livestock OR fertilizer OR harvest';
+  const query = buildQuery('');
 
   const seen = new Set<string>();
   const merged: NewsItem[] = [];
@@ -187,9 +179,7 @@ async function fetchFreshGhanaAgricultureNews(): Promise<NewsItem[]> {
       const key = a.article_id ?? a.link;
       if (seen.has(key)) continue;
       seen.add(key);
-      if (isAgricHeadline(a.title)) {
-        merged.push(toNewsItem(a));
-      }
+      merged.push(toNewsItem(a));
     }
 
     if (!batch.nextPage) break;
@@ -212,13 +202,6 @@ let newsCache: NewsCache | null = null;
 const CACHE_DURATION_MS = 30 * 60 * 1000; // Serve cache untouched for 30 min.
 const MIN_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // Even an explicit refresh can't force a network hit sooner than this.
 
-// Broad query covering all agric topics, kept under NewsData.io's 100-char
-// limit. Uses qInTitle (not q) — a plain `q` search matches anywhere in the
-// article body, which let mostly unrelated stories (politics, crime, sports)
-// through and left almost nothing after the headline-keyword filter. Title-
-// scoped search raises the on-topic hit rate from ~1-in-10 to ~9-in-10, so
-// paginating a handful of pages actually yields close to TARGET_ARTICLE_COUNT
-// instead of the single digits it did before.
 export async function fetchGhanaAgricultureNews(opts?: { forceRefresh?: boolean }): Promise<NewsItem[]> {
   const now = Date.now();
   const cacheAge = newsCache ? now - newsCache.timestamp : Infinity;

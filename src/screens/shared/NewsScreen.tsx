@@ -229,12 +229,10 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
               <Text style={styles.loadingText}>Searching agriculture news…</Text>
             </View>
           ) : searchResults.length === 0 ? (
-            <View style={styles.centerBox}>
-              <Ionicons name="newspaper-outline" size={48} color={colors.secondaryText} />
-              <Text style={styles.emptySearchTitle}>No results found</Text>
-              <Text style={styles.emptySearchSubtitle}>
-                Try different keywords like 'cocoa', 'maize' or 'farming Ghana'
-              </Text>
+            <View style={styles.emptyState}>
+              <Ionicons name="newspaper-outline" size={48} color="#9CA3AF" />
+              <Text style={styles.emptyText}>No news found for '{searchQuery}'</Text>
+              <Text style={styles.emptySubtext}>Try searching for cocoa, maize, fertilizer or pesticides</Text>
             </View>
           ) : (
             searchResults.map((item, index) => (
@@ -439,13 +437,16 @@ function createStyles(colors: ThemeColors) {
       marginTop: 12,
       marginBottom: -4,
     },
-    emptySearchTitle: {
+    emptyState: { alignItems: 'center', paddingTop: 80, gap: 12 },
+    emptyText: {
       fontSize: 16,
       fontWeight: '600',
       color: colors.secondaryText,
       marginTop: 12,
+      textAlign: 'center',
+      paddingHorizontal: 20,
     },
-    emptySearchSubtitle: {
+    emptySubtext: {
       fontSize: 13,
       color: colors.secondaryText,
       opacity: 0.7,
