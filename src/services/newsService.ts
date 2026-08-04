@@ -151,11 +151,16 @@ async function newsDataFetch(
 
 // Always anchors the query to Ghana agriculture so a bare keyword like
 // "pesticide" or "fertilizer" returns Ghana farming news instead of
-// unrelated global results — and an empty query still returns the full
-// Ghana agriculture feed instead of nothing.
+// unrelated global results. The default (empty-query) feed uses a broader
+// OR'd keyword set instead of a literal phrase — 'Ghana agriculture
+// farming' as a phrase only matches ~7 articles total on this API/plan
+// (confirmed live), which starves both the initial 50-article target and
+// pagination since there's nothing left to page through. The OR form
+// matches 100+ articles, giving fetchInitialFeed's pagination loop and the
+// Load More button actual pages to walk through.
 function buildQuery(userQuery: string): string {
   const trimmed = userQuery.trim();
-  if (!trimmed) return 'Ghana agriculture farming';
+  if (!trimmed) return 'agriculture OR farming OR cocoa OR maize OR livestock OR fertilizer OR harvest OR farmer';
   return `${trimmed} Ghana agriculture`;
 }
 
