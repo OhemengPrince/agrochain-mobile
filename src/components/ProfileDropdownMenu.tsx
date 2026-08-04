@@ -14,7 +14,6 @@ interface ProfileDropdownMenuProps {
   visible: boolean;
   onClose: () => void;
   onOpenSettings?: () => void;
-  onPersonalInfo: () => void;
   notificationsEnabled: boolean;
   onToggleNotifications: (value: boolean) => void;
   onChangePassword: () => void;
@@ -62,7 +61,6 @@ export default function ProfileDropdownMenu({
   visible,
   onClose,
   onOpenSettings,
-  onPersonalInfo,
   notificationsEnabled,
   onToggleNotifications,
   onChangePassword,
@@ -90,7 +88,6 @@ export default function ProfileDropdownMenu({
           {onOpenSettings && (
             <Row icon="build-outline" label="Account Settings" onPress={onOpenSettings} styles={styles} colors={colors} />
           )}
-          <Row icon="person-outline" label="Personal Information" onPress={onPersonalInfo} styles={styles} colors={colors} />
           <Row
             icon="moon-outline"
             label="Dark Mode"

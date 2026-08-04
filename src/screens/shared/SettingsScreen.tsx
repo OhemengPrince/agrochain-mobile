@@ -22,7 +22,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { GHANA_REGIONS } from '../../constants/ghanaRegions';
-import { updateProfile, changePassword, updatePhotoUrl } from '../../api/userApi';
+import { updateProfile, updatePhotoUrl } from '../../api/userApi';
 import { uploadImage } from '../../api/fileApi';
 import { formatRole, formatDate } from '../../utils/formatters';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -44,13 +44,6 @@ export default function SettingsScreen({ navigation }: any) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const initial = (user?.fullName || '?').trim().charAt(0).toUpperCase();
 
@@ -109,36 +102,6 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const handleChangePassword = async () => {
-    setPasswordError(null);
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Please fill in all password fields.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('New password and confirmation do not match.');
-      return;
-    }
-    setSavingPassword(true);
-    try {
-      await changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      Alert.alert('Success', 'Your password has been changed.');
-    } catch (err) {
-      setPasswordError(
-        getApiErrorMessage(err, 'Could not change your password. Please check your current password and try again.')
-      );
-    } finally {
-      setSavingPassword(false);
-    }
-  };
-
   if (!user) return null;
 
   return (
@@ -157,7 +120,7 @@ export default function SettingsScreen({ navigation }: any) {
             <Ionicons name="settings-outline" size={26} color="#fff" />
           </View>
           <Text style={styles.heroTitle}>Settings</Text>
-          <Text style={styles.heroSubtitle}>Manage your profile, password and account details</Text>
+          <Text style={styles.heroSubtitle}>Manage your profile and account details</Text>
         </View>
       </LinearGradient>
 
@@ -244,64 +207,6 @@ export default function SettingsScreen({ navigation }: any) {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.primaryButtonText}>Save Changes</Text>
-              )}
-            </LinearGradient>
-          </Pressable>
-
-          {/* ── Change password ── */}
-          <SheetSectionLabel text="Change Password" />
-
-          {passwordError ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={14} color="#EF4444" />
-              <Text style={styles.errorText}>{passwordError}</Text>
-            </View>
-          ) : null}
-
-          <Text style={styles.label}>Current Password</Text>
-          <TextInput
-            style={styles.input}
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            secureTextEntry={!showPasswords}
-            placeholder="Enter current password"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-          />
-
-          <Text style={styles.label}>New Password</Text>
-          <TextInput
-            style={styles.input}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry={!showPasswords}
-            placeholder="At least 6 characters"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-          />
-
-          <Text style={styles.label}>Confirm New Password</Text>
-          <TextInput
-            style={styles.input}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showPasswords}
-            placeholder="Re-enter new password"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-          />
-
-          <Pressable style={styles.showRow} onPress={() => setShowPasswords((v) => !v)}>
-            <Ionicons name={showPasswords ? 'eye-off-outline' : 'eye-outline'} size={16} color={colors.secondaryText} />
-            <Text style={styles.showRowText}>{showPasswords ? 'Hide' : 'Show'} passwords</Text>
-          </Pressable>
-
-          <Pressable onPress={handleChangePassword} disabled={savingPassword}>
-            <LinearGradient
-              colors={[colors.primaryGreen, colors.primaryGreenLight]}
-              style={[styles.primaryButton, savingPassword && { opacity: 0.7 }]}
-            >
-              {savingPassword ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Update Password</Text>
               )}
             </LinearGradient>
           </Pressable>
@@ -428,8 +333,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.inputBackground, paddingHorizontal: 14,
     },
     selectInputText: { fontSize: 14, color: colors.text },
-    showRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4, alignSelf: 'flex-start' },
-    showRowText: { fontSize: 12, color: colors.secondaryText, fontWeight: '600' },
     primaryButton: { height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
     primaryButtonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
     infoCard: {

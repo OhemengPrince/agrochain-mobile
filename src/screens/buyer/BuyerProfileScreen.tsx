@@ -48,7 +48,6 @@ import { filterByDateRange } from '../../utils/pdfReport';
 import { getExportPreferences } from '../../utils/storage';
 import { useReportPreview } from '../../hooks/useReportPreview';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
-import FullScreenSheet, { SheetSectionLabel } from '../../components/FullScreenSheet';
 import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<BuyerStackParamList, 'BuyerProfileMain'>;
@@ -87,7 +86,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
   };
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [aboutText, setAboutText] = useState(BIO_TEXT);
@@ -146,8 +144,7 @@ export default function BuyerProfileScreen({ navigation }: Props) {
 
   useHideTabBarWhen(
     navigation,
-    personalInfoVisible ||
-      changePasswordVisible ||
+    changePasswordVisible ||
       rateAppVisible ||
       contactSupportVisible ||
       certificationsVisible ||
@@ -202,11 +199,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
     } finally {
       setAvatarUploading(false);
     }
-  };
-
-  const openPersonalInfo = () => {
-    setDropdownVisible(false);
-    setPersonalInfoVisible(true);
   };
 
   const goToMyListings = () => {
@@ -517,7 +509,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         visible={dropdownVisible}
         onClose={() => setDropdownVisible(false)}
         onOpenSettings={() => { setDropdownVisible(false); navigation.navigate('Settings'); }}
-        onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
         onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
@@ -552,32 +543,6 @@ export default function BuyerProfileScreen({ navigation }: Props) {
         periodLabel={`As of ${formatDate(new Date().toISOString())}`}
         stats={seasonReportStats}
       />
-
-      <FullScreenSheet
-        visible={personalInfoVisible}
-        onClose={() => setPersonalInfoVisible(false)}
-        title="Personal Information"
-        icon="person-circle-outline"
-        description="This is the information your AgroChain account is built on, and what other users see when they look you up."
-      >
-        <SheetSectionLabel text="Account Details" />
-        <View style={styles.infoModalCard}>
-          {[
-            { label: 'Email', value: user.email },
-            { label: 'Phone', value: user.phoneNumber },
-            { label: 'Location', value: locationLabel },
-            { label: 'Member Since', value: memberSince },
-          ].map((item, idx, arr) => (
-            <View
-              key={item.label}
-              style={[styles.infoModalRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}
-            >
-              <Text style={styles.infoModalLabel}>{item.label}</Text>
-              <Text style={styles.infoModalValue}>{item.value}</Text>
-            </View>
-          ))}
-        </View>
-      </FullScreenSheet>
 
     </SafeAreaView>
   );
@@ -1200,28 +1165,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 15,
       fontWeight: '700',
       color: '#FFFFFF',
-    },
-    infoModalCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      paddingHorizontal: 16,
-      borderWidth: 1,
-      borderColor: colors.divider,
-    },
-    infoModalRow: {
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.divider,
-    },
-    infoModalLabel: {
-      fontSize: 12,
-      color: colors.secondaryText,
-      marginBottom: 4,
-    },
-    infoModalValue: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
     },
     aboutTextInput: {
       backgroundColor: colors.inputBackground,

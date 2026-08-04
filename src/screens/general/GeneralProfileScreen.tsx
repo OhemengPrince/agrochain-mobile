@@ -29,7 +29,6 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
-import PersonalInfoSheet from '../../components/PersonalInfoSheet';
 import ProfileTabs from '../../components/ProfileTabs';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import UserAvatar from '../../components/UserAvatar';
@@ -89,7 +88,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   };
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [personalInfoVisible, setPersonalInfoVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [aboutText, setAboutText] = useState(BIO_TEXT);
@@ -145,16 +143,12 @@ export default function GeneralProfileScreen({ navigation }: Props) {
     })();
   }, [loadData]);
 
-  const showComingSoon = (feature: string) => {
-    Alert.alert(feature, `${feature} is coming soon.`);
-  };
 
   const reportPreview = useReportPreview();
 
   useHideTabBarWhen(
     navigation,
-    personalInfoVisible ||
-      changePasswordVisible ||
+    changePasswordVisible ||
       rateAppVisible ||
       contactSupportVisible ||
       certificationsVisible ||
@@ -214,11 +208,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
     } finally {
       setAvatarUploading(false);
     }
-  };
-
-  const openPersonalInfo = () => {
-    setDropdownVisible(false);
-    setPersonalInfoVisible(true);
   };
 
   const handleLogout = () => {
@@ -512,7 +501,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       <ProfileDropdownMenu
         visible={dropdownVisible}
         onClose={() => setDropdownVisible(false)}
-        onPersonalInfo={openPersonalInfo}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
         onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
@@ -557,16 +545,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
         title="Season Report"
         periodLabel={`As of ${formatDate(new Date().toISOString())}`}
         stats={seasonReportStats}
-      />
-
-      <PersonalInfoSheet
-        visible={personalInfoVisible}
-        onClose={() => setPersonalInfoVisible(false)}
-        onEdit={() => showComingSoon('Edit profile')}
-        email={user.email}
-        phone={user.phoneNumber}
-        location={locationLabel}
-        memberSince={memberSince}
       />
 
     </SafeAreaView>
