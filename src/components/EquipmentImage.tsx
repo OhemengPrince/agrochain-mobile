@@ -3,6 +3,7 @@ import { View, Image, ActivityIndicator, StyleSheet, ImageStyle, StyleProp } fro
 import { Ionicons } from '@expo/vector-icons';
 import { EquipmentCategory } from '../types';
 import { getEquipmentImage } from '../constants/equipmentImages';
+import { getImageUrl } from '../utils/imageUrl';
 
 interface EquipmentImageProps {
   category: EquipmentCategory;
@@ -15,8 +16,8 @@ export default function EquipmentImage({ category, imageUrl, style, resizeMode =
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  const isRemote = imageUrl?.startsWith('http');
-  const source = isRemote ? { uri: imageUrl } : getEquipmentImage(category);
+  const resolvedUrl = getImageUrl(imageUrl);
+  const source = resolvedUrl ? { uri: resolvedUrl } : getEquipmentImage(category);
 
   return (
     <View style={[styles.container, style]}>

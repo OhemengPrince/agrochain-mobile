@@ -26,6 +26,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
+import { getImageUrl } from '../../utils/imageUrl';
 import SearchWithSuggestions from '../../components/SearchWithSuggestions';
 import GlassStatPill from '../../components/GlassStatPill';
 import CommentsSheet from '../../components/CommentsSheet';
@@ -90,7 +91,7 @@ function EquipmentListCard({
       <Pressable style={styles.card} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} onFocus={onFocus} onBlur={onBlur}>
         <View style={styles.imageWrap}>
           <Image
-            source={item.imageUrl?.startsWith('http') ? { uri: item.imageUrl } : (item.image ?? getEquipmentImage(item.category))}
+            source={getImageUrl(item.imageUrl) ? { uri: getImageUrl(item.imageUrl)! } : (item.image ?? getEquipmentImage(item.category))}
             resizeMode="cover"
             style={styles.image}
           />
@@ -399,7 +400,7 @@ export default function EquipmentListScreen({ navigation, route }: Props) {
         itemId={activeCommentsItem?.id ?? ''}
         itemTitle={activeCommentsItem?.name ?? ''}
         itemSubtitle={activeCommentsItem ? `GHS ${activeCommentsItem.dailyRate}/day` : undefined}
-        itemImageUrl={activeCommentsItem?.imageUrl?.startsWith('http') ? activeCommentsItem.imageUrl : undefined}
+        itemImageUrl={getImageUrl(activeCommentsItem?.imageUrl) ?? undefined}
         itemEmoji="🚜"
         onCommentsCountChange={(count) => {
           if (activeCommentsItem) {

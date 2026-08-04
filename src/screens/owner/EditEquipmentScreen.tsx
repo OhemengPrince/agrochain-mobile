@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { OwnerStackParamList, Equipment } from '../../types';
 import { getEquipmentById, updateEquipment, deleteEquipment } from '../../api/equipmentApi';
 import { uploadImage } from '../../api/fileApi';
+import { getImageUrl } from '../../utils/imageUrl';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -63,7 +64,7 @@ export default function EditEquipmentScreen({ route, navigation }: Props) {
         setDescription(data.description);
         setDailyRate(String(data.dailyRate));
         setIsAvailable(data.isAvailable);
-        setPhotoUri(data.imageUrl ?? null);
+        setPhotoUri(getImageUrl(data.imageUrl));
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load equipment.');
       } finally {

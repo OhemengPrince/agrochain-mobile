@@ -16,6 +16,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
 import StarRating from '../../components/StarRating';
 import { getEquipmentImage } from '../../constants/equipmentImages';
+import { getImageUrl } from '../../utils/imageUrl';
 import FollowButton from '../../components/FollowButton';
 import { getFollowStatus } from '../../api/followApi';
 
@@ -300,8 +301,9 @@ export default function EquipmentDetailScreen({ route, navigation }: Props) {
   const numDays = Math.max(daysBetween(startDate, endDate), 1);
   const total = equipment.dailyRate * numDays;
   const ownerInitial = equipment.ownerName?.charAt(0)?.toUpperCase() ?? '?';
-  const equipmentImageSource = equipment.imageUrl?.startsWith('http')
-    ? { uri: equipment.imageUrl }
+  const resolvedEquipmentImageUrl = getImageUrl(equipment.imageUrl);
+  const equipmentImageSource = resolvedEquipmentImageUrl
+    ? { uri: resolvedEquipmentImageUrl }
     : (equipment.image ?? getEquipmentImage(equipment.category));
 
   return (

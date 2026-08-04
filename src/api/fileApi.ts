@@ -1,7 +1,6 @@
 import apiClient from './axios';
 import { USE_MOCK_DATA } from '../config';
-
-const BASE_ORIGIN = 'http://172.20.10.2:8080';
+import { getImageUrl } from '../utils/imageUrl';
 
 export async function uploadImage(localUri: string): Promise<string> {
   if (USE_MOCK_DATA) return localUri;
@@ -17,5 +16,9 @@ export async function uploadImage(localUri: string): Promise<string> {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-  return `${BASE_ORIGIN}${data.url}`;
+  // data.url may be a relative path ("/uploads/xyz.jpg") or already
+  // absolute — getImageUrl resolves it against the actual configured API
+  // origin instead of a hardcoded host, so it never points at a dead
+  // local-dev IP regardless of which backend the app is pointed at.
+  return getImageUrl(data.url) ?? data.url;
 }
