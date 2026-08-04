@@ -44,6 +44,35 @@ function classifyTopic(headline: string, summary = ''): NewsTopicChip {
   return 'Market Prices';
 }
 
+// NewsData's `q` param matches loosely (anywhere in the article, not just
+// the headline), so a broad OR query like the default feed's pulls in
+// clearly off-topic results (vehicle registration, diplomacy, constitution
+// — confirmed live) alongside real agriculture stories. This gate checks
+// title + description against a broad agriculture vocabulary before an
+// article is kept.
+const AGRIC_RELEVANCE_KEYWORDS = [
+  'agric', 'farm', 'farmer', 'farming', 'crop', 'harvest', 'food security',
+  'cocoa', 'cocobod', 'maize', 'corn', 'cassava', 'rice', 'paddy', 'yam',
+  'groundnut', 'sorghum', 'millet', 'plantain', 'banana', 'tomato', 'pepper',
+  'onion', 'shea', 'cashew', 'cotton', 'pineapple', 'coconut', 'ginger',
+  'rubber', 'oil palm', 'livestock', 'poultry', 'cattle', 'sheep', 'goat',
+  'pig', 'dairy', 'irrigation', 'fertiliser', 'fertilizer', 'agrochemical',
+  'agro-chemical', 'pesticide', 'herbicide', 'insecticide', 'soil', 'seedling',
+  'seed', 'plantation', 'smallholder', 'rural farm', 'mofa', 'gaec', 'gida',
+  'fishing', 'aquaculture', 'agroforest', 'animal feed', 'npk', 'urea',
+  'manure', 'compost', 'nutrient', 'tractor', 'agri-equipment', 'machinery',
+  'agribusiness', 'agro-processing', 'export crop', 'commodity price',
+  'produce market', 'cocoa farmer', 'cocoa price',
+];
+
+function isAgricRelevant(title: string, summary: string, extraKeywords: string[] = []): boolean {
+  const text = `${title} ${summary}`.toLowerCase();
+  const keywords = extraKeywords.length
+    ? [...AGRIC_RELEVANCE_KEYWORDS, ...extraKeywords.map((k) => k.toLowerCase()).filter((k) => k.length > 2)]
+    : AGRIC_RELEVANCE_KEYWORDS;
+  return keywords.some((kw) => text.includes(kw));
+}
+
 interface NewsDataArticle {
   article_id: string;
   title: string;
@@ -175,10 +204,11 @@ export interface NewsPage {
   nextPage: string | null;
 }
 
-async function fetchNewsPage(query: string, page?: string): Promise<NewsPage> {
+async function fetchNewsPage(query: string, page?: string, relevanceKeywords?: string[]): Promise<NewsPage> {
   const data = await newsDataFetch(query, { size: MAX_PAGE_SIZE, page });
   const items = data.results
     .filter((a) => a.title && a.link)
+    .filter((a) => isAgricRelevant(a.title, a.description ?? '', relevanceKeywords))
     .map(toNewsItem)
     .filter((item) => isWithinLast90Days(item.publishedAt));
   items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
@@ -187,14 +217,22 @@ async function fetchNewsPage(query: string, page?: string): Promise<NewsPage> {
 
 // Real-time search against NewsData.io, anchored to Ghana agriculture and
 // the last 90 days — works for any farming-related keyword, not just a
-// fixed keyword list. Pass the `nextPage` cursor from a previous call to
-// load the next page (Load More).
+// fixed keyword list. The user's own search words are always treated as
+// relevant (in addition to the base agriculture vocabulary) so a specific
+// term like "pesticide" or a crop the base list doesn't happen to name
+// still passes the relevance gate. Pass the `nextPage` cursor from a
+// previous call to load the next page (Load More).
 export async function searchNews(query: string, page?: string): Promise<NewsPage> {
-  return fetchNewsPage(buildQuery(query), page);
+  const userTerms = query.trim().split(/\s+/).filter(Boolean);
+  return fetchNewsPage(buildQuery(query), page, userTerms);
 }
 
 const TARGET_ARTICLE_COUNT = 50;
-const MAX_INITIAL_PAGES = 5;
+// The relevance gate rejects a large share of each raw page (confirmed
+// live: ~19/50 raw results actually agriculture-related for the default
+// query), so more raw pages are needed to still reach TARGET_ARTICLE_COUNT
+// relevant articles than when every result was kept unfiltered.
+const MAX_INITIAL_PAGES = 10;
 
 // The API only returns up to MAX_PAGE_SIZE (10) articles per request, so
 // the initial feed load pages through a few requests to build up to
