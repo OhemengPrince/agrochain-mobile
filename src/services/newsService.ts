@@ -76,14 +76,17 @@ export interface NewsItem {
   topic: NewsTopicChip;
 }
 
-function timeAgo(dateStr: string): string {
-  const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const h = Math.floor(diffMins / 60);
-  if (h < 24) return `${h}hr${h !== 1 ? 's' : ''} ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d} day${d !== 1 ? 's' : ''} ago`;
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+function getTimeAgo(publishedAt: string): string {
+  const now = new Date();
+  const published = new Date(publishedAt);
+  const diffMs = now.getTime() - published.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays} days ago`;
+  return published.toLocaleDateString();
 }
 
 // NewsData.io returns "YYYY-MM-DD HH:mm:ss" (UTC, no timezone marker) —
@@ -99,7 +102,7 @@ function toNewsItem(a: NewsDataArticle): NewsItem {
     id: a.article_id ?? a.link,
     headline: a.title,
     source: a.source_name ?? a.source_id ?? 'NewsData.io',
-    time: timeAgo(publishedAt),
+    time: getTimeAgo(publishedAt),
     publishedAt,
     url: a.link,
     summary,
@@ -117,7 +120,7 @@ const MAX_QUERY_LENGTH = 100;
 // timestamp here without verifying against the live API first.
 async function newsDataFetch(
   q: string,
-  extra?: { size?: number; page?: string },
+  extra?: { size?: number; page?: string; fromDate?: string },
 ): Promise<NewsDataResponse> {
   const params = new URLSearchParams({
     apikey: NEWSDATA_API_KEY,
@@ -127,6 +130,7 @@ async function newsDataFetch(
   });
   if (extra?.size) params.set('size', String(extra.size));
   if (extra?.page) params.set('page', extra.page);
+  if (extra?.fromDate) params.set('from_date', extra.fromDate);
 
   const res = await fetch(`${BASE}?${params}`);
   const data: NewsDataResponse = await res.json();
@@ -148,56 +152,40 @@ function buildQuery(userQuery: string): string {
   return `${trimmed} Ghana agriculture`;
 }
 
-// Real-time search against NewsData.io, anchored to Ghana agriculture —
-// works for any farming-related keyword, not just a fixed keyword list.
-export async function searchNews(query: string): Promise<NewsItem[]> {
-  const data = await newsDataFetch(buildQuery(query), { size: 10 });
-  return data.results.filter((a) => a.title && a.link).map(toNewsItem);
+function ninetyDaysAgoIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return d.toISOString().split('T')[0];
 }
 
-const TARGET_ARTICLE_COUNT = 50;
-const MAX_PAGES = 5;
-
-async function fetchFreshGhanaAgricultureNews(): Promise<NewsItem[]> {
-  const query = buildQuery('');
-
-  const seen = new Set<string>();
-  const merged: NewsItem[] = [];
-  let page: string | undefined;
-
-  for (let i = 0; i < MAX_PAGES && merged.length < TARGET_ARTICLE_COUNT; i++) {
-    let batch: NewsDataResponse;
-    try {
-      batch = await newsDataFetch(query, { size: 10, page });
-    } catch (err) {
-      if (i === 0) throw err; // First page failed — nothing to fall back to here.
-      break; // Later page failed — return what was already fetched.
-    }
-
-    for (const a of batch.results) {
-      if (!a.title || !a.link) continue;
-      const key = a.article_id ?? a.link;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(toNewsItem(a));
-    }
-
-    if (!batch.nextPage) break;
-    page = batch.nextPage;
-  }
-
-  merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-  return merged.slice(0, TARGET_ARTICLE_COUNT);
+export interface NewsPage {
+  items: NewsItem[];
+  nextPage: string | null;
 }
 
-// NewsData.io's free plan allows 200 requests/day and 10/minute. A single
-// fetchFreshGhanaAgricultureNews() call already costs up to MAX_PAGES
-// requests, and this feed is loaded independently by the News tab AND each
-// of the 4 home dashboards' MarketNewsFeed — without a shared cache, one
-// app open could burn 5x that. Cache is module-level (not per-component)
-// so all callers share one budget.
-interface NewsCache { data: NewsItem[]; timestamp: number }
+async function fetchNewsPage(query: string, page?: string): Promise<NewsPage> {
+  const data = await newsDataFetch(query, { size: 50, page, fromDate: ninetyDaysAgoIso() });
+  const items = data.results.filter((a) => a.title && a.link).map(toNewsItem);
+  items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  return { items, nextPage: data.nextPage ?? null };
+}
+
+// Real-time search against NewsData.io, anchored to Ghana agriculture and
+// the last 90 days — works for any farming-related keyword, not just a
+// fixed keyword list. Pass the `nextPage` cursor from a previous call to
+// load the next page (Load More).
+export async function searchNews(query: string, page?: string): Promise<NewsPage> {
+  return fetchNewsPage(buildQuery(query), page);
+}
+
+// NewsData.io's free plan allows 200 requests/day and 10/minute, and this
+// feed is loaded independently by the News tab AND each of the 4 home
+// dashboards' MarketNewsFeed — without a shared cache, one app open could
+// burn through several requests just on first paint. Cache is module-level
+// (not per-component) so all callers share one budget, and also remembers
+// the NewsData `nextPage` cursor so the News tab's Load More button can
+// fetch beyond the cached first page.
+interface NewsCache { data: NewsItem[]; nextPage: string | null; timestamp: number }
 let newsCache: NewsCache | null = null;
 const CACHE_DURATION_MS = 30 * 60 * 1000; // Serve cache untouched for 30 min.
 const MIN_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // Even an explicit refresh can't force a network hit sooner than this.
@@ -216,11 +204,31 @@ export async function fetchGhanaAgricultureNews(opts?: { forceRefresh?: boolean 
   }
 
   try {
-    const fresh = await fetchFreshGhanaAgricultureNews();
-    newsCache = { data: fresh, timestamp: now };
-    return fresh;
+    const fresh = await fetchNewsPage(buildQuery(''));
+    newsCache = { data: fresh.items, nextPage: fresh.nextPage, timestamp: now };
+    return fresh.items;
   } catch (err) {
     if (newsCache) return newsCache.data; // Serve stale data rather than erroring the UI.
     throw err;
   }
+}
+
+// Whether the default (non-search) feed has more pages available to load.
+export function hasMoreGhanaAgricultureNews(): boolean {
+  return !!newsCache?.nextPage;
+}
+
+// Fetches and appends the next page of the default feed using the cursor
+// remembered from the last fetchGhanaAgricultureNews() call — powers the
+// News tab's Load More button. Returns the full, merged, re-sorted list.
+export async function fetchMoreGhanaAgricultureNews(): Promise<NewsItem[]> {
+  if (!newsCache?.nextPage) return newsCache?.data ?? [];
+
+  const page = await fetchNewsPage(buildQuery(''), newsCache.nextPage);
+  const seen = new Set(newsCache.data.map((item) => item.id));
+  const merged = [...newsCache.data, ...page.items.filter((item) => !seen.has(item.id))];
+  merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  newsCache = { data: merged, nextPage: page.nextPage, timestamp: newsCache.timestamp };
+  return merged;
 }

@@ -9,7 +9,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
-import { fetchGhanaAgricultureNews, searchNews as searchNewsApi, NewsItem, NewsTopicChip } from '../../services/newsService';
+import {
+  fetchGhanaAgricultureNews,
+  fetchMoreGhanaAgricultureNews,
+  hasMoreGhanaAgricultureNews,
+  searchNews as searchNewsApi,
+  NewsItem,
+  NewsTopicChip,
+} from '../../services/newsService';
 
 const POPULAR_SEARCHES = ['Cocoa Ghana', 'Maize prices', 'Rice harvest', 'Farm equipment', 'Fertiliser'];
 
@@ -44,9 +51,14 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<NewsItem[]>([]);
+  const [searchNextPage, setSearchNextPage] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  const [loadingMoreSearch, setLoadingMoreSearch] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchReqId = useRef(0);
+
+  const [canLoadMoreFeed, setCanLoadMoreFeed] = useState(false);
+  const [loadingMoreFeed, setLoadingMoreFeed] = useState(false);
 
   const isSearchActive = searchQuery.trim().length >= 2;
 
@@ -54,14 +66,39 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
     const reqId = ++searchReqId.current;
     setSearching(true);
     try {
-      const results = await searchNewsApi(query);
-      if (reqId === searchReqId.current) setSearchResults(results);
+      const { items, nextPage } = await searchNewsApi(query);
+      if (reqId === searchReqId.current) {
+        setSearchResults(items);
+        setSearchNextPage(nextPage);
+      }
     } catch {
-      if (reqId === searchReqId.current) setSearchResults([]);
+      if (reqId === searchReqId.current) {
+        setSearchResults([]);
+        setSearchNextPage(null);
+      }
     } finally {
       if (reqId === searchReqId.current) setSearching(false);
     }
   }, []);
+
+  const handleLoadMoreSearch = async () => {
+    if (!searchNextPage) return;
+    setLoadingMoreSearch(true);
+    try {
+      const { items, nextPage } = await searchNewsApi(searchQuery, searchNextPage);
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((i) => i.id));
+        const merged = [...prev, ...items.filter((i) => !seen.has(i.id))];
+        merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+        return merged;
+      });
+      setSearchNextPage(nextPage);
+    } catch {
+      // Keep whatever results are already shown — the button just stays available to retry.
+    } finally {
+      setLoadingMoreSearch(false);
+    }
+  };
 
   // Debounce — wait 500ms after the user stops typing
   useEffect(() => {
@@ -70,6 +107,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
         searchNews(searchQuery);
       } else {
         setSearchResults([]);
+        setSearchNextPage(null);
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -80,6 +118,7 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
     try {
       const items = await fetchGhanaAgricultureNews({ forceRefresh });
       setAllNews(items);
+      setCanLoadMoreFeed(hasMoreGhanaAgricultureNews());
     } catch {
       setError(true);
     }
@@ -91,6 +130,19 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
       try { await load(); } finally { setLoading(false); }
     })();
   }, [load]);
+
+  const handleLoadMoreFeed = async () => {
+    setLoadingMoreFeed(true);
+    try {
+      const items = await fetchMoreGhanaAgricultureNews();
+      setAllNews(items);
+      setCanLoadMoreFeed(hasMoreGhanaAgricultureNews());
+    } catch {
+      // Keep whatever's already loaded — the button just stays available to retry.
+    } finally {
+      setLoadingMoreFeed(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -231,11 +283,12 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
           ) : searchResults.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="newspaper-outline" size={48} color="#9CA3AF" />
-              <Text style={styles.emptyText}>No news found for '{searchQuery}'</Text>
-              <Text style={styles.emptySubtext}>Try searching for cocoa, maize, fertilizer or pesticides</Text>
+              <Text style={styles.emptyTitle}>No Results Found</Text>
+              <Text style={styles.emptySubtext}>No news found for '{searchQuery}' in Ghana</Text>
             </View>
           ) : (
-            searchResults.map((item, index) => (
+            <>
+            {searchResults.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.card}
@@ -289,7 +342,21 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                   </View>
                 </View>
               </TouchableOpacity>
-            ))
+            ))}
+            {searchNextPage && (
+              <TouchableOpacity
+                onPress={handleLoadMoreSearch}
+                disabled={loadingMoreSearch}
+                style={[styles.loadMoreBtn, loadingMoreSearch && { opacity: 0.7 }]}
+              >
+                {loadingMoreSearch ? (
+                  <ActivityIndicator size="small" color={colors.primaryGreen} />
+                ) : (
+                  <Text style={styles.loadMoreBtnText}>Load More</Text>
+                )}
+              </TouchableOpacity>
+            )}
+            </>
           )
         ) : loading ? (
           <View style={styles.centerBox}>
@@ -313,7 +380,8 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
           </View>
         ) : (
-          displayedNews.map((item, index) => (
+          <>
+          {displayedNews.map((item, index) => (
             <TouchableOpacity
               key={item.id}
               style={styles.card}
@@ -368,7 +436,21 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
                 </View>
               </View>
             </TouchableOpacity>
-          ))
+          ))}
+          {canLoadMoreFeed && (
+            <TouchableOpacity
+              onPress={handleLoadMoreFeed}
+              disabled={loadingMoreFeed}
+              style={[styles.loadMoreBtn, loadingMoreFeed && { opacity: 0.7 }]}
+            >
+              {loadingMoreFeed ? (
+                <ActivityIndicator size="small" color={colors.primaryGreen} />
+              ) : (
+                <Text style={styles.loadMoreBtnText}>Load More</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -438,7 +520,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: -4,
     },
     emptyState: { alignItems: 'center', paddingTop: 80, gap: 12 },
-    emptyText: {
+    emptyTitle: {
       fontSize: 16,
       fontWeight: '600',
       color: colors.secondaryText,
@@ -492,6 +574,16 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 20,
     },
     resetBtnText: { fontSize: 13, fontWeight: '700', color: colors.white },
+    loadMoreBtn: {
+      alignSelf: 'center',
+      marginTop: 4,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 20,
+      borderWidth: 1.5,
+      borderColor: colors.primaryGreen,
+    },
+    loadMoreBtnText: { fontSize: 13, fontWeight: '700', color: colors.primaryGreen },
     card: {
       backgroundColor: colors.card,
       borderRadius: 18,
