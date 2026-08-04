@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeColors } from '../context/ThemeContext';
-import { getTopRatedUsers, getRecentUsers, enrichUsersWithPhotos, TopRatedUser } from '../api/userApi';
+import { getTopRatedUsers, enrichUsersWithPhotos, TopRatedUser } from '../api/userApi';
 import { getFollowStatus } from '../api/followApi';
 import FollowButton from './FollowButton';
 
@@ -237,14 +237,14 @@ export default function TopRatedCarousel({ navigation }: Props) {
     return () => loop.stop();
   }, [loading, shimmer]);
 
-  // Fetch from backend (or mock); fall back to recent verified users if no rated users yet
+  // Fetch from backend (or mock). The backend only returns users who are
+  // verified, have at least one review averaging >= 4.0, and at least one
+  // completed transaction — an empty result is a legitimate "nobody
+  // qualifies yet" state, not something to paper over with unrelated users.
   useEffect(() => {
     (async () => {
       try {
         let data = await getTopRatedUsers(10);
-        if (data.length === 0) {
-          data = await getRecentUsers(10);
-        }
         data = await enrichUsersWithPhotos(data);
         console.log(`[TopRated] showing ${data.length} users`);
 
@@ -299,8 +299,7 @@ export default function TopRatedCarousel({ navigation }: Props) {
     },
   ]);
 
-  // Hide section entirely if no data after loading
-  if (!loading && users.length === 0) return null;
+  const isEmpty = !loading && users.length === 0;
 
   return (
     <View style={t.wrapper}>
@@ -315,17 +314,27 @@ export default function TopRatedCarousel({ navigation }: Props) {
             </Text>
           </View>
         </View>
-        <TouchableOpacity activeOpacity={0.7}>
-          <Text style={[t.seeAll, { color: colors.primaryGreen }]}>See all</Text>
-        </TouchableOpacity>
+        {!isEmpty && (
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[t.seeAll, { color: colors.primaryGreen }]}>See all</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Skeleton or real cards */}
+      {/* Skeleton, empty state, or real cards */}
       {loading ? (
         <View style={t.skRow}>
           {[0, 1, 2].map((i) => (
             <SkeletonCard key={i} shimmer={shimmer} colors={colors} />
           ))}
+        </View>
+      ) : isEmpty ? (
+        <View style={t.emptyContainer}>
+          <Ionicons name="star-outline" size={32} color="#9CA3AF" />
+          <Text style={[t.emptyText, { color: colors.text }]}>No top rated users yet</Text>
+          <Text style={[t.emptySubtext, { color: colors.secondaryText }]}>
+            Complete transactions to appear here
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -383,6 +392,9 @@ const t = StyleSheet.create({
   seeAll:      { fontSize: 12, fontWeight: '600', marginTop: 3 },
   skRow:       { flexDirection: 'row', paddingHorizontal: 8 },
   listContent: { paddingHorizontal: 8, paddingBottom: 4 },
+  emptyContainer: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 24 },
+  emptyText:       { fontSize: 14, fontWeight: '700', marginTop: 10 },
+  emptySubtext:    { fontSize: 12, marginTop: 4, textAlign: 'center' },
   dots:        { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 10, marginBottom: 2 },
   dot:         { height: 6, borderRadius: 3 },
 });
