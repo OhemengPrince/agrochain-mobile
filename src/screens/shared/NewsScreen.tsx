@@ -229,11 +229,13 @@ export default function NewsScreen({ navigation }: { navigation: any }) {
               <Text style={styles.loadingText}>Searching agriculture news…</Text>
             </View>
           ) : searchResults.length === 0 ? (
-            <View style={styles.centerBox}>
-              <Ionicons name="newspaper-outline" size={48} color={colors.secondaryText} />
-              <Text style={styles.emptySearchTitle}>No results found</Text>
-              <Text style={styles.emptySearchSubtitle}>
-                Try different keywords like 'cocoa', 'maize' or 'farming Ghana'
+            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+              <Ionicons name="newspaper-outline" size={48} color="#9CA3AF" />
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#374151', marginTop: 16 }}>
+                No Results Found
+              </Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+                No news found for '{searchQuery}' in Ghana
               </Text>
             </View>
           ) : (
@@ -438,20 +440,6 @@ function createStyles(colors: ThemeColors) {
       marginHorizontal: 16,
       marginTop: 12,
       marginBottom: -4,
-    },
-    emptySearchTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.secondaryText,
-      marginTop: 12,
-    },
-    emptySearchSubtitle: {
-      fontSize: 13,
-      color: colors.secondaryText,
-      opacity: 0.7,
-      textAlign: 'center',
-      marginTop: 6,
-      paddingHorizontal: 20,
     },
     chipsRow: { flexDirection: 'row', gap: 8, marginTop: 14, paddingRight: 4 },
     chip: {
