@@ -65,8 +65,26 @@ const AGRIC_RELEVANCE_KEYWORDS = [
   'produce market', 'cocoa farmer', 'cocoa price',
 ];
 
+// Second layer of defense: even with the allowlist above, a handful of
+// non-agric articles slip through on incidental word overlap (a diplomacy
+// piece that happens to say "Ghana's development", a politics story that
+// mentions a minister's rural "farm" background, etc — confirmed live).
+// If any of these show up, the article is dropped outright regardless of
+// what else matched.
+const NON_AGRIC_EXCLUDE_KEYWORDS = [
+  'election', 'parliament', 'constitution', 'constitutional review',
+  'diplomatic', 'bilateral', 'embassy', 'ambassador', 'state visit',
+  'afcfta summit', 'jama', 'reunion', 'vice-chancellor', 'anniversary',
+  'football', 'boxing', 'basketball', 'afcon', 'premier league',
+  'movie', 'music video', 'album', 'celebrity', 'red carpet',
+  'cyber threat', 'interpol', 'vehicle registration', 'number plate',
+  'dvla', 'gunmen', 'abduct', 'kidnap',
+];
+
 function isAgricRelevant(title: string, summary: string, extraKeywords: string[] = []): boolean {
   const text = `${title} ${summary}`.toLowerCase();
+  if (NON_AGRIC_EXCLUDE_KEYWORDS.some((kw) => text.includes(kw))) return false;
+
   const keywords = extraKeywords.length
     ? [...AGRIC_RELEVANCE_KEYWORDS, ...extraKeywords.map((k) => k.toLowerCase()).filter((k) => k.length > 2)]
     : AGRIC_RELEVANCE_KEYWORDS;
