@@ -179,10 +179,6 @@ export default function FarmerProfileScreen({ navigation }: Props) {
       !!reportPreview.report
   );
 
-  const showComingSoon = (feature: string) => {
-    Alert.alert(feature, `${feature} is coming soon.`);
-  };
-
   const handleShareApp = () => {
     Share.share({
       message: 'Join me on AgroChain — buy, sell and rent farm equipment across Ghana. Download the app today!',
@@ -301,8 +297,6 @@ export default function FarmerProfileScreen({ navigation }: Props) {
       items: [
         { icon: 'build-outline', label: 'Account Settings', onPress: () => navigation.navigate('Settings') },
         { icon: 'lock-closed-outline', label: 'Change Password', onPress: () => setChangePasswordVisible(true) },
-        { icon: 'diamond-outline', label: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
-        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
       ],
     },
     {
