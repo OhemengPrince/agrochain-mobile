@@ -11,8 +11,18 @@ const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, '');
 // The backend sometimes returns an absolute URL already and sometimes a
 // relative path — use this wherever an equipment (or other uploaded) image
 // is displayed so both cases render correctly.
+//
+// Records created before the app was pointed at the current backend can have
+// an absolute URL baked in against an old/dead host (e.g. a local dev IP).
+// Those are rebased onto the current API origin too — only the path is
+// trusted — so old listings self-heal instead of showing a broken image
+// forever.
 export function getImageUrl(url?: string | null): string | null {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+  if (url.startsWith(API_ORIGIN)) return url;
+  const path = url.replace(/^https?:\/\/[^/]+/, '');
+  return `${API_ORIGIN}${path}`;
 }
