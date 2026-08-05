@@ -22,8 +22,12 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "RECORD_AUDIO"
-      ]
+        "RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.ohemeng2.agrochainmobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +41,14 @@
           "locationWhenInUsePermission": "AgroChain uses your location to show local weather and nearby equipment."
         }
       ],
-      "@react-native-google-signin/google-signin"
-    ]
+      "@react-native-google-signin/google-signin",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4634744f-b5a9-4e56-8461-9063b84a236c"
+      }
+    },
+    "owner": "ohemeng2"
   }
 }
