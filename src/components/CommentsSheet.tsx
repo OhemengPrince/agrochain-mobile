@@ -20,6 +20,7 @@ import ReactionBar from './ReactionBar';
 import { getComments } from '../api/itemCommentApi';
 import * as commentSocket from '../services/itemCommentSocket';
 import { ItemComment, ItemType } from '../types';
+import { getImageUrl } from '../utils/imageUrl';
 
 // Instagram-style palette for the sheet, swapped based on the app's own
 // light/dark mode toggle rather than being hardcoded to one look.
@@ -322,8 +323,8 @@ export default function CommentsSheet({
               flexDirection: 'row', alignItems: 'center', gap: 10,
               paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: p.divider,
             }}>
-              {itemImageUrl ? (
-                <Image source={{ uri: itemImageUrl }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode="cover" />
+              {getImageUrl(itemImageUrl) ? (
+                <Image source={{ uri: getImageUrl(itemImageUrl)! }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode="cover" />
               ) : (
                 <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: p.inputBg, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 18 }}>{itemEmoji ?? '📦'}</Text>

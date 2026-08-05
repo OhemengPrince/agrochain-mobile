@@ -32,6 +32,7 @@ import { cardShadow } from '../../constants/shadows';
 import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ErrorMessage from '../../components/ErrorMessage';
+import { getImageUrl } from '../../utils/imageUrl';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'MyMarketplaceListings'>;
 
@@ -94,9 +95,10 @@ function ListingIcon({
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
-  if (listing.photoUrls?.[0]) {
+  const photoUrl = getImageUrl(listing.photoUrls?.[0]);
+  if (photoUrl) {
     return (
-      <Image source={{ uri: listing.photoUrls[0] }} style={styles.iconCircle} resizeMode="cover" />
+      <Image source={{ uri: photoUrl }} style={styles.iconCircle} resizeMode="cover" />
     );
   }
   if (listing.category === 'PRODUCE') {

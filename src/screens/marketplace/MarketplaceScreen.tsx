@@ -22,6 +22,7 @@ import {
   MarketplaceCategory,
 } from '../../types';
 import { getMarketplaceListings } from '../../api/produceApi';
+import { getImageUrl } from '../../utils/imageUrl';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate, getCropEmoji } from '../../utils/formatters';
@@ -95,9 +96,10 @@ function ListingPlaceholder({
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
-  if (listing.photoUrls?.[0]) {
+  const photoUrl = getImageUrl(listing.photoUrls?.[0]);
+  if (photoUrl) {
     return (
-      <Image source={{ uri: listing.photoUrls[0] }} style={styles.listingPhoto} resizeMode="cover" />
+      <Image source={{ uri: photoUrl }} style={styles.listingPhoto} resizeMode="cover" />
     );
   }
   if (listing.category === 'PRODUCE') {

@@ -26,6 +26,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import FollowButton from '../../components/FollowButton';
 import { getFollowStatus } from '../../api/followApi';
 import GlassBlur from '../../components/GlassBlur';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 280;
@@ -193,7 +194,7 @@ function PhotoCarousel({
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
         onScrollToIndexFailed={() => {}}
         renderItem={({ item }) => (
-          <Image source={{ uri: item }} style={styles.heroPhoto} resizeMode="cover" />
+          <Image source={{ uri: getImageUrl(item) ?? item }} style={styles.heroPhoto} resizeMode="cover" />
         )}
       />
       {photoUrls.length > 1 && (
