@@ -21,6 +21,7 @@ const CHAT_BUBBLE_THEME_KEY = '@agrochain/chat_bubble_theme';
 const CERTIFICATIONS_KEY = '@agrochain/certifications';
 const APP_RATING_KEY = '@agrochain/app_rating';
 const EXPORT_PREFERENCES_KEY = '@agrochain/export_preferences';
+const PENDING_SUB_REF_KEY = '@agrochain/pending_sub_ref';
 
 export type ExportDateRange = 'ALL' | '30D' | '90D';
 
@@ -473,6 +474,30 @@ export async function setAppRating(rating: StoredAppRating): Promise<void> {
     return;
   }
   await AsyncStorage.setItem(APP_RATING_KEY, json);
+}
+
+// ── Pending subscription payment reference — stashed before opening the
+// Paystack checkout page so verification can be retried by hand if the
+// deep-link redirect back into the app doesn't fire ─────────────────────
+export async function getPendingSubscriptionReference(): Promise<string | null> {
+  if (USE_MOCK_DATA) return memoryStore[PENDING_SUB_REF_KEY] ?? null;
+  return AsyncStorage.getItem(PENDING_SUB_REF_KEY);
+}
+
+export async function setPendingSubscriptionReference(reference: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    memoryStore[PENDING_SUB_REF_KEY] = reference;
+    return;
+  }
+  await AsyncStorage.setItem(PENDING_SUB_REF_KEY, reference);
+}
+
+export async function clearPendingSubscriptionReference(): Promise<void> {
+  if (USE_MOCK_DATA) {
+    delete memoryStore[PENDING_SUB_REF_KEY];
+    return;
+  }
+  await AsyncStorage.removeItem(PENDING_SUB_REF_KEY);
 }
 
 export async function clearAll(): Promise<void> {

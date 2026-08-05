@@ -19,6 +19,11 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { UserRole } from '../../types';
 import { formatDate } from '../../utils/formatters';
 import {
+  getPendingSubscriptionReference,
+  setPendingSubscriptionReference,
+  clearPendingSubscriptionReference,
+} from '../../utils/storage';
+import {
   getMySubscription,
   initiateSubscription,
   verifySubscription,
@@ -79,8 +84,7 @@ export default function SubscriptionScreen({ navigation }: any) {
   const [subscribingPlan, setSubscribingPlan] = useState<SubscriptionPlan | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [awaitingPayment, setAwaitingPayment] = useState(false);
-  const [pendingReference, setPendingReference] = useState<string | null>(null);
+  const [hasPendingReference, setHasPendingReference] = useState(false);
 
   const loadSubscription = useCallback(async () => {
     try {
@@ -93,27 +97,42 @@ export default function SubscriptionScreen({ navigation }: any) {
     }
   }, []);
 
+  const checkPendingReference = useCallback(async () => {
+    const ref = await getPendingSubscriptionReference();
+    setHasPendingReference(!!ref);
+  }, []);
+
   // Refresh whenever the screen is visited, not just on first mount.
   useFocusEffect(
     useCallback(() => {
       loadSubscription();
-    }, [loadSubscription])
+      checkPendingReference();
+    }, [loadSubscription, checkPendingReference])
   );
 
   const handleVerify = useCallback(async (reference: string) => {
     setVerifying(true);
     try {
       await verifySubscription(reference);
-      setAwaitingPayment(false);
-      setPendingReference(null);
-      Alert.alert('Success', 'Subscription activated successfully!');
+      await clearPendingSubscriptionReference();
+      setHasPendingReference(false);
+      Alert.alert('Success!', 'Your subscription has been activated!');
       loadSubscription();
     } catch {
-      Alert.alert('Error', 'Failed to verify payment. Please contact support.');
+      Alert.alert('Error', 'Payment verification failed');
     } finally {
       setVerifying(false);
     }
   }, [loadSubscription]);
+
+  const handleVerifyPayment = async () => {
+    const reference = await getPendingSubscriptionReference();
+    if (!reference) {
+      Alert.alert('No pending payment found');
+      return;
+    }
+    await handleVerify(reference);
+  };
 
   // Deep-link callback after the user completes checkout in the browser.
   useEffect(() => {
@@ -138,29 +157,19 @@ export default function SubscriptionScreen({ navigation }: any) {
       const response = await initiateSubscription(plan, cycle);
       const { authorizationUrl, reference } = response.data;
       if (!authorizationUrl) throw new Error('No payment URL returned');
-      if (reference) setPendingReference(reference);
-      setAwaitingPayment(true);
+      // Stash the reference before redirecting so payment can still be
+      // verified by hand if the Paystack redirect doesn't reliably reopen
+      // the app (common on some Android setups).
+      if (reference) {
+        await setPendingSubscriptionReference(reference);
+        setHasPendingReference(true);
+      }
       await Linking.openURL(authorizationUrl);
     } catch (e) {
-      Alert.alert('Error', 'Failed to initiate payment. Please try again.');
+      Alert.alert('Error', 'Failed to initiate payment');
     } finally {
       setSubscribingPlan(null);
     }
-  };
-
-  // Fallback for when the Paystack redirect doesn't reliably reopen the app
-  // (common on some Android setups) — lets the user confirm payment by hand
-  // instead of being stuck on FREE with no way to recover.
-  const handleManualVerify = () => {
-    if (pendingReference) {
-      handleVerify(pendingReference);
-      return;
-    }
-    loadSubscription();
-    Alert.alert(
-      'Verify Payment',
-      "We couldn't find your payment reference automatically. If you completed checkout, please wait a moment and try again, or contact support if you were charged."
-    );
   };
 
   const handleCancel = () => {
@@ -265,10 +274,10 @@ export default function SubscriptionScreen({ navigation }: any) {
           </View>
         )}
 
-        {awaitingPayment && !verifying && (
-          <Pressable onPress={handleManualVerify} style={styles.manualVerifyButton}>
-            <Ionicons name="refresh" size={15} color={colors.primaryGreen} />
-            <Text style={styles.manualVerifyText}>Already paid? Tap to verify payment</Text>
+        {hasPendingReference && !verifying && (
+          <Pressable onPress={handleVerifyPayment} style={styles.manualVerifyButton}>
+            <Ionicons name="checkmark-circle-outline" size={17} color="#fff" />
+            <Text style={styles.manualVerifyText}>Verify Payment</Text>
           </Pressable>
         )}
 
@@ -405,11 +414,11 @@ function createStyles(colors: ThemeColors) {
     verifyingText: { fontSize: 12, fontWeight: '600', color: colors.text },
 
     manualVerifyButton: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      paddingVertical: 12, marginBottom: 16, borderRadius: 12,
-      borderWidth: 1, borderColor: colors.primaryGreen, borderStyle: 'dashed',
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      paddingVertical: 14, marginBottom: 16, borderRadius: 14,
+      backgroundColor: colors.primaryGreen,
     },
-    manualVerifyText: { fontSize: 13, fontWeight: '700', color: colors.primaryGreen },
+    manualVerifyText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
     billingToggle: {
       flexDirection: 'row', backgroundColor: colors.inputBackground, borderRadius: 14,
