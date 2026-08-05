@@ -19,6 +19,10 @@ export default function EquipmentImage({ category, imageUrl, style, resizeMode =
   const resolvedUrl = getImageUrl(imageUrl);
   const source = resolvedUrl ? { uri: resolvedUrl } : getEquipmentImage(category);
 
+  if (__DEV__) {
+    console.log('[EquipmentImage] raw imageUrl:', imageUrl, '| resolved:', resolvedUrl);
+  }
+
   return (
     <View style={[styles.container, style]}>
       {!failed ? (
@@ -27,7 +31,10 @@ export default function EquipmentImage({ category, imageUrl, style, resizeMode =
           style={StyleSheet.absoluteFill}
           resizeMode={resizeMode}
           onLoadEnd={() => setLoading(false)}
-          onError={() => {
+          onError={(e) => {
+            if (__DEV__) {
+              console.log('[EquipmentImage] failed to load:', resolvedUrl, e.nativeEvent?.error);
+            }
             setLoading(false);
             setFailed(true);
           }}

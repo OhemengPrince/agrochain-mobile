@@ -10,6 +10,15 @@ import { MOCK_EQUIPMENT } from '../mock/mockData';
 import { mockDelay, generateMockId } from '../mock/mockHelpers';
 import { getUser } from '../utils/storage';
 
+// The backend has been observed returning the equipment photo under a few
+// different keys depending on the endpoint/version (imageUrl, image_url,
+// photoUrl, photo_url). Normalize whichever one is present onto `imageUrl`
+// so every screen can rely on a single consistent field.
+function normalizeEquipment<T extends Record<string, any>>(raw: T): T & { imageUrl?: string } {
+  const imageUrl = raw.imageUrl ?? raw.image_url ?? raw.photoUrl ?? raw.photo_url ?? undefined;
+  return { ...raw, imageUrl };
+}
+
 export async function searchEquipment(params: CatalogueParams): Promise<Equipment[]> {
   if (USE_MOCK_DATA) {
     const query = params.query?.toLowerCase();
@@ -24,7 +33,7 @@ export async function searchEquipment(params: CatalogueParams): Promise<Equipmen
   }
   console.log('[API] GET /equipment', params);
   const { data } = await apiClient.get<any>('/equipment', { params });
-  const result = extractArray<Equipment>(data);
+  const result = extractArray<any>(data).map(normalizeEquipment);
   console.log('[API] /equipment ->', result.length, 'items');
   return result;
 }
@@ -37,8 +46,9 @@ export async function getEquipmentById(equipmentId: string): Promise<Equipment> 
   }
   console.log('[API] GET /equipment/' + equipmentId);
   const { data } = await apiClient.get<any>(`/equipment/${equipmentId}`);
-  console.log('[API] /equipment/' + equipmentId + ' → ownerId:', data?.ownerId, '| viewsCount:', data?.viewsCount);
-  return { ...data, viewsCount: data?.viewsCount ?? 0 } as Equipment;
+  const normalized = normalizeEquipment(data);
+  console.log('[API] /equipment/' + equipmentId + ' → ownerId:', normalized?.ownerId, '| imageUrl:', normalized?.imageUrl);
+  return { ...normalized, viewsCount: normalized?.viewsCount ?? 0 } as Equipment;
 }
 
 export async function getMyListings(): Promise<Equipment[]> {
@@ -49,8 +59,8 @@ export async function getMyListings(): Promise<Equipment[]> {
   }
   console.log('[API] GET /equipment/my-listings');
   const { data } = await apiClient.get<any>('/equipment/my-listings');
-  const result = extractArray<Equipment>(data);
-  console.log('[API] /equipment/my-listings ->', result.length, 'items');
+  const result = extractArray<any>(data).map(normalizeEquipment);
+  console.log('[API] /equipment/my-listings ->', result.length, 'items', result.map((r) => r.imageUrl));
   return result;
 }
 
@@ -68,8 +78,8 @@ export async function createEquipment(payload: CreateEquipmentPayload): Promise<
     MOCK_EQUIPMENT.unshift(equipment);
     return mockDelay(equipment);
   }
-  const { data } = await apiClient.post<Equipment>('/equipment', payload);
-  return data;
+  const { data } = await apiClient.post<any>('/equipment', payload);
+  return normalizeEquipment(data);
 }
 
 export async function updateEquipment(
@@ -82,8 +92,8 @@ export async function updateEquipment(
     MOCK_EQUIPMENT[index] = { ...MOCK_EQUIPMENT[index], ...payload };
     return mockDelay(MOCK_EQUIPMENT[index]);
   }
-  const { data } = await apiClient.put<Equipment>(`/equipment/${equipmentId}`, payload);
-  return data;
+  const { data } = await apiClient.put<any>(`/equipment/${equipmentId}`, payload);
+  return normalizeEquipment(data);
 }
 
 export async function deleteEquipment(equipmentId: string): Promise<void> {
