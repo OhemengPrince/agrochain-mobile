@@ -31,7 +31,6 @@ import { ThemeColors } from '../../context/ThemeContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ProfileSettingsList, { SettingsSection } from '../../components/ProfileSettingsList';
-import ProfileTabs from '../../components/ProfileTabs';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import UserAvatar from '../../components/UserAvatar';
 import FloatToast from '../../components/FloatToast';
@@ -56,7 +55,7 @@ import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<FarmerStackParamList, 'FarmerProfileMain'>;
 
-const TABS = ['About', 'Activity', 'Reviews', 'Settings'];
+type ProfileTab = 'About' | 'Activity' | 'Reviews' | 'Settings';
 
 function computeRatingBreakdown(reviews: UserReview[]): { stars: number; percentage: number; count: number }[] {
   const counts = [5, 4, 3, 2, 1].map((stars) => reviews.filter((r) => r.rating === stars).length);
@@ -118,7 +117,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
   const [bioExpanded, setBioExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('Settings');
   const [aboutText, setAboutText] = useState(BIO_TEXT);
   const [aboutEditVisible, setAboutEditVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState('');
@@ -423,10 +422,14 @@ export default function FarmerProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <View style={styles.tabsWrap}>
-          <View style={styles.tabsHandle} />
-          <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-        </View>
+        {activeTab !== 'Settings' && (
+          <View style={styles.sectionBackRow}>
+            <Pressable onPress={() => setActiveTab('Settings')} hitSlop={10} style={styles.sectionBackButton}>
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Pressable>
+            <Text style={styles.sectionBackTitle}>{activeTab}</Text>
+          </View>
+        )}
 
         {activeTab === 'About' && (
           <View style={styles.premiumCardWrap}>
@@ -790,17 +793,26 @@ function createStyles(colors: ThemeColors) {
       height: 34,
       backgroundColor: 'rgba(255,255,255,0.18)',
     },
-    tabsWrap: {
+    sectionBackRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
       marginHorizontal: 16,
       marginTop: 20,
-      alignItems: 'center',
+      marginBottom: 4,
     },
-    tabsHandle: {
-      width: 36,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.accentAmber,
-      marginBottom: 10,
+    sectionBackButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.inputBackground,
+    },
+    sectionBackTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
     },
     aboutHeading: {
       fontSize: 15,
