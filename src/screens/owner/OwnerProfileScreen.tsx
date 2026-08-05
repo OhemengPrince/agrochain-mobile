@@ -333,6 +333,14 @@ export default function OwnerProfileScreen({ navigation }: Props) {
 
   const settingsSections: SettingsSection[] = [
     {
+      title: 'Profile',
+      items: [
+        { icon: 'person-outline', label: 'About', onPress: () => setActiveTab('About') },
+        { icon: 'pulse-outline', label: 'Activity', onPress: () => setActiveTab('Activity') },
+        { icon: 'star-outline', label: 'Reviews', onPress: () => setActiveTab('Reviews') },
+      ],
+    },
+    {
       title: 'AgroChain Pro',
       items: [
         { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => showComingSoon('Subscriptions') },
@@ -409,9 +417,6 @@ export default function OwnerProfileScreen({ navigation }: Props) {
                 {avatarUploading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingsIconButton} onPress={() => setActiveTab('Settings')}>
-                <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
