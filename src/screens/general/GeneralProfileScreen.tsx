@@ -40,6 +40,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getEarnings, EarningsSummary } from '../../api/earningsApi';
 import { getFollowCounts } from '../../api/followApi';
 import ActivitySubTabs from '../../components/ActivitySubTabs';
+import FullScreenSheet, { SheetSectionLabel } from '../../components/FullScreenSheet';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import RateAppModal from '../../components/RateAppModal';
 import ContactSupportModal from '../../components/ContactSupportModal';
@@ -260,18 +261,18 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
   const settingsSections: SettingsSection[] = [
     {
+      title: 'AgroChain Pro',
+      items: [
+        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => showComingSoon('Subscriptions') },
+        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
+      ],
+    },
+    {
       title: 'Profile',
       items: [
         { icon: 'person-outline', label: 'About', onPress: () => setActiveTab('About') },
         { icon: 'pulse-outline', label: 'Activity', onPress: () => setActiveTab('Activity') },
         { icon: 'star-outline', label: 'Reviews', onPress: () => setActiveTab('Reviews') },
-      ],
-    },
-    {
-      title: 'AgroChain Pro',
-      items: [
-        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => showComingSoon('Subscriptions') },
-        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
       ],
     },
     {
@@ -394,181 +395,177 @@ export default function GeneralProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {activeTab !== 'Settings' && (
-          <View style={styles.sectionBackRow}>
-            <Pressable onPress={() => setActiveTab('Settings')} hitSlop={10} style={styles.sectionBackButton}>
-              <Ionicons name="chevron-back" size={20} color={colors.text} />
-            </Pressable>
-            <Text style={styles.sectionBackTitle}>{activeTab}</Text>
-          </View>
-        )}
-
-        {activeTab === 'About' && (
-          <View style={styles.premiumCardWrap}>
-            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-              <Text style={styles.aboutHeading}>About {user.fullName}</Text>
-              {!aboutEditVisible ? (
-                <>
-                  <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 2}>
-                    {aboutText}
-                  </Text>
-                  <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
-                    <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
-                  </Pressable>
-                  <TouchableOpacity
-                    style={styles.addDescriptionRow}
-                    onPress={() => { setAboutDraft(aboutText === BIO_TEXT ? '' : aboutText); setAboutEditVisible(true); }}
-                  >
-                    <View style={styles.aboutEditButton}>
-                      <Ionicons name="add" size={16} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.addDescriptionText}>
-                      {aboutText === BIO_TEXT ? 'Add a description about yourself' : 'Edit description'}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <View style={styles.aboutEditorBox}>
-                  <Text style={styles.aboutEditorLabel}>Describe yourself in 1–2 sentences</Text>
-                  <TextInput
-                    style={styles.aboutTextInput}
-                    value={aboutDraft}
-                    onChangeText={setAboutDraft}
-                    multiline
-                    placeholder="e.g. General AgroChain user buying and selling..."
-                    placeholderTextColor={colors.secondaryText}
-                    autoFocus
-                    maxLength={300}
-                  />
-                  <Text style={styles.aboutCharCount}>{aboutDraft.length}/300</Text>
-                  <View style={styles.aboutModalButtons}>
-                    <Pressable style={styles.aboutModalCancelButton} onPress={() => setAboutEditVisible(false)}>
-                      <Text style={styles.aboutModalCancelText}>Cancel</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.aboutModalSaveButton}
-                      onPress={() => { if (aboutDraft.trim()) setAboutText(aboutDraft.trim()); setAboutEditVisible(false); }}
-                    >
-                      <Text style={styles.aboutModalSaveText}>Done</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-
-              <View style={styles.contactRow}>
-                <View style={styles.contactAvatar}>
-                  <Text style={styles.contactAvatarText}>{initial}</Text>
-                </View>
-                <View style={styles.contactMiddle}>
-                  <Text style={styles.contactName}>{user.fullName}</Text>
-                  <Text style={styles.contactRole}>General User</Text>
-                </View>
-              </View>
-
-              <View style={styles.specsRow}>
-                <View style={styles.specBox}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.primaryGreen} />
-                  <Text style={styles.specValue}>{memberSince}</Text>
-                  <Text style={styles.specLabel}>Member Since</Text>
-                </View>
-                <View style={styles.specBox}>
-                  <Ionicons name="pricetag-outline" size={16} color={colors.primaryGreen} />
-                  <Text style={styles.specValue}>{SPECIALTY}</Text>
-                  <Text style={styles.specLabel}>Specialty</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </View>
-        )}
-
-        {activeTab === 'Activity' && (
-          <ActivitySubTabs
-            earnings={earnings}
-            onWithdraw={() => navigation.navigate('Withdrawal')}
-            onViewAllTransactions={() => navigation.navigate('TransactionHistory')}
-          />
-        )}
-
-        {activeTab === 'Reviews' && (
-          <View style={styles.premiumCardWrap}>
-            <LinearGradient colors={['rgba(26,107,46,0.03)', 'rgba(26,107,46,0.08)']} style={styles.premiumCardGradient}>
-              <View style={styles.premiumHeaderRow}>
-                <View style={styles.premiumIconCircle}>
-                  <Ionicons name="star-outline" size={18} color={colors.primaryGreen} />
-                </View>
-                <Text style={styles.premiumHeaderText}>Reviews & Ratings</Text>
-              </View>
-
-              {reviews.length === 0 ? (
-                <Text style={styles.emptyText}>No reviews yet.</Text>
-              ) : (
-                <>
-                  <View style={styles.ratingOverviewBlock}>
-                    <Text style={styles.ratingBigNumber}>{averageRating.toFixed(1)}</Text>
-                    <View style={styles.ratingStarsRow}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Ionicons
-                          key={i}
-                          name="star"
-                          size={16}
-                          color={i < Math.round(averageRating) ? colors.accentAmber : colors.border}
-                        />
-                      ))}
-                    </View>
-                    <Text style={styles.ratingCountText}>{totalReviews} review{totalReviews === 1 ? '' : 's'}</Text>
-                  </View>
-
-                  <View style={styles.ratingBarsWrap}>
-                    {computeRatingBreakdown(reviews).map((row) => (
-                      <View key={row.stars} style={styles.ratingBarRow}>
-                        <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
-                        <View style={styles.ratingBarTrack}>
-                          <LinearGradient
-                            colors={['#FF8F00', '#FFB300']}
-                            style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
-                          />
-                        </View>
-                        <Text style={styles.ratingBarCount}>{row.count}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {reviews.map((review) => (
-                    <View key={review.id} style={styles.reviewCardOuter}>
-                      <View style={styles.reviewCard}>
-                        <View style={styles.reviewHeaderRow}>
-                          <View style={styles.reviewAvatar}>
-                            <Text style={styles.reviewAvatarText}>{review.reviewerName.charAt(0)}</Text>
-                          </View>
-                          <Text style={styles.reviewerName}>{review.reviewerName}</Text>
-                          <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
-                        </View>
-                        <View style={styles.reviewStarsRow}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Ionicons
-                              key={i}
-                              name="star"
-                              size={12}
-                              color={i < review.rating ? colors.accentAmber : colors.border}
-                            />
-                          ))}
-                        </View>
-                        {!!review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
-                      </View>
-                    </View>
-                  ))}
-                </>
-              )}
-            </LinearGradient>
-          </View>
-        )}
-
         {activeTab === 'Settings' && <ProfileSettingsList sections={settingsSections} />}
 
       </ScrollView>
       </KeyboardAvoidingView>
 
       <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />
+
+      <FullScreenSheet
+        visible={activeTab === 'About'}
+        onClose={() => setActiveTab('Settings')}
+        title="About"
+        subtitle={user.fullName}
+        icon="person-outline"
+      >
+        <View style={styles.aboutContactRow}>
+          <View style={styles.aboutContactAvatar}>
+            <Text style={styles.aboutContactAvatarText}>{initial}</Text>
+          </View>
+          <View style={styles.contactMiddle}>
+            <Text style={styles.contactName}>{user.fullName}</Text>
+            <Text style={styles.contactRole}>General User</Text>
+          </View>
+        </View>
+
+        <SheetSectionLabel text="Bio" />
+        {!aboutEditVisible ? (
+          <>
+            <Text style={styles.aboutParagraph} numberOfLines={bioExpanded ? undefined : 3}>
+              {aboutText}
+            </Text>
+            <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
+              <Text style={styles.readMoreText}>{bioExpanded ? 'Read Less' : 'Read More'}</Text>
+            </Pressable>
+            <TouchableOpacity
+              style={styles.addDescriptionRow}
+              onPress={() => { setAboutDraft(aboutText === BIO_TEXT ? '' : aboutText); setAboutEditVisible(true); }}
+            >
+              <View style={styles.aboutEditButton}>
+                <Ionicons name="add" size={16} color="#FFFFFF" />
+              </View>
+              <Text style={styles.addDescriptionText}>
+                {aboutText === BIO_TEXT ? 'Add a description about yourself' : 'Edit description'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={styles.aboutEditorBox}>
+            <Text style={styles.aboutEditorLabel}>Describe yourself in 1–2 sentences</Text>
+            <TextInput
+              style={styles.aboutTextInput}
+              value={aboutDraft}
+              onChangeText={setAboutDraft}
+              multiline
+              placeholder="e.g. General AgroChain user buying and selling..."
+              placeholderTextColor={colors.secondaryText}
+              autoFocus
+              maxLength={300}
+            />
+            <Text style={styles.aboutCharCount}>{aboutDraft.length}/300</Text>
+            <View style={styles.aboutModalButtons}>
+              <Pressable style={styles.aboutModalCancelButton} onPress={() => setAboutEditVisible(false)}>
+                <Text style={styles.aboutModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.aboutModalSaveButton}
+                onPress={() => { if (aboutDraft.trim()) setAboutText(aboutDraft.trim()); setAboutEditVisible(false); }}
+              >
+                <Text style={styles.aboutModalSaveText}>Done</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        <SheetSectionLabel text="Details" />
+        <View style={styles.specsRow}>
+          <View style={styles.specBox}>
+            <Ionicons name="calendar-outline" size={16} color={colors.primaryGreen} />
+            <Text style={styles.specValue}>{memberSince}</Text>
+            <Text style={styles.specLabel}>Member Since</Text>
+          </View>
+          <View style={styles.specBox}>
+            <Ionicons name="pricetag-outline" size={16} color={colors.primaryGreen} />
+            <Text style={styles.specValue}>{SPECIALTY}</Text>
+            <Text style={styles.specLabel}>Specialty</Text>
+          </View>
+        </View>
+      </FullScreenSheet>
+
+      <FullScreenSheet
+        visible={activeTab === 'Activity'}
+        onClose={() => setActiveTab('Settings')}
+        title="Activity"
+        subtitle="Earnings, bookings & transaction history"
+        icon="pulse-outline"
+      >
+        <ActivitySubTabs
+          earnings={earnings}
+          onWithdraw={() => navigation.navigate('Withdrawal')}
+          onViewAllTransactions={() => navigation.navigate('TransactionHistory')}
+        />
+      </FullScreenSheet>
+
+      <FullScreenSheet
+        visible={activeTab === 'Reviews'}
+        onClose={() => setActiveTab('Settings')}
+        title="Reviews & Ratings"
+        subtitle={`${totalReviews} review${totalReviews === 1 ? '' : 's'}`}
+        icon="star-outline"
+      >
+        {reviews.length === 0 ? (
+          <Text style={styles.emptyText}>No reviews yet.</Text>
+        ) : (
+          <>
+            <View style={styles.ratingOverviewBlock}>
+              <Text style={styles.ratingBigNumber}>{averageRating.toFixed(1)}</Text>
+              <View style={styles.ratingStarsRow}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Ionicons
+                    key={i}
+                    name="star"
+                    size={16}
+                    color={i < Math.round(averageRating) ? colors.accentAmber : colors.border}
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingCountText}>{totalReviews} review{totalReviews === 1 ? '' : 's'}</Text>
+            </View>
+
+            <View style={styles.ratingBarsWrap}>
+              {computeRatingBreakdown(reviews).map((row) => (
+                <View key={row.stars} style={styles.ratingBarRow}>
+                  <Text style={styles.ratingBarLabel}>{row.stars}★</Text>
+                  <View style={styles.ratingBarTrack}>
+                    <LinearGradient
+                      colors={['#FF8F00', '#FFB300']}
+                      style={[styles.ratingBarFill, { width: `${row.percentage}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.ratingBarCount}>{row.count}</Text>
+                </View>
+              ))}
+            </View>
+
+            <SheetSectionLabel text="Recent Reviews" />
+            {reviews.map((review) => (
+              <View key={review.id} style={styles.reviewCardOuter}>
+                <View style={styles.reviewCard}>
+                  <View style={styles.reviewHeaderRow}>
+                    <View style={styles.reviewAvatar}>
+                      <Text style={styles.reviewAvatarText}>{review.reviewerName.charAt(0)}</Text>
+                    </View>
+                    <Text style={styles.reviewerName}>{review.reviewerName}</Text>
+                    <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
+                  </View>
+                  <View style={styles.reviewStarsRow}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Ionicons
+                        key={i}
+                        name="star"
+                        size={12}
+                        color={i < review.rating ? colors.accentAmber : colors.border}
+                      />
+                    ))}
+                  </View>
+                  {!!review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+      </FullScreenSheet>
 
       <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
@@ -771,33 +768,6 @@ function createStyles(colors: ThemeColors) {
       height: 34,
       backgroundColor: 'rgba(255,255,255,0.18)',
     },
-    sectionBackRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginHorizontal: 16,
-      marginTop: 20,
-      marginBottom: 4,
-    },
-    sectionBackButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.inputBackground,
-    },
-    sectionBackTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.text,
-    },
-    aboutHeading: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: 6,
-    },
     aboutEditButton: {
       width: 28,
       height: 28,
@@ -854,25 +824,25 @@ function createStyles(colors: ThemeColors) {
       color: colors.accentAmber,
       marginTop: 4,
     },
-    contactRow: {
+    aboutContactRow: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.inputBackground,
-      borderRadius: 14,
-      padding: 12,
-      marginTop: 16,
-      gap: 10,
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 8,
+      gap: 12,
     },
-    contactAvatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+    aboutContactAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
       backgroundColor: colors.primaryGreen,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    contactAvatarText: {
-      fontSize: 15,
+    aboutContactAvatarText: {
+      fontSize: 18,
       fontWeight: '700',
       color: '#FFFFFF',
     },
@@ -923,43 +893,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 11,
       color: colors.secondaryText,
       marginTop: 2,
-    },
-    premiumCardWrap: {
-      marginHorizontal: 16,
-      marginTop: 16,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: 'rgba(26,107,46,0.15)',
-      backgroundColor: colors.card,
-      overflow: 'hidden',
-      shadowColor: '#1A6B2E',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 4,
-    },
-    premiumCardGradient: {
-      padding: 16,
-    },
-    premiumHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 14,
-    },
-    premiumIconCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.lightGreen,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    premiumHeaderText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.primaryGreen,
-      flex: 1,
     },
     seeAllWrap: {
       paddingHorizontal: 2,
