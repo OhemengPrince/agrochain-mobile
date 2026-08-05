@@ -259,6 +259,10 @@ export default function NotificationsScreen({ navigation }: { navigation?: any }
             navigation.navigate('EquipmentDetail', { equipmentId: notification.referenceId });
             break;
           case 'NEW_LISTING':
+          case 'NEW_ORDER':
+          case 'ORDER_SHIPPED':
+          case 'ORDER_COMPLETED':
+          case 'ORDER_CANCELLED':
             navigation.navigate('MarketplaceListingDetail', { listingId: notification.referenceId });
             break;
           case 'NEW_PRODUCE':
