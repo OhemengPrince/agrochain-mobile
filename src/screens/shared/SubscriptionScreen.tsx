@@ -130,9 +130,9 @@ export default function SubscriptionScreen({ navigation }: any) {
     try {
       setSubscribingPlan(plan);
       const response = await initiateSubscription(plan, cycle);
-      const { paymentUrl } = response.data;
-      if (!paymentUrl) throw new Error('No payment URL returned');
-      await Linking.openURL(paymentUrl);
+      const { authorizationUrl } = response.data;
+      if (!authorizationUrl) throw new Error('No payment URL returned');
+      await Linking.openURL(authorizationUrl);
     } catch (e) {
       Alert.alert('Error', 'Failed to initiate payment. Please try again.');
     } finally {
@@ -143,7 +143,7 @@ export default function SubscriptionScreen({ navigation }: any) {
   const handleCancel = () => {
     Alert.alert(
       'Cancel Subscription',
-      'No refund — subscription remains active until expiry.',
+      'No refund — active until expiry date.',
       [
         { text: 'Keep Subscription', style: 'cancel' },
         {

@@ -13,7 +13,7 @@ export interface Subscription {
 }
 
 export interface InitiateSubscriptionResponse {
-  paymentUrl: string;
+  authorizationUrl: string;
   reference?: string;
 }
 
