@@ -538,6 +538,7 @@ export type FarmerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  Subscription: undefined;
   BookingPayment: BookingPaymentParams;
   MarketplacePayment: MarketplacePaymentParams;
 };
@@ -572,6 +573,7 @@ export type OwnerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  Subscription: undefined;
   BookingPayment: BookingPaymentParams;
   MarketplacePayment: MarketplacePaymentParams;
 };
@@ -606,6 +608,7 @@ export type BuyerStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  Subscription: undefined;
   BookingPayment: BookingPaymentParams;
   MarketplacePayment: MarketplacePaymentParams;
 };
@@ -636,6 +639,7 @@ export type GeneralStackParamList = {
   Map: MapRouteParams;
   Withdrawal: undefined;
   TransactionHistory: undefined;
+  Subscription: undefined;
   BookingPayment: BookingPaymentParams;
   MarketplacePayment: MarketplacePaymentParams;
 };

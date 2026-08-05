@@ -291,7 +291,7 @@ export default function FarmerProfileScreen({ navigation }: Props) {
     {
       title: 'AgroChain Pro',
       items: [
-        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => showComingSoon('Subscriptions') },
+        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => navigation.navigate('Subscription') },
         { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
       ],
     },

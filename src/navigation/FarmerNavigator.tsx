@@ -32,6 +32,7 @@ import WithdrawalScreen from '../screens/shared/WithdrawalScreen';
 import TransactionHistoryScreen from '../screens/shared/TransactionHistoryScreen';
 import BookingPaymentScreen from '../screens/shared/BookingPaymentScreen';
 import MarketplacePaymentScreen from '../screens/shared/MarketplacePaymentScreen';
+import SubscriptionScreen from '../screens/shared/SubscriptionScreen';
 
 const Tab = createBottomTabNavigator<FarmerStackParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -112,6 +113,7 @@ function ProfileStack() {
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Withdrawal" component={WithdrawalScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FollowList" component={FollowListScreen} options={{ headerShown: false }} />
     </Stack.Navigator>

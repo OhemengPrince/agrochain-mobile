@@ -3,6 +3,7 @@
     "name": "agrochain-mobile",
     "slug": "agrochain-mobile",
     "version": "1.0.0",
+    "scheme": "agrochain",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
