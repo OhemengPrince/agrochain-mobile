@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, ActivityIndicator, Alert,
+  View, Text, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
-import { EarningsSummary, Transaction, getTransactions } from '../api/earningsApi';
+import { ThemeColors } from '../context/ThemeContext';
+import { EarningsSummary } from '../api/earningsApi';
 import { Booking, MarketplacePurchase, ProducePurchase, PurchaseStatus } from '../types';
 import { getMyBookings, getIncomingBookings } from '../api/bookingApi';
 import {
@@ -20,6 +21,7 @@ import {
   cancelProducePurchase,
 } from '../api/purchaseApi';
 import { formatDate } from '../utils/formatters';
+import FullScreenSheet from './FullScreenSheet';
 
 type UnifiedOrder = {
   id: string;
@@ -47,34 +49,41 @@ function toUnified(list: (MarketplacePurchase | ProducePurchase)[], kind: 'marke
 
 const GREEN = '#1A6B2E';
 
-const SUB_TABS = [
-  { key: 'Earnings', label: 'Earnings' },
-  { key: 'Bookings', label: 'Bookings' },
-  { key: 'Purchases', label: 'Purchases' },
-  { key: 'Sales', label: 'Sales' },
-  { key: 'Transactions', label: 'Transactions' },
+type DetailKey = 'Earnings' | 'Bookings' | 'Purchases' | 'Sales';
+
+const TILES: { key: DetailKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'Bookings', label: 'Bookings', icon: 'calendar-outline' },
+  { key: 'Earnings', label: 'Earnings', icon: 'cash-outline' },
+  { key: 'Purchases', label: 'Purchases', icon: 'storefront-outline' },
+  { key: 'Sales', label: 'Sales', icon: 'arrow-up-circle-outline' },
 ];
 
 interface Props {
+  visible: boolean;
+  onClose: () => void;
   earnings: EarningsSummary | null;
   onWithdraw: () => void;
   onViewAllTransactions: () => void;
 }
 
-export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransactions }: Props) {
+// Renders as two layers of FullScreenSheet (grid + per-section detail),
+// returned as top-level siblings rather than nested inside a parent
+// FullScreenSheet's ScrollView — nesting there would break the detail
+// sheets' full-screen positioning, since an absolutely-positioned child
+// inside scrollable content is bounded by that content's box, not the
+// viewport.
+export default function ActivitySubTabs({ visible, onClose, earnings, onWithdraw, onViewAllTransactions }: Props) {
   const { colors } = useTheme();
-  const [activeSubTab, setActiveSubTab] = useState('Earnings');
+  const styles = createStyles(colors);
+  const [activeDetail, setActiveDetail] = useState<DetailKey | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [incomingBookings, setIncomingBookings] = useState<Booking[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<UnifiedOrder[]>([]);
   const [sales, setSales] = useState<UnifiedOrder[]>([]);
   const [bookingsLoaded, setBookingsLoaded] = useState(false);
-  const [txLoaded, setTxLoaded] = useState(false);
   const [purchasesLoaded, setPurchasesLoaded] = useState(false);
   const [salesLoaded, setSalesLoaded] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [txLoading, setTxLoading] = useState(false);
   const [purchasesLoading, setPurchasesLoading] = useState(false);
   const [salesLoading, setSalesLoading] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
@@ -110,7 +119,11 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
   };
 
   useEffect(() => {
-    if (activeSubTab === 'Bookings' && !bookingsLoaded && !bookingsLoading) {
+    if (!visible) setActiveDetail(null);
+  }, [visible]);
+
+  useEffect(() => {
+    if (activeDetail === 'Bookings' && !bookingsLoaded && !bookingsLoading) {
       setBookingsLoading(true);
       Promise.all([getMyBookings(), getIncomingBookings()])
         .then(([mine, incoming]) => {
@@ -121,23 +134,13 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
         .catch(() => {})
         .finally(() => setBookingsLoading(false));
     }
-    if (activeSubTab === 'Purchases' && !purchasesLoaded && !purchasesLoading) {
+    if (activeDetail === 'Purchases' && !purchasesLoaded && !purchasesLoading) {
       loadPurchases();
     }
-    if (activeSubTab === 'Sales' && !salesLoaded && !salesLoading) {
+    if (activeDetail === 'Sales' && !salesLoaded && !salesLoading) {
       loadSales();
     }
-    if (activeSubTab === 'Transactions' && !txLoaded && !txLoading) {
-      setTxLoading(true);
-      getTransactions(0)
-        .then(r => {
-          setTransactions(r.data.content ?? []);
-          setTxLoaded(true);
-        })
-        .catch(() => {})
-        .finally(() => setTxLoading(false));
-    }
-  }, [activeSubTab]);
+  }, [activeDetail]);
 
   const handleConfirmReceipt = async (order: UnifiedOrder) => {
     setActioningId(order.id);
@@ -196,7 +199,7 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
 
   // ── Earnings ──────────────────────────────────────────────────────────────
   const renderEarnings = () => (
-    <View style={{ padding: 16 }}>
+    <View>
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
         <View style={{ flex: 1, alignItems: 'center', padding: 14, backgroundColor: '#FFF9E6', borderRadius: 14 }}>
           <Text style={{ color: '#FF8F00', fontSize: 11, marginBottom: 4, fontWeight: '600' }}>⏳ Pending</Text>
@@ -271,7 +274,7 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
       return <EmptyState icon="calendar-outline" message={`No bookings yet.\nBrowse equipment to make your first booking!`} />;
     }
     return (
-      <View style={{ padding: 16, gap: 10 }}>
+      <View style={{ gap: 10 }}>
         {allBookings.map(b => {
           const sc = statusColor(b.status);
           return (
@@ -309,7 +312,7 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
       return <EmptyState icon="storefront-outline" message={`No purchases yet.\nBrowse the marketplace to find great deals!`} />;
     }
     return (
-      <View style={{ padding: 16, gap: 10 }}>
+      <View style={{ gap: 10 }}>
         {purchases.map(o => {
           const sc = statusColor(o.status);
           const busy = actioningId === o.id;
@@ -373,7 +376,7 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
       return <EmptyState icon="arrow-up-circle-outline" message={`No sales yet.\nList your equipment or products to start earning!`} />;
     }
     return (
-      <View style={{ padding: 16, gap: 10 }}>
+      <View style={{ gap: 10 }}>
         {sales.map(o => {
           const sc = statusColor(o.status);
           const busy = actioningId === o.id;
@@ -419,99 +422,85 @@ export default function ActivitySubTabs({ earnings, onWithdraw, onViewAllTransac
     );
   };
 
-  // ── Transactions ──────────────────────────────────────────────────────────
-  const renderTransactions = () => {
-    if (txLoading) {
-      return <ActivityIndicator color={GREEN} style={{ marginVertical: 32 }} />;
-    }
-    const recent = transactions.slice(0, 10);
-    if (recent.length === 0) {
-      return <EmptyState icon="receipt-outline" message="No transactions yet." />;
-    }
-    return (
-      <View style={{ padding: 16, gap: 10 }}>
-        {recent.map(t => {
-          const isIncome = t.type?.includes('INCOME') || t.type?.includes('SALE');
-          return (
-            <View key={t.id} style={{ backgroundColor: colors.inputBackground, borderRadius: 12, padding: 14, borderWidth: 0.5, borderColor: colors.divider }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{
-                  width: 40, height: 40, borderRadius: 20,
-                  backgroundColor: isIncome ? '#E8F5E9' : '#FEE2E2',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Ionicons
-                    name={isIncome ? 'arrow-down' : 'arrow-up'}
-                    size={18}
-                    color={isIncome ? '#16A34A' : '#DC2626'}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
-                    {t.description}
-                  </Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(t.createdAt)}</Text>
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: isIncome ? '#16A34A' : '#DC2626' }}>
-                  {isIncome ? '+' : '-'}GHS {(isIncome ? t.netAmount : t.amount)?.toFixed(2)}
-                </Text>
-              </View>
-            </View>
-          );
-        })}
-        <Pressable
-          onPress={onViewAllTransactions}
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 4 }}
-        >
-          <Text style={{ fontSize: 13, color: GREEN, fontWeight: '700' }}>View All Transactions</Text>
-          <Ionicons name="arrow-forward" size={13} color={GREEN} />
-        </Pressable>
-      </View>
-    );
+  const DETAIL_CONTENT: Record<DetailKey, () => React.ReactNode> = {
+    Bookings: renderBookings,
+    Earnings: renderEarnings,
+    Purchases: renderPurchases,
+    Sales: renderSales,
+  };
+
+  const DETAIL_ICON: Record<DetailKey, keyof typeof Ionicons.glyphMap> = {
+    Bookings: 'calendar-outline',
+    Earnings: 'cash-outline',
+    Purchases: 'storefront-outline',
+    Sales: 'arrow-up-circle-outline',
   };
 
   return (
-    <View style={{
-      marginHorizontal: 16, marginTop: 16,
-      backgroundColor: colors.card,
-      borderRadius: 20, overflow: 'hidden',
-      borderWidth: 1.5, borderColor: 'rgba(26,107,46,0.15)',
-      shadowColor: '#1A6B2E', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1, shadowRadius: 10, elevation: 4,
-    }}>
-      {/* Sub-tab bar */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ borderBottomWidth: 1, borderBottomColor: colors.divider }}
+    <>
+      <FullScreenSheet
+        visible={visible && !activeDetail}
+        onClose={onClose}
+        title="Activity"
+        subtitle="Earnings, bookings & transaction history"
+        icon="pulse-outline"
       >
-        {SUB_TABS.map(tab => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setActiveSubTab(tab.key)}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 13,
-              borderBottomWidth: 2.5,
-              borderBottomColor: activeSubTab === tab.key ? GREEN : 'transparent',
-            }}
-          >
-            <Text style={{
-              color: activeSubTab === tab.key ? GREEN : colors.secondaryText,
-              fontWeight: activeSubTab === tab.key ? '700' : '400',
-              fontSize: 13,
-            }}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+        <View style={styles.tileRow}>
+          {TILES.map((tile) => (
+            <Pressable key={tile.key} style={styles.tile} onPress={() => setActiveDetail(tile.key)}>
+              <View style={styles.tileIconCircle}>
+                <Ionicons name={tile.icon} size={22} color={GREEN} />
+              </View>
+              <Text style={styles.tileLabel}>{tile.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </FullScreenSheet>
 
-      {activeSubTab === 'Earnings' && renderEarnings()}
-      {activeSubTab === 'Bookings' && renderBookings()}
-      {activeSubTab === 'Purchases' && renderPurchases()}
-      {activeSubTab === 'Sales' && renderSales()}
-      {activeSubTab === 'Transactions' && renderTransactions()}
-    </View>
+      {(Object.keys(DETAIL_CONTENT) as DetailKey[]).map((key) => (
+        <FullScreenSheet
+          key={key}
+          visible={visible && activeDetail === key}
+          onClose={() => setActiveDetail(null)}
+          title={key}
+          icon={DETAIL_ICON[key]}
+        >
+          {DETAIL_CONTENT[key]()}
+        </FullScreenSheet>
+      ))}
+    </>
   );
+}
+
+function createStyles(colors: ThemeColors) {
+  return {
+    tileRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      gap: 8,
+    },
+    tile: {
+      flex: 1,
+      alignItems: 'center' as const,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      paddingVertical: 14,
+      borderWidth: 1,
+      borderColor: colors.divider,
+    },
+    tileIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.lightGreen,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginBottom: 8,
+    },
+    tileLabel: {
+      fontSize: 12,
+      fontWeight: '700' as const,
+      color: colors.text,
+    },
+  };
 }

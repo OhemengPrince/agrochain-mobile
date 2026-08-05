@@ -509,19 +509,13 @@ export default function FarmerProfileScreen({ navigation }: Props) {
         </View>
       </FullScreenSheet>
 
-      <FullScreenSheet
+      <ActivitySubTabs
         visible={activeTab === 'Activity'}
         onClose={() => setActiveTab('Settings')}
-        title="Activity"
-        subtitle="Earnings, bookings & transaction history"
-        icon="pulse-outline"
-      >
-        <ActivitySubTabs
-          earnings={earnings}
-          onWithdraw={() => navigation.navigate('Withdrawal')}
-          onViewAllTransactions={() => navigation.navigate('TransactionHistory')}
-        />
-      </FullScreenSheet>
+        earnings={earnings}
+        onWithdraw={() => navigation.navigate('Withdrawal')}
+        onViewAllTransactions={() => navigation.navigate('TransactionHistory')}
+      />
 
       <FullScreenSheet
         visible={activeTab === 'Reviews'}
