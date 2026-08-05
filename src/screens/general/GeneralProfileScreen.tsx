@@ -261,13 +261,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
 
   const settingsSections: SettingsSection[] = [
     {
-      title: 'AgroChain Pro',
-      items: [
-        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => navigation.navigate('Subscription') },
-        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
-      ],
-    },
-    {
       title: 'Profile',
       items: [
         { icon: 'person-outline', label: 'About', onPress: () => setActiveTab('About') },
@@ -279,6 +272,8 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       title: 'Account',
       items: [
         { icon: 'lock-closed-outline', label: 'Change Password', onPress: () => setChangePasswordVisible(true) },
+        { icon: 'diamond-outline', label: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
+        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
       ],
     },
     {
