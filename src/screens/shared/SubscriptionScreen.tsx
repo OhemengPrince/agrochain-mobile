@@ -79,6 +79,8 @@ export default function SubscriptionScreen({ navigation }: any) {
   const [subscribingPlan, setSubscribingPlan] = useState<SubscriptionPlan | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
+  const [pendingReference, setPendingReference] = useState<string | null>(null);
 
   const loadSubscription = useCallback(async () => {
     try {
@@ -102,10 +104,12 @@ export default function SubscriptionScreen({ navigation }: any) {
     setVerifying(true);
     try {
       await verifySubscription(reference);
-      Alert.alert('Success', 'Your subscription has been activated!');
+      setAwaitingPayment(false);
+      setPendingReference(null);
+      Alert.alert('Success', 'Subscription activated successfully!');
       loadSubscription();
     } catch {
-      Alert.alert('Error', 'Could not verify your payment. If you were charged, please contact support.');
+      Alert.alert('Error', 'Failed to verify payment. Please contact support.');
     } finally {
       setVerifying(false);
     }
@@ -114,8 +118,10 @@ export default function SubscriptionScreen({ navigation }: any) {
   // Deep-link callback after the user completes checkout in the browser.
   useEffect(() => {
     const handleUrl = ({ url }: { url: string }) => {
-      const reference = extractReference(url);
-      if (reference) handleVerify(reference);
+      if (url.includes('/subscriptions/callback') || url.includes('reference=')) {
+        const reference = extractReference(url);
+        if (reference) handleVerify(reference);
+      }
     };
 
     const urlListener = Linking.addEventListener('url', handleUrl);
@@ -130,14 +136,31 @@ export default function SubscriptionScreen({ navigation }: any) {
     try {
       setSubscribingPlan(plan);
       const response = await initiateSubscription(plan, cycle);
-      const { authorizationUrl } = response.data;
+      const { authorizationUrl, reference } = response.data;
       if (!authorizationUrl) throw new Error('No payment URL returned');
+      if (reference) setPendingReference(reference);
+      setAwaitingPayment(true);
       await Linking.openURL(authorizationUrl);
     } catch (e) {
       Alert.alert('Error', 'Failed to initiate payment. Please try again.');
     } finally {
       setSubscribingPlan(null);
     }
+  };
+
+  // Fallback for when the Paystack redirect doesn't reliably reopen the app
+  // (common on some Android setups) — lets the user confirm payment by hand
+  // instead of being stuck on FREE with no way to recover.
+  const handleManualVerify = () => {
+    if (pendingReference) {
+      handleVerify(pendingReference);
+      return;
+    }
+    loadSubscription();
+    Alert.alert(
+      'Verify Payment',
+      "We couldn't find your payment reference automatically. If you completed checkout, please wait a moment and try again, or contact support if you were charged."
+    );
   };
 
   const handleCancel = () => {
@@ -240,6 +263,13 @@ export default function SubscriptionScreen({ navigation }: any) {
             <ActivityIndicator size="small" color={colors.primaryGreen} />
             <Text style={styles.verifyingText}>Verifying your payment…</Text>
           </View>
+        )}
+
+        {awaitingPayment && !verifying && (
+          <Pressable onPress={handleManualVerify} style={styles.manualVerifyButton}>
+            <Ionicons name="refresh" size={15} color={colors.primaryGreen} />
+            <Text style={styles.manualVerifyText}>Already paid? Tap to verify payment</Text>
+          </Pressable>
         )}
 
         {/* ── Billing toggle ── */}
@@ -373,6 +403,13 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.lightGreen, borderRadius: 12, padding: 12, marginBottom: 16,
     },
     verifyingText: { fontSize: 12, fontWeight: '600', color: colors.text },
+
+    manualVerifyButton: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      paddingVertical: 12, marginBottom: 16, borderRadius: 12,
+      borderWidth: 1, borderColor: colors.primaryGreen, borderStyle: 'dashed',
+    },
+    manualVerifyText: { fontSize: 13, fontWeight: '700', color: colors.primaryGreen },
 
     billingToggle: {
       flexDirection: 'row', backgroundColor: colors.inputBackground, borderRadius: 14,
