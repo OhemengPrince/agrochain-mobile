@@ -14,6 +14,8 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  Share,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +30,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../context/ThemeContext';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import LoadingOverlay from '../../components/LoadingOverlay';
-import ProfileDropdownMenu from '../../components/ProfileDropdownMenu';
+import ProfileSettingsList, { SettingsSection } from '../../components/ProfileSettingsList';
 import ProfileTabs from '../../components/ProfileTabs';
 import ActiveIndicator from '../../components/ActiveIndicator';
 import UserAvatar from '../../components/UserAvatar';
@@ -54,7 +56,7 @@ import { useHideTabBarWhen } from '../../hooks/useHideTabBarWhen';
 
 type Props = NativeStackScreenProps<GeneralStackParamList, 'GeneralProfileMain'>;
 
-const TABS = ['About', 'Activity', 'Reviews'];
+const TABS = ['About', 'Activity', 'Reviews', 'Settings'];
 
 function computeRatingBreakdown(reviews: UserReview[]): { stars: number; percentage: number; count: number }[] {
   const counts = [5, 4, 3, 2, 1].map((stars) => reviews.filter((r) => r.rating === stars).length);
@@ -71,7 +73,7 @@ const SPECIALTY = 'General Trading';
 
 export default function GeneralProfileScreen({ navigation }: Props) {
   const { user, logout, updateUser } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDarkMode, toggleDarkMode } = useTheme();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -87,7 +89,6 @@ export default function GeneralProfileScreen({ navigation }: Props) {
     setToastKey((k) => k + 1);
   };
 
-  const [dropdownVisible, setDropdownVisible] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [aboutText, setAboutText] = useState(BIO_TEXT);
@@ -157,8 +158,17 @@ export default function GeneralProfileScreen({ navigation }: Props) {
       !!reportPreview.report
   );
 
+  const showComingSoon = (feature: string) => {
+    Alert.alert(feature, `${feature} is coming soon.`);
+  };
+
+  const handleShareApp = () => {
+    Share.share({
+      message: 'Join me on AgroChain — buy, sell and rent farm equipment across Ghana. Download the app today!',
+    }).catch(() => {});
+  };
+
   const handleGeneratePdfReport = async () => {
-    setDropdownVisible(false);
     const prefs = await getExportPreferences();
     const mp = filterByDateRange(marketplacePurchases, (p) => p.createdAt, prefs.dateRange);
     const pp = filterByDateRange(producePurchases, (p) => p.createdAt, prefs.dateRange);
@@ -249,6 +259,58 @@ export default function GeneralProfileScreen({ navigation }: Props) {
   const styles = createStyles(colors);
   const hasPhotoUrl = !!user?.profilePhotoUrl?.startsWith?.('http');
 
+  const settingsSections: SettingsSection[] = [
+    {
+      title: 'AgroChain Pro',
+      items: [
+        { icon: 'diamond-outline', label: 'Subscribe', badge: 'NEW', onPress: () => showComingSoon('Subscriptions') },
+        { icon: 'card-outline', label: 'Payment Methods', onPress: () => showComingSoon('Payment Methods') },
+      ],
+    },
+    {
+      title: 'Account',
+      items: [
+        { icon: 'lock-closed-outline', label: 'Change Password', onPress: () => setChangePasswordVisible(true) },
+      ],
+    },
+    {
+      title: 'Orders',
+      items: [
+        { icon: 'pricetags-outline', label: 'My Listings', onPress: goToMyListings },
+        { icon: 'bar-chart-outline', label: 'Order History', onPress: () => setOrderHistoryVisible(true) },
+        { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => setCertificationsVisible(true) },
+        { icon: 'stats-chart-outline', label: 'Season Report', onPress: () => setSeasonReportVisible(true) },
+        { icon: 'globe-outline', label: 'Export Preferences', onPress: () => setExportPreferencesVisible(true) },
+        { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
+      ],
+    },
+    {
+      title: 'App',
+      items: [
+        {
+          icon: 'moon-outline',
+          label: 'Dark Mode',
+          right: <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ true: colors.primaryGreen }} />,
+        },
+        {
+          icon: 'notifications-outline',
+          label: 'Notifications',
+          right: <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ true: colors.primaryGreen }} />,
+        },
+        { icon: 'star-outline', label: 'Rate the App', onPress: () => setRateAppVisible(true) },
+        { icon: 'headset-outline', label: 'Contact Support', onPress: () => setContactSupportVisible(true) },
+        { icon: 'share-social-outline', label: 'Share AgroChain', onPress: handleShareApp },
+        {
+          icon: 'log-out-outline',
+          label: 'Log Out',
+          destructive: true,
+          onPress: handleLogout,
+          right: loggingOut ? <ActivityIndicator size="small" color={colors.errorRed} /> : undefined,
+        },
+      ],
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -275,7 +337,7 @@ export default function GeneralProfileScreen({ navigation }: Props) {
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.settingsIconButton} onPress={() => setDropdownVisible(true)}>
+              <TouchableOpacity style={styles.settingsIconButton} onPress={() => setActiveTab('Settings')}>
                 <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -493,34 +555,12 @@ export default function GeneralProfileScreen({ navigation }: Props) {
           </View>
         )}
 
+        {activeTab === 'Settings' && <ProfileSettingsList sections={settingsSections} />}
+
       </ScrollView>
       </KeyboardAvoidingView>
 
       <FloatToast message={toastMsg} type={toastType} toastKey={toastKey} />
-
-      <ProfileDropdownMenu
-        visible={dropdownVisible}
-        onClose={() => setDropdownVisible(false)}
-        notificationsEnabled={notificationsEnabled}
-        onToggleNotifications={setNotificationsEnabled}
-        onChangePassword={() => { setDropdownVisible(false); setChangePasswordVisible(true); }}
-        onRateApp={() => { setDropdownVisible(false); setRateAppVisible(true); }}
-        onContactSupport={() => { setDropdownVisible(false); setContactSupportVisible(true); }}
-        onLogout={handleLogout}
-        loggingOut={loggingOut}
-        extraItems={[
-          {
-            icon: 'pricetags-outline',
-            label: 'My Listings',
-            onPress: goToMyListings,
-          },
-          { icon: 'bar-chart-outline', label: 'Order History', onPress: () => { setDropdownVisible(false); setOrderHistoryVisible(true); } },
-          { icon: 'document-outline', label: 'My PDF Reports', onPress: handleGeneratePdfReport },
-          { icon: 'globe-outline', label: 'Export Preferences', onPress: () => { setDropdownVisible(false); setExportPreferencesVisible(true); } },
-          { icon: 'ribbon-outline', label: 'My Certifications', onPress: () => { setDropdownVisible(false); setCertificationsVisible(true); } },
-          { icon: 'stats-chart-outline', label: 'Season Report', onPress: () => { setDropdownVisible(false); setSeasonReportVisible(true); } },
-        ]}
-      />
 
       <ChangePasswordModal visible={changePasswordVisible} onClose={() => setChangePasswordVisible(false)} />
       <RateAppModal visible={rateAppVisible} onClose={() => setRateAppVisible(false)} />
